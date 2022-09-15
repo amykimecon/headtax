@@ -29,25 +29,96 @@ raw1901 <- read.spss(glue("{dbox}/census1901.sav")) %>% as.data.frame() # 5% sam
 raw1911 <- read.spss(glue("{dbox}/census1911.sav")) %>% as.data.frame() # 5% sample
 raw1921 <- read.spss(glue("{dbox}/census1921.sav")) %>% as.data.frame() # 4% sample
 
-
+# copied directly from https://libguides.southernct.edu/c.php?g=15048&p=81577
+us_chinese <- data.frame(YEAR = seq(1850,1920,10), 
+                         CHIPOP = c(4018, 34933, 64199, 105465, 107488, 118746, 94414, 85202),
+                         USPOP = c(23191876, 31443321, 38558371, 50189209, 62979766, 76212168, 92228496, 106021537))
 ########################################################################
 ### CLEANING DATA
 ########################################################################
-clean1881 <- raw1881 %>% group_by(birthplace_ccri) %>% summarize(n=n())
+# definitely want across all years: age, sex, marst, year, birthplace, occupation
+# want if can get: ethnicity, canread, unemp, earnings, yrimm
+
+# standardizing codes: MALE = 1[Male], MAR = 1[Married]
+clean1881 <- raw1881 %>% rename(BPL = birthplace_ccri, ETH = ethnicity_ccri, OCC = DOCCUP, OCCGRP = occgrp2, CLASSGRP = classgrp) %>%
+  mutate(MALE = case_when(SEX == "Female" ~ 0,
+                          SEX == "Male" ~ 1,
+                          TRUE ~ NA_real_),
+         MAR = case_when(MARST == "Married" ~ 1,
+                         MARST == "Unknown" ~ NA_real_,
+                         TRUE ~ 0),
+         NAPHISCOSTR = as.character(NAPHISCO)) %>% 
+  select(c(MALE, AGE, MAR, ETH, OCC, NAPHISCOSTR, OCCGRP, CLASSGRP, BPL)) %>% 
+  mutate(YEAR = 1881, BPLCHI = ifelse(BPL == "China",1,0), ETHCHI = ifelse(ETH == "Chinese", 1, 0), WEIGHT = 1)
   
-clean1891 <- raw1891 %>% mutate(weight = case_when(samplesize == 5 ~ 20,
+clean1891 <- raw1891 %>% mutate(WEIGHT = case_when(samplesize == 5 ~ 20,
                                                    samplesize == 10 ~ 10,
                                                    samplesize == 100 ~ 1),
-                                immchina = ifelse(bplcode == 50000)) %>%
-  group_by(bplcode) %>% summarize(n = sum(weight))
+                                BPLCHI = ifelse(bplcode == 50000, 1, 0),
+                                MALE = case_when(SEX == "M  " ~ 1,
+                                                 SEX == "F  " ~ 0,
+                                                 TRUE ~ NA_real_),
+                                MAR = case_when(MARST == "married" ~ 1,
+                                                MARST == "single" | MARST == "Divorced" | MARST == "W" ~ 0,
+                                                TRUE ~ NA_real_),
+                                CANREAD = ifelse(CANREAD == "Yes, can read", 1, 0)) %>%
+  select(-c(AGE)) %>%
+  rename(NAPHISCO = NappHisco, AGE = agecode) %>%
+  select(c(MALE, AGE, MAR, CANREAD, BPL, BPLCHI, UNEMP, NAPHISCO)) %>%
+  mutate(YEAR = 1891)
 
-clean1901 <- raw1901 %>% group_by(bpl) %>% summarize(n = n()*20)
+clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr, YRIMM = immyr, PROPOWNR = propownr, NATL = natl, OCC = occ, 
+                                OCCGRP = occ2, EARN = earnings, CANREAD = canread) %>%
+  mutate(BPLCHI = ifelse(bpl2 == 50000, 1, 0),
+         MALE = case_when(SEX == "Male" ~ 1,
+                          SEX == "Female" ~ 0,
+                          TRUE ~ NA_real_),
+         MAR = case_when(MARST == "Married" ~ 1,
+                         MARST == "Single" | MARST == "Widowed" | MARST == "Divorced" ~ 0,
+                         TRUE ~ NA_real_),
+         CANREAD = case_when(CANREAD == "Yes" ~ 1,
+                             CANREAD == "No" ~ 0,
+                             TRUE ~ NA_real_),
+         PROPOWNR = ifelse(PROPOWNR == "Yes", 1, 0),
+         YRIMM = as.numeric(YRIMM)) %>%
+  select(c(MALE, AGE, BPL, BPLCHI, MAR, YRIMM, PROPOWNR, NATL, OCC, OCCGRP, EARN, CANREAD)) %>%
+  mutate(YEAR = 1901, WEIGHT = 20)
 
-clean1911 <- raw1911 %>% group_by(INDIVIDUAL_BIRTH_COUNTRY) %>% summarize(n = n()*20)
+clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM = YEAR_OF_IMMIGRATION, BPL = INDIVIDUAL_BIRTH_COUNTRY, NATL = NATIONALITY,
+                                CANREAD = CAN_READ_INDICATOR, OCC = OCCUPATION_CHIEF_OCC_IND) %>%
+  mutate(EARN = ifelse(grepl("[0-9]+", EARNINGS_AT_CHIEF_OCC), as.numeric(as.character(EARNINGS_AT_CHIEF_OCC)), 0) + 
+           ifelse(grepl("[0-9]+", EARNINGS_AT_OTHER_OCC), as.numeric(as.character(EARNINGS_AT_OTHER_OCC)), 0),
+         MALE = case_when(SEX == "Male" ~ 1,
+                          SEX == "Female" ~ 0,
+                          TRUE ~ NA_real_),
+         MAR = case_when(MARST == "Married" ~ 1,
+                         MARST == "Single" | MARST == "Widowed" ~ 0,
+                         TRUE ~ NA_real_),
+         CANREAD = case_when(CANREAD == "Yes" ~ 1,
+                             CANREAD == "No" ~ 0,
+                             TRUE ~ NA_real_)) %>%
+  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, EARN)) %>% 
+  mutate(YEAR = 1911, WEIGHT = 20, BPLCHINA = ifelse(BPL == "China", 1, 0))
 
-clean1921 <- raw1921 %>% group_by(INDIVIDUAL_BIRTH_COUNTRY) %>% summarize(n = n()*20)
+clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STATUS, YRIMM = YEAR_OF_IMMIGRATION, BPL = INDIVIDUAL_BIRTH_COUNTRY, NATL = NATIONALITY,
+                               CANREAD = CAN_READ_INDICATOR, OCC = CHIEFOCCUP) %>%
+  mutate(EARN = ifelse(grepl("[0-9]+", ANNUAL_EARNING_AMOUNT), as.numeric(as.character(ANNUAL_EARNING_AMOUNT)), 0),
+         MALE = case_when(SEX == "Male" ~ 1,
+                          SEX == "Female" ~ 0,
+                          TRUE ~ NA_real_),
+         MAR = case_when(MARST == "Married" ~ 1,
+                         MARST == "Single" | MARST == "Widowed" | MARST == "Divorced" ~ 0,
+                         TRUE ~ NA_real_),
+         CANREAD = case_when(CANREAD == "Yes" ~ 1,
+                             CANREAD == "No" ~ 0,
+                             TRUE ~ NA_real_)) %>%
+  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, EARN)) %>% 
+  mutate(YEAR = 1921, WEIGHT = 25, BPLCHINA = ifelse(BPL == "China", 1, 0))
 
-
+# binding all years and cleaning together
+clean_all <- bind_rows(clean1881, clean1891) %>% bind_rows(clean1901) %>%
+  bind_rows(clean1911) %>% bind_rows(clean1921) %>%
+  mutate(AGE = ifelse(AGE > 200, NA, AGE))
 
 
 
