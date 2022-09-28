@@ -3,13 +3,13 @@
 ### PRIMARY OBJECTIVE: Seeing what is available and reliable, initial patterns in data
 ### CREATED BY: Amy Kim
 ### CREATED ON: Aug 7 2022 
-### LAST MODIFIED: Sep 13 2022
+### LAST MODIFIED: Sep 27 2022
 ########################################################################
+library(Hmisc)
 library(tidyverse)
 library(glue)
 library(foreign)
 library(ggpubr)
-library(Hmisc)
 
 ########################################################################
 ### DEFINING PATHS
@@ -31,20 +31,18 @@ raw1901 <- read.spss(glue("{dbox}/census1901.sav")) %>% as.data.frame() # 5% sam
 raw1911 <- read.spss(glue("{dbox}/census1911.sav")) %>% as.data.frame() # 5% sample
 raw1921 <- read.spss(glue("{dbox}/census1921.sav")) %>% as.data.frame() # 4% sample
 
-# copied directly from https://libguides.southernct.edu/c.php?g=15048&p=81577
-us_chinese <- data.frame(YEAR = seq(1850,1920,10), 
-                         CHIPOP = c(4018, 34933, 64199, 105465, 107488, 118746, 94414, 85202),
-                         USPOP = c(23191876, 31443321, 38558371, 50189209, 62979766, 76212168, 92228496, 106021537))
-ggplot(mutate(us_chinese, CHIPCT = CHIPOP/USPOP), aes(x = YEAR, y = CHIPCT)) + geom_line()
-
 ########################################################################
 ### CLEANING DATA
 ########################################################################
-# definitely want across all years: age, sex, marst, year, birthplace, occupation
-# want if can get: ethnicity, canread, unemp, earnings, yrimm
+## BASE VARIABLES: LASTNAME, FIRSTNAME, MALE = 1[Male], MAR = 1[Married], SIN = 1[Single (Never Married)], AGE, BPL, OCC
+## ADDITIONAL VARIABLES: ETH, CANREAD, UNEMP, EARN, YRIMM, HOUSEOWN
+## ADD: YEAR
+## GROUP/CLEAN: OCCUPATION, BPLCHI, BPL[OTHER], ETHCHI, ETH[OTHER]
 
-# standardizing codes: MALE = 1[Male], MAR = 1[Married]
-clean1881 <- raw1881 %>% rename(BPL = birthplace_ccri, ETH = ethnicity_ccri, OCC = DOCCUP, OCCGRP = occgrp2, CLASSGRP = classgrp) %>%
+
+#### 1881 DATA ####
+clean1881 <- raw1881 %>% rename(BPL = birthplace_ccri, ETH = ethnicity_ccri, OCC = DOCCUP, OCCGRP = occgrp2, 
+                                CLASSGRP = classgrp, LASTNAME = NAMLAST, FIRSTNAME = NAMFRST) %>%
   mutate(MALE = case_when(SEX == "Female" ~ 0,
                           SEX == "Male" ~ 1,
                           TRUE ~ NA_real_),
@@ -58,7 +56,7 @@ clean1881 <- raw1881 %>% rename(BPL = birthplace_ccri, ETH = ethnicity_ccri, OCC
                             OCCGRP == "Labourer" | OCCGRP == "Servant" ~ "Unskilled",
                             OCCGRP == "Farmer" ~ "Unskilled",
                             TRUE ~ NA_character_)) %>% 
-  select(c(MALE, AGE, MAR, ETH, OCC, NAPHISCOSTR, OCCGRP, BPL, IMM)) %>% 
+  select(c(MALE, AGE, MAR, ETH, OCC, NAPHISCOSTR, OCCGRP, BPL, IMM, LASTNAME, FIRSTNAME)) %>% 
   mutate(YEAR = 1881, BPLCHI = ifelse(str_detect(BPL, "China"),1,0), BPLRUS = ifelse(str_detect(BPL, "Russia"), 1, 0), 
          BPLFRA = ifelse(str_detect(BPL, "France"), 1, 0), 
          BPLGER = ifelse(str_detect(BPL, "Germany"), 1, 0),
@@ -90,12 +88,12 @@ clean1891 <- raw1891 %>% mutate(WEIGHT = case_when(samplesize == 5 ~ 20,
                                                    occ50 >= 300 & occ50 < 700 ~ "Skilled",
                                                    TRUE ~ NA_character_)) %>%
   select(-c(AGE)) %>%
-  rename(NAPHISCO = NappHisco, AGE = agecode) %>%
-  select(c(MALE, AGE, MAR, CANREAD, starts_with("BPL"), BPLRUS, UNEMP, OCCGRP, WEIGHT, IMM)) %>%
+  rename(NAPHISCO = NappHisco, AGE = agecode, LASTNAME = NAMELAST, FIRSTNAME = NAMEFIRST) %>%
+  select(c(MALE, AGE, MAR, CANREAD, starts_with("BPL"), BPLRUS, UNEMP, OCCGRP, WEIGHT, IMM, LASTNAME, FIRSTNAME)) %>%
   mutate(YEAR = 1891)
 
 clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr, YRIMM = immyr, PROPOWNR = propownr, NATL = natl, OCC = occ, 
-                                EARN = earnings, CANREAD = canread) %>%
+                                EARN = earnings, CANREAD = canread, LASTNAME = indlnm, FIRSTNAME = indfnm) %>%
   mutate(BPLCHI = ifelse(bpl2 == 50000, 1, 0),
          BPLRUS = ifelse(str_detect(BPL, "RUS"), 1, 0),
          BPLFRA = ifelse(str_detect(BPL, "FRA"), 1, 0),
@@ -119,13 +117,13 @@ clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr
                             OCCSTR >= 40 & OCCSTR <= 70 ~ "Skilled",
                             OCCSTR < 40 ~ "Skilled",
                             TRUE ~ NA_character_)) %>%
-  select(c(MALE, AGE, starts_with("BPL"), MAR, YRIMM, PROPOWNR, NATL, OCCGRP, EARN, CANREAD, IMM)) %>%
+  select(c(MALE, AGE, starts_with("BPL"), MAR, YRIMM, PROPOWNR, NATL, OCCGRP, EARN, CANREAD, IMM, FIRSTNAME, LASTNAME)) %>%
   mutate(YEAR = 1901, WEIGHT = 20)
 
 bplcanadastrings <- "(Ontario)|(Quebec)|(Nova Scotia)|(New Brunswick)|(Manitoba)|(Saskatchewan)|(Prince Edward Island)|(British Columbia)|(Alberta)|(Canada)|(Newfoundland)|(Northwest Territories)|(Yukon)|(Cape Breton)|(Labrador)"
 
 clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM = YEAR_OF_IMMIGRATION, BPL = INDIVIDUAL_BIRTH_COUNTRY, NATL = NATIONALITY,
-                                CANREAD = CAN_READ_INDICATOR, OCC = OCCUPATION_CHIEF_OCC_IND) %>%
+                                CANREAD = CAN_READ_INDICATOR, OCC = OCCUPATION_CHIEF_OCC_IND, FIRSTNAME = FIRST_NAME, LASTNAME = LAST_NAME) %>%
   mutate(EARN = ifelse(grepl("[0-9]+", EARNINGS_AT_CHIEF_OCC), as.numeric(as.character(EARNINGS_AT_CHIEF_OCC)), 0) + 
            ifelse(grepl("[0-9]+", EARNINGS_AT_OTHER_OCC), as.numeric(as.character(EARNINGS_AT_OTHER_OCC)), 0),
          MALE = case_when(SEX == "Male" ~ 1,
@@ -147,13 +145,13 @@ clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM 
                             occ1 == "Agriculture" | occ1 == "Forestry and lumbering" | occ1 == "Mining" | occ1 == "Fisheries and hunting" | occ1 == "Building trades" | occ1 == "Transportation" | str_starts(occ1, "Domestic")~ "Unskilled",
                             str_starts(occ1, "Manufactures") | occ1 == "Trade and Merchandising" ~ "Skilled",
                             occ1 == "Civil and municipal service" | occ1 == "Professional pursuits" ~ "Skilled")) %>%
-  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM)) %>% 
+  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, FIRSTNAME, LASTNAME)) %>% 
   mutate(YEAR = 1911, BPLCHI = ifelse(BPL == "China", 1, 0), BPLRUS = ifelse(BPL == "Russia", 1, 0),
          BPLFRA = ifelse(BPL == "France", 1, 0), BPLGER = ifelse(BPL == "Germany", 1, 0),
          BPLJAP = ifelse(BPL == "Japan", 1, 0), BPLIND = ifelse(BPL == "India", 1, 0))
 
 clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STATUS, YRIMM = YEAR_OF_IMMIGRATION, BPL = INDIVIDUAL_BIRTH_COUNTRY, NATL = NATIONALITY,
-                               CANREAD = CAN_READ_INDICATOR, OCC = CHIEFOCCUP) %>%
+                               CANREAD = CAN_READ_INDICATOR, OCC = CHIEFOCCUP, FIRSTNAME = FIRST_NAME, LASTNAME = LAST_NAME) %>%
   mutate(EARN = ifelse(grepl("[0-9]+", ANNUAL_EARNING_AMOUNT), as.numeric(as.character(ANNUAL_EARNING_AMOUNT)), 0),
          MALE = case_when(SEX == "Male" ~ 1,
                           SEX == "Female" ~ 0,
@@ -171,7 +169,7 @@ clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STAT
          IMM = ifelse(str_detect(BPL, bplcanadastrings), 0, 1),
          OCCGRP = case_when(str_detect(CHIEF_OCCUPATION, "Farm") | str_detect(CHIEF_OCCUPATION, "Labor") | str_detect(CHIEF_OCCUPATION, "Mine") | CHIEF_OCCUPATION == "Private household workers (n.e.c.)" | str_detect(CHIEF_OCCUPATION, "Lumbermen") | CHIEF_OCCUPATION == "Carpenters" | CHIEF_OCCUPATION == "Machinists" | CHIEF_OCCUPATION == "Housekeepers, private household" | CHIEF_OCCUPATION == "Fishermen and oystermen" ~ "Unskilled",
                             CHIEF_OCCUPATION != "Blank" & CHIEF_OCCUPATION != "Unemployed/ without occupation" ~ "Skilled")) %>%
-  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM)) %>% 
+  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, FIRSTNAME, LASTNAME)) %>% 
   mutate(YEAR = 1921, BPLCHI = ifelse(BPL == "China", 1, 0), BPLRUS = ifelse(BPL == "Russia", 1, 0),
          BPLFRA = ifelse(BPL == "France", 1, 0), BPLGER = ifelse(BPL == "Germany", 1, 0),
          BPLJAP = ifelse(BPL == "Japan", 1, 0), BPLIND = ifelse(BPL == "India", 1, 0))
@@ -184,14 +182,39 @@ clean_all <- bind_rows(clean1881, clean1891) %>% bind_rows(clean1901) %>%
 clean_imm <- clean_all %>% filter(IMM == 1)
 clean_chi <- clean_all %>% filter(BPLCHI == 1)
 
+#### IMPUTING RACE/ETHNICITY FROM NAME FOR 1852 AND 1871 DATA ####
+## using predictrace package
+library(predictrace)
+chineselastnames <- predict_race(unique(str_remove(str_extract(clean_chi$LASTNAME, "^[A-z]+ "), " $")))
+chineselastnames2 <- predict_ethnicity(lastnames = na.omit(unique(str_remove(str_extract(clean_chi$LASTNAME, "^[A-z]+ "), " $"))), method = "lastname")
+
+chinesefirstnames <- predict_race(unique(str_remove(str_extract(clean_chi$FIRSTNAME, "^[A-z]+ "), " $")), surname = FALSE)
+
+clean1852 <- raw1852 %>% mutate(firstname = str_remove(str_extract(namfrst, "^[A-z]+ "), " $"),
+                                lastname = str_remove(namlast, "\\s+$"),
+                                firstname_predrace = predict_race(firstname, surname = FALSE)$likely_race,
+                                lastname_predrace = predict_race(lastname)$likely_race,
+                                predasian = ifelse(firstname_predrace == "asian" & lastname_predrace == "asian", 1, 0),
+                                predchi = ifelse((str_to_lower(lastname) %in% str_to_lower(chineselastnames)) & nchar(lastname) > 1 & lastname_predrace == "asian", 1, 0))
+
 ########################################################################
 ### AGGREGATION & OUTPUTS
 ########################################################################
-summ_stats_all <- clean_all %>% 
-  summarize(across(c(MALE), .fns = c(weighted.mean(w = WEIGHT, na.rm=TRUE), sqrt(wtd.var(weights = WEIGHT, na.rm=TRUE)))))
+summ_stats_all <- clean_all %>% group_by(1) %>%
+  dplyr::summarize(across(c(MALE, MAR, CANREAD, AGE, EARN, YRIMM), .fns = c(~ weighted.mean(x = .x, w = WEIGHT, na.rm=TRUE), ~ sqrt(wtd.var(x = .x, weights = WEIGHT, na.rm=TRUE)))),
+                   n = n())
+
+summ_stats_imm <- clean_imm %>% group_by(1) %>%
+  dplyr::summarize(across(c(MALE, MAR, CANREAD, AGE, EARN, YRIMM), .fns = c(~ weighted.mean(x = .x, w = WEIGHT, na.rm=TRUE), ~ sqrt(wtd.var(x = .x, weights = WEIGHT, na.rm=TRUE)))),
+                   n = n())
+
+summ_stats_chi <- clean_chi %>% group_by(1) %>%
+  dplyr::summarize(across(c(MALE, MAR, CANREAD, AGE, EARN, YRIMM), .fns = c(~ weighted.mean(x = .x, w = WEIGHT, na.rm=TRUE), ~ sqrt(wtd.var(x = .x, weights = WEIGHT, na.rm=TRUE)))),
+                   n = n())
+
 
 grouped_years <- clean_all %>% group_by(YEAR) %>% filter(IMM == 1) %>%
-  summarize(CHIPOP = sum(BPLCHI * WEIGHT, na.rm=TRUE), IMMPOP = sum(WEIGHT, na.rm=TRUE), CHIPCT = CHIPOP/IMMPOP,
+  dplyr::summarize(CHIPOP = sum(BPLCHI * WEIGHT, na.rm=TRUE), IMMPOP = sum(WEIGHT, na.rm=TRUE), CHIPCT = CHIPOP/IMMPOP,
             RUSPOP = sum(BPLRUS * WEIGHT, na.rm=TRUE), RUSPCT = RUSPOP/IMMPOP,
             FRAPOP = sum(BPLFRA * WEIGHT, na.rm=TRUE), FRAPCT = FRAPOP/IMMPOP,
             GERPOP = sum(BPLGER * WEIGHT, na.rm=TRUE), GERPCT = GERPOP/IMMPOP,
@@ -203,12 +226,11 @@ grouped_years <- clean_all %>% group_by(YEAR) %>% filter(IMM == 1) %>%
   filter(IMMGRP != "GER" & IMMGRP != "RUS")
 
 immigpct <- ggplot(data = grouped_years, aes(x = YEAR, y = PCT * 100, color = IMMGRP)) + geom_line() +
-  labs(x = "Year", y = "Immigrant Group as % of Total Immigrants", color = "Birthplace") +
-  ggtitle("Percentage of Canadian Immigrants from Various Countries Over Time")
-ggsave(glue("{git}/figs/immigpct.png"),immigpct, height = 6, width = 8)
+  labs(x = "Year", y = "Immigrant Group as % of Total Immigrants", color = "Birthplace")
+ggsave(glue("{git}/figs/immigpct.png"),immigpct, height = 4, width = 6)
 
 occ_years <- clean_all %>% group_by(YEAR, OCCGRP) %>% filter(IMM == 1 & MALE == 1 & AGE >= 18) %>%
-  summarize(CHIPOP = sum(BPLCHI * WEIGHT, na.rm=TRUE), IMMPOP = sum(WEIGHT, na.rm=TRUE)) %>%
+  dplyr::summarize(CHIPOP = sum(BPLCHI * WEIGHT, na.rm=TRUE), IMMPOP = sum(WEIGHT, na.rm=TRUE)) %>%
   filter(!is.na(OCCGRP)) %>%
   group_by(YEAR) %>% mutate(UNSKILLEDCHI = CHIPOP/sum(CHIPOP), UNSKILLEDIMM = IMMPOP/sum(IMMPOP)) %>% filter(OCCGRP != "Skilled") %>%
   ungroup() %>%
@@ -218,18 +240,26 @@ occ_years <- clean_all %>% group_by(YEAR, OCCGRP) %>% filter(IMM == 1 & MALE == 
 
 # %>% pivot_wider(names_from = YEAR, values_from = c(CHIPOP, IMMPOP))
 
-immigoccs <- ggplot(occ_years, aes(x = YEAR, y = UNSKILLED*100, color = IMMGRP)) + geom_line() + labs(x = "Year", y = "% of Group Unskilled", color = "Group") +
-  ggtitle("Unskilled Workers as a Percentage of All Adult Men for Chinese vs. All Immigrants")
-ggsave(glue("{git}/figs/immigocs.png"),immigoccs, height = 6, width = 8)
+immigoccs <- ggplot(occ_years, aes(x = YEAR, y = UNSKILLED*100, color = IMMGRP)) + geom_line() + labs(x = "Year", y = "% of Group Unskilled", color = "Group")
+ggsave(glue("{git}/figs/immigocs.png"),immigoccs, height = 4, width = 6)
 
 # immigrant males over 18
-grouped_years_imm <- clean_all %>% filter(YEAR > 1900 & IMM == 1, AGE >= 18, MALE == 1) %>%
-  group_by(YEAR, YRIMM) %>% summarize(CHIPOP = sum(BPLCHI * WEIGHT, na.rm=TRUE), IMMPOP = sum(WEIGHT, na.rm=TRUE), CHIIMMPCT = CHIPOP/IMMPOP,
+grouped_years_imm <- clean_all %>% filter(YEAR > 1900 & IMM == 1) %>%
+  group_by(YEAR, YRIMM) %>% dplyr::summarize(CHIPOP = sum(BPLCHI * WEIGHT, na.rm=TRUE), IMMPOP = sum(WEIGHT, na.rm=TRUE), CHIIMMPCT = CHIPOP/IMMPOP,
                                       CHIEARN = weighted.mean(EARN, WEIGHT*BPLCHI, na.rm=TRUE), IMMEARN = weighted.mean(EARN, WEIGHT, na.rm=TRUE),
                                       EARNRATIO = CHIEARN/IMMEARN)
 
-ggplot(data = filter(grouped_years_imm, YRIMM > 1880), aes(x = YRIMM, y = CHIIMMPCT*100, color = factor(YEAR))) + geom_line()
-ggplot(data = filter(grouped_years_imm, YRIMM > 1880), aes(x = YRIMM, y = EARNRATIO, color = factor(YEAR))) + geom_line()
+yrimmpct <- ggplot(data = filter(grouped_years_imm, YRIMM > 1880), aes(x = YRIMM, y = CHIIMMPCT*100, color = factor(YEAR))) + geom_line() +
+  labs(x = "Year of Immigration", y = "Chinese Immigrants as % of Total Immigrants", color = "Census Year")
+ggsave(glue("{git}/figs/yrimmpct.png"), yrimmpct, height = 4, width = 6)
+
+
+
+grouped_years_earn <- clean_all %>% filter(YEAR > 1900 & IMM == 1, AGE >= 18, MALE == 1 & EARN > 0) %>%
+  group_by(YEAR, YRIMM) %>% dplyr::summarize(CHIPOP = sum(BPLCHI * WEIGHT, na.rm=TRUE), IMMPOP = sum(WEIGHT, na.rm=TRUE), CHIIMMPCT = CHIPOP/IMMPOP,
+                                             CHIEARN = weighted.mean(EARN, WEIGHT*BPLCHI, na.rm=TRUE), IMMEARN = weighted.mean(EARN, WEIGHT, na.rm=TRUE),
+                                             EARNRATIO = CHIEARN/IMMEARN)
+ggplot(data = filter(grouped_years_imm, YRIMM > 1880), aes(x = YRIMM, y = CHIEARN, color = factor(YEAR))) + geom_line()
 
 
 ggplot(data = grouped_years, aes(x = YEAR)) + geom_line(aes(y = CHIEARN))
@@ -275,7 +305,7 @@ histgroup <- histclean %>% group_by(YEAR, COUNTRY) %>%
          IMMPOP = sum(IMM * PERWT, na.rm=TRUE),
          CHINESEPCT = sum(CHINESE*PERWT, na.rm=TRUE)/POP,
          BPLCHINAPCT = sum(BPLCHINA*PERWT, na.rm=TRUE)/IMMPOP) %>%
-  summarize(across(c(CHINESEPCT, BPLCHINAPCT), mean))
+  dplyr::summarize(across(c(CHINESEPCT, BPLCHINAPCT), mean))
 
 histgroupocc <- histclean %>% filter(!is.na(OCCGRP)) %>%
   group_by(YEAR, COUNTRY, OCCGRP) %>%
@@ -284,7 +314,7 @@ histgroupocc <- histclean %>% filter(!is.na(OCCGRP)) %>%
          CHINESEPCT = sum(CHINESE*PERWT, na.rm=TRUE)/POP,
          BPLCHINA = sum(BPLCHINA*PERWT, na.rm=TRUE),
          BPLCHINAPCT = BPLCHINA/IMMPOP) %>%
-  summarize(across(c(CHINESEPCT, BPLCHINAPCT, BPLCHINA, IMMPOP), mean))
+  dplyr::summarize(across(c(CHINESEPCT, BPLCHINAPCT, BPLCHINA, IMMPOP), mean))
 
 ipums_chinapop <- ggplot(histgroup, aes(x = YEAR, y = BPLCHINAPCT, color = factor(COUNTRY)))+ geom_line()
 ggplot(histgroupocc, aes(x = YEAR, y = BPLCHINAPCT, color = factor(OCCGRP)))+ geom_line()
@@ -318,7 +348,7 @@ ggplot(histgroupocc, aes(x = YEAR, y = BPLCHINA, color = factor(OCCGRP)))+ geom_
 # contempincwage <- contempclean %>% filter(ASIAN == 1|WHITE == 1) %>% 
 #   filter(EMPSTAT == 1) %>%
 #   group_by(YEAR, COUNTRY, RACE) %>%
-#   summarize(INCTOT = weighted.mean(INCTOT, PERWT, na.rm=TRUE))
+#   dplyr::summarize(INCTOT = weighted.mean(INCTOT, PERWT, na.rm=TRUE))
 # 
 # contempincwageeduc <- contempclean %>% filter(ASIAN == 1|WHITE == 1) %>% 
 #   filter(EMPSTAT == 1) %>%
@@ -328,7 +358,7 @@ ggplot(histgroupocc, aes(x = YEAR, y = BPLCHINA, color = factor(OCCGRP)))+ geom_
 #                           WHITE == 1 ~ "White",
 #                           TRUE ~ "Unknown")) %>%
 #   group_by(YEAR, COUNTRY, RACE) %>%
-#   summarize(INCWAGE = weighted.mean(INCWAGE, PERWT, na.rm=TRUE))
+#   dplyr::summarize(INCWAGE = weighted.mean(INCWAGE, PERWT, na.rm=TRUE))
 # 
 # # inc over time
 # ggplot(contempincwage, aes(x = YEAR, y = INCTOT, color = RACE)) + geom_line() + facet_wrap(~COUNTRY)
