@@ -3,7 +3,7 @@
 ### PRIMARY OBJECTIVE: Standardizing Primary Variables, Creating Single Multi-Year Dataframe
 ### CREATED BY: Amy Kim
 ### CREATED ON: Sep 29 2022
-### LAST MODIFIED: Sep 29 2022
+### LAST MODIFIED: Oct 5 2022
 ########################################################################
 library(Hmisc)
 library(tidyverse)
@@ -197,3 +197,6 @@ clean_chi <- clean_all %>% filter(BPLCHI == 1)
 #                                 predchi = ifelse((str_to_lower(lastname) %in% str_to_lower(chineselastnames)) & nchar(lastname) > 1 & lastname_predrace == "asian", 1, 0))
 
 write_csv(clean_all, glue("{dbox}/cleaned/census_all.csv"))
+write_csv(clean_chi, glue("{dbox}/cleaned/census_chi.csv"))
+
+
