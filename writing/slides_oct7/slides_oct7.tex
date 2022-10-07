@@ -2,7 +2,9 @@
 \setbeamertemplate{footline}[frame number]
 \setbeamertemplate{section in toc}[sections numbered]
 \usepackage{graphicx}
-\mode<presentation>{}
+\mode<presentation>{
+    \setbeamertemplate{page number in head/foot}[appendixframenumber]
+}
 
 \title{The Chinese Head Tax and Chinese Immigration to Canada}
 \author{Amy Kim}
@@ -87,6 +89,17 @@
     \end{itemize}
 \end{frame}
 
+\begin{frame}
+	\frametitle{Summary Statistics}
+	\begin{table}[H]
+        \centering 
+		\resizebox{\textwidth}{!}{
+            \input{../../figs/summstats.tex}
+		}
+	\end{table}  
+\end{frame}
+
+
 % INITIAL DESCRIPTIVES
 \section{Initial Descriptives}
 \subsection{Immigration in Response to Head Tax}
@@ -130,45 +143,14 @@
 \end{frame}
 
 \subsection{Decomposing Chinese Immigration}
-
-\begin{frame}{Summary Statistics}
-    ADD CHINESE REGISTRY SUMM STATS IN NEW COLUMN
-    \centering
-    \resizebox{0.6\textwidth}{!}{
-    \begin{tabular}[]{c|ccc}
-        \hline
-                & All       & Imm       & Chi \\
-        \hline 
-                &\multicolumn{3}{c}{1881-1921} \\
-        \hline 
-        MALE    & 0.52      & 0.57      & 0.97 \\
-                & (0.50)    & (0.50)    & (0.16) \\
-        MARRIED & 0.354     & 0.54      & 0.51 \\
-                & (0.48)    & (0.50)    & (0.50) \\
-        AGE     & 26.0      & 36.2      & 34.6 \\
-                & (19.4)    & (18.6)    & (11.6) \\
-        Obs.    & 5,715,448 & 902,890   & 10,283 \\
-        \hline 
-                & \multicolumn{3}{c}{1891-1921} \\
-        \hline 
-        CANREAD & 0.87      & 0.92      & 0.70  \\
-                & (0.34)    & (0.27)    & (0.46) \\
-        Obs.    & 1,437,638 & 288,321   & 5,967 \\
-        \hline 
-                & \multicolumn{3}{c}{1901-1921 with nonzero earnings} \\
-        \hline 
-        EARN    & 708       & 784       & 442 \\
-                & (1179)    & (1212)    & (296) \\
-        Obs.    & 215,725   & 69,438    & 3,018 \\
-        \hline
-    \end{tabular}
-    }
+\begin{frame}{Chinese Immigration by Occupation Group}
+    \includegraphics[width = \textwidth]{../../figs/chiocc.png}
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%      A  P  P  E  N  D  I  X      %%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section*{Appendix}
+\appendix
 %---------------------------
 %   Density of Chinese Immigration to Canada by Date
 %---------------------------
@@ -181,12 +163,21 @@
 			\includegraphics[width=\textwidth]{../../figs/dateimmchi.png}
 		\end{center}
 	\end{figure}
-    \hyperlink{yrimmchi}{\beamerbutton{Chinese Immigration by Year}}
+    \hyperlink{yrimmchi}{\beamerbutton{Back to Slides}}
 \end{frame}
 
 %---------------------------
-%   Important Events in 1912
+%   Chinese immigration by Origin County
 %---------------------------
-
+\begin{frame}[label = originchi]
+	\frametitle{Chinese Immigration by County of Origin in China}
+    \centering
+	\begin{figure}[H]
+		\begin{center}
+			\includegraphics[width=\textwidth]{../../figs/chiorig.png}
+		\end{center}
+	\end{figure}
+    \hyperlink{events1912}{\beamerbutton{Back to Slides}}
+\end{frame}
 
 \end{document}

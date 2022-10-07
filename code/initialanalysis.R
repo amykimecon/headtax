@@ -11,6 +11,7 @@ library(glue)
 library(foreign)
 library(ggpubr)
 library(readxl)
+library(xtable)
 
 ########################################################################
 ### DEFINING PATHS
@@ -33,7 +34,32 @@ clean_imm <- clean_all %>% filter(IMM == 1)
 clean_chi <- clean_all %>% filter(BORNCHI == 1)
 
 ########################################################################
-### AGGREGATION & OUTPUTS
+### SUMMARY STATISTICS
+########################################################################
+census_summ <- clean_all %>% filter(YEAR > 1900) %>% mutate(AGEATIMM = ifelse(IMM == 1, AGE - (YEAR - YRIMM), NA),
+                                                            EARN = ifelse(EARN == 0, NA, EARN)) %>%
+  select(c(MALE, AGEATIMM, AGE, MAR, CANREAD, EARN, WEIGHT, IMM, BORNCHI))
+summ_stats <- bind_rows(census_summ %>% mutate(group = "All", AGEATIMM = NA), census_summ %>% mutate(group = "Immigrants") %>% filter(IMM == 1)) %>%
+  bind_rows(census_summ %>% mutate(group = "Chinese Imm") %>% filter(BORNCHI == 1)) %>%
+  bind_rows(chireg %>% mutate(group = "Chinese Registry", AGEATIMM = AGE - (REG_Year - YEAR), WEIGHT = 1) %>% select(c(group, MALE, AGE, AGEATIMM, WEIGHT))) %>% 
+  group_by(group) %>% summarize(across(-c(WEIGHT, IMM, BORNCHI), .fns = c(~round(weighted.mean(.x, WEIGHT, na.rm=TRUE), 2), 
+                                                                          ~ifelse(is.na(mean(.x,na.rm=TRUE)),
+                                                                                             NA,
+                                                                                             paste0("(", round(sqrt(wtd.var(.x, WEIGHT, na.rm=TRUE)), 2), ")")))), 
+                                OBS = n()) 
+
+summ_stats_out <- t(summ_stats)[,c(1,4,2,3)] %>% as.data.frame()
+colnames(summ_stats_out) <- summ_stats_out[1,]
+rownames(summ_stats_out) <- c("group", "% Male", "", "Avg. Imm Age", " ", "Avg. Age", "  ", "% Married","   ",  "% Can Read", "     ", "Avg. Earnings", "        ", "Obs")
+
+print(xtable(summ_stats_out[-1,], align = "lcccc", type = "latex"), 
+      file = glue("{git}/figs/summstats.tex"), 
+      floating = FALSE, NA.string = "-",
+      hline.after = c(-1,0,nrow(summ_stats_out)-2,nrow(summ_stats_out)-1))
+
+
+########################################################################
+### IMMIGRATION FLOWS BY YEAR 
 ########################################################################
 chinums <- chireg %>% group_by(YEAR) %>% summarize(n=n(), tax = mean(ifelse(FEES > 0, FEES, NA), na.rm=TRUE),
                                                    numtaxpayers = sum(ifelse(FEES > 0, 1, 0))) %>%
@@ -88,6 +114,22 @@ taxbyyear <- ggplot(chinums %>% filter(YEAR <= 1930), aes(x=YEAR)) +
     axis.title.y.right = element_text(color = "blue")
   )
 ggsave(glue("{git}/figs/taxbyyear.png"), taxbyyear, height = 4, width = 6)
+
+########################################################################
+### DECOMPOSITION OF CHINESE IMMIGRANT INFLOW
+########################################################################
+chiocc <- ggplot(chireg %>% filter(AGE >= 18 & SEX == "Male") %>% group_by(OCCGRP, YEAR) %>% summarize(n=n()) %>% 
+                   group_by(YEAR) %>% mutate(pct = n/sum(n)) %>% filter(YEAR >= 1880 & YEAR <= 1930), 
+       aes(x = YEAR, y = n, fill = OCCGRP)) + geom_area() + 
+  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923) + geom_vline(xintercept = 1912) +
+  labs(x = "Year of Immigration", y = "Chinese Immigrant Inflow", color = "Occupation Group")
+ggsave(glue("{git}/figs/chiocc.png"), chiocc, height = 4, width = 6)
+
+chiorig <- ggplot(chireg %>% group_by(COUNTYGRP, YEAR) %>% summarize(n=n()) %>%
+         group_by(YEAR) %>% mutate(pct = n/sum(n)) %>% filter(YEAR >= 1880 & YEAR <= 1930), aes(x = YEAR, y = pct, fill = COUNTYGRP)) + geom_area()+ 
+  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923) + geom_vline(xintercept = 1912) +
+  labs(x = "Year of Immigration", y = "Percentage of Chinese Immigrants", color = "County of Origin") + theme(legend.position='bottom') + guides(color = guide_legend(nrow = 1))
+ggsave(glue("{git}/figs/chiorig.png"), chiorig, height = 4, width = 6)
 
 
 ########################################################################

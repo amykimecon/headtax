@@ -1,11 +1,14 @@
 # Fdb version 3
-["pdflatex"] 1665105573 "/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex" "slides_oct7.pdf" "slides_oct7" 1665105576
+["pdflatex"] 1665111594 "/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex" "slides_oct7.pdf" "slides_oct7" 1665111598
   "../../figs/census_tweet.png" 1665029664 88113 fd373806357f1509f73e5186a8b6e0ad ""
+  "../../figs/chiocc.png" 1665111593 179387 50fd5bb911a70ae14523ff146789a1a7 ""
+  "../../figs/chiorig.png" 1665111593 229980 ecd96483ecf15d8e43fb378b3668516f ""
   "../../figs/dateimmchi.png" 1665104366 145760 d7ff5de9670b5f741f6f6baecaa89dac ""
+  "../../figs/summstats.tex" 1665110445 796 b8fcc9bc6c2efaefaa03a133fdb588b4 ""
   "../../figs/taxbyyear.png" 1665104470 188796 f94e516a88b28ad30a16012ee9144476 ""
   "../../figs/yrimmall.png" 1665104367 249492 05d11b7db0c6320a56d755a26c177565 ""
   "../../figs/yrimmchi.png" 1665104367 193634 1db7241a4fca5581bee9f10437080ab0 ""
-  "/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex" 1665105572 7337 db029148718dc67ef09553454a447ee3 ""
+  "/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex" 1665111594 6816 b5c400fb8adc3a95815acc0a44f17c0c ""
   "/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/tfm/jknappen/ec/tcss1095.tfm" 1136768653 1536 f0fa079cdc83a6ffeda21e42352cf1ea ""
@@ -208,11 +211,11 @@
   "/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1649608881 4410336 7d30a02e9fa9a16d7d1f8d037ba69641 ""
   "/usr/local/texlive/2022/texmf-var/web2c/pdftex/pdflatex.fmt" 1649608384 2826445 11fb308a3b72202293059f9400dba38f ""
   "/usr/local/texlive/2022/texmf.cnf" 1647878952 577 209b46be99c9075fd74d4c0369380e8c ""
-  "slides_oct7.aux" 1665105576 5881 1f1e1550cf74952b6a2e1be508569613 "pdflatex"
-  "slides_oct7.nav" 1665105576 2817 f25cb89c4a72abb87bf68a42c328a52c "pdflatex"
-  "slides_oct7.out" 1665105576 852 e2ad5c9e703fce5898b6191ea3e09239 "pdflatex"
-  "slides_oct7.tex" 1665105572 7337 db029148718dc67ef09553454a447ee3 ""
-  "slides_oct7.toc" 1665105576 295 229a7f0a4e8dadd3e5e776ba77ff8ac8 "pdflatex"
+  "slides_oct7.aux" 1665111598 6620 aa4ee23acbc4b5d8e475e6bc632af983 "pdflatex"
+  "slides_oct7.nav" 1665111598 3127 1776617611c02e397154c669201374cc "pdflatex"
+  "slides_oct7.out" 1665111598 850 f3bf32cdbcb3c1c9c20daa5023c52ce3 "pdflatex"
+  "slides_oct7.tex" 1665111594 6816 b5c400fb8adc3a95815acc0a44f17c0c ""
+  "slides_oct7.toc" 1665111598 295 289d9e434e3ccc2387d0d0a7de536181 "pdflatex"
   (generated)
   "slides_oct7.aux"
   "slides_oct7.log"
