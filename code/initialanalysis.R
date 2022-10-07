@@ -3,7 +3,7 @@
 ### PRIMARY OBJECTIVE: Seeing what is available and reliable, initial patterns in data
 ### CREATED BY: Amy Kim
 ### CREATED ON: Aug 7 2022 
-### LAST MODIFIED: Oct 5 2022
+### LAST MODIFIED: Oct 6 2022
 ########################################################################
 library(Hmisc)
 library(tidyverse)
@@ -30,7 +30,7 @@ chireg <- read_csv(glue("{dbox}/cleaned/chireg.csv"))
 ## census data
 clean_all <- read_csv(glue("{dbox}/cleaned/census_all.csv"), guess_max = 5715448)
 clean_imm <- clean_all %>% filter(IMM == 1)
-clean_chi <- clean_all %>% filter(BPLCHI == 1)
+clean_chi <- clean_all %>% filter(BORNCHI == 1)
 
 ########################################################################
 ### AGGREGATION & OUTPUTS
@@ -39,20 +39,40 @@ chinums <- chireg %>% group_by(YEAR) %>% summarize(n=n(), tax = mean(ifelse(FEES
                                                    numtaxpayers = sum(ifelse(FEES > 0, 1, 0))) %>%
   mutate(pcttaxpayers = 100*numtaxpayers/n)
 
-### FLOW OF CHINESE IMMIGRANTS BY YEAR OF IMMIGRATION AND DATA SOURCE
-yrimmdata <- clean_chi %>% filter(YEAR > 1900) %>%
-  group_by(YRIMM, YEAR) %>% dplyr::summarize(CHIPOP = sum(WEIGHT, na.rm=TRUE)) %>% ungroup() %>%
-  filter(YRIMM < YEAR) %>% # drop imm numbers from year that census was taken
-  group_by(YRIMM) %>% dplyr::summarize(CHIPOP = mean(CHIPOP)) %>% ungroup() %>%
-  mutate(datasource = "Census (1901-1921 Average)") %>%
-  rbind(chinums %>% mutate(YRIMM = YEAR, CHIPOP = n, datasource = "Chinese Registry") %>% select(c(YRIMM, CHIPOP, datasource)))
-  
-yrimm <- ggplot(data = filter(yrimmdata, YRIMM >= 1880 & YRIMM <= 1930), 
-                aes(x = YRIMM, y = CHIPOP, color = datasource)) + geom_line() +
-  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923) +
+### FLOW OF IMMIGRANTS BY YEAR OF IMMIGRATION AND DATA SOURCE
+yrimm_censusdata <- clean_imm %>% filter(YEAR > 1900) %>% 
+  group_by(YRIMM, YEAR) %>% 
+  summarize(across(starts_with("BORN"), ~ sum(.x*WEIGHT, na.rm=TRUE))) %>% ungroup() %>%
+  filter(YRIMM < YEAR - 1) %>% # drop imm numbers from year & year before that census was taken
+  group_by(YRIMM) %>% dplyr::summarize(across(starts_with("BORN"), mean)) %>% ungroup() %>%
+  mutate(datasource = "Census (1901-1921 Average)")
+
+# chinese immigrants -- by date
+dateimmchi <- ggplot(data = chireg %>% filter(YEAR >= 1880 & YEAR <= 1930), 
+                   aes(x = DATE)) + geom_density() +
+  geom_vline(xintercept = as.Date("1885-01-01")) + geom_vline(xintercept = as.Date("1900-01-01")) + geom_vline(xintercept = as.Date("1903-01-01")) + geom_vline(xintercept = as.Date("1923-01-01")) +
+  labs(x = "Date of Immigration", y = "Density of Chinese Immigrant Inflow")
+ggsave(glue("{git}/figs/dateimmchi.png"), dateimmchi, height = 4, width = 6)
+
+# chinese immigrants -- by year (census + registry)
+yrimmchi <- ggplot(data = yrimm_censusdata %>% select(c(YRIMM, BORNCHI, datasource)) %>%
+                  rbind(chinums %>% mutate(YRIMM = YEAR, BORNCHI = n, datasource = "Chinese Registry") %>% select(c(YRIMM, BORNCHI, datasource))) %>%
+                  filter(YRIMM >= 1880 & YRIMM <= 1930), 
+                aes(x = YRIMM, y = BORNCHI, color = datasource)) + geom_line() +
+  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923) + geom_vline(xintercept = 1912) +
   labs(x = "Year of Immigration", y = "Inflow of Chinese Immigrants", color = "Data Source") + theme(legend.position='bottom')
 
-ggsave(glue("{git}/figs/yrimm.png"), yrimm, height = 4, width = 6)
+ggsave(glue("{git}/figs/yrimmchi.png"), yrimmchi, height = 4, width = 6)
+
+# immigrants of various countries
+yrimmall <- ggplot(data = yrimm_censusdata %>% filter(YRIMM >= 1880 & YRIMM <= 1930) %>%
+                     pivot_longer(starts_with("BORN"), names_to = "BPL", names_prefix = "BORN", values_to = "NUM") %>%
+                     filter(BPL != "RUS", BPL != "IND", BPL != "GER"), 
+                   aes(x = YRIMM, y = NUM, color = BPL)) + geom_line() +
+  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923) + 
+  labs(x = "Year of Immigration", y = "Inflow of Immigrants (Census Avg)", color = "Birth Country") + theme(legend.position='bottom') + guides(color = guide_legend(nrow = 1))
+
+ggsave(glue("{git}/figs/yrimmall.png"), yrimmall, height = 4, width = 6)
 
 ### TAXPAYERS AND TAXES PAID BY YEAR OF IMMIGRATION
 taxbyyear <- ggplot(chinums %>% filter(YEAR <= 1930), aes(x=YEAR)) +

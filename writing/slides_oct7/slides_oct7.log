@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  6 OCT 2022 01:14
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  6 OCT 2022 21:19
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -711,7 +711,7 @@ File: ts1cmss.fd 2019/12/16 v2.5j Standard LaTeX font definitions
 ] [8
 
 ]
-<../../figs/census_tweet.png, id=257, 595.22375pt x 397.485pt>
+<../../figs/census_tweet.png, id=269, 595.22375pt x 397.485pt>
 File: ../../figs/census_tweet.png Graphic file (type png)
 <use ../../figs/census_tweet.png>
 Package pdftex.def Info: ../../figs/census_tweet.png  used on input line 79.
@@ -723,24 +723,42 @@ Package pdftex.def Info: ../../figs/census_tweet.png  used on input line 79.
 ] (./slides_oct7.toc) [11
 
 ]
-<../../figs/yrimm.png, id=337, 1806.75pt x 1204.5pt>
-File: ../../figs/yrimm.png Graphic file (type png)
-<use ../../figs/yrimm.png>
-Package pdftex.def Info: ../../figs/yrimm.png  used on input line 95.
-(pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
+<../../figs/yrimmchi.png, id=351, 1806.75pt x 1204.5pt>
+File: ../../figs/yrimmchi.png Graphic file (type png)
+<use ../../figs/yrimmchi.png>
+Package pdftex.def Info: ../../figs/yrimmchi.png  used on input line 97.
+(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
  [12
 
- <../../figs/yrimm.png>]
-<../../figs/taxbyyear.png, id=365, 1806.75pt x 1204.5pt>
-File: ../../figs/taxbyyear.png Graphic file (type png)
-<use ../../figs/taxbyyear.png>
-Package pdftex.def Info: ../../figs/taxbyyear.png  used on input line 99.
-(pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
- [13
-
- <../../figs/taxbyyear.png>] [14
+ <../../figs/yrimmchi.png>] [13
 
 ]
+<../../figs/yrimmall.png, id=415, 1806.75pt x 1204.5pt>
+File: ../../figs/yrimmall.png Graphic file (type png)
+<use ../../figs/yrimmall.png>
+Package pdftex.def Info: ../../figs/yrimmall.png  used on input line 126.
+(pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
+ [14
+
+ <../../figs/yrimmall.png>]
+<../../figs/taxbyyear.png, id=442, 1806.75pt x 1204.5pt>
+File: ../../figs/taxbyyear.png Graphic file (type png)
+<use ../../figs/taxbyyear.png>
+Package pdftex.def Info: ../../figs/taxbyyear.png  used on input line 130.
+(pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
+ [15
+
+ <../../figs/taxbyyear.png>] [16
+
+]
+<../../figs/dateimmchi.png, id=493, 1806.75pt x 1204.5pt>
+File: ../../figs/dateimmchi.png Graphic file (type png)
+<use ../../figs/dateimmchi.png>
+Package pdftex.def Info: ../../figs/dateimmchi.png  used on input line 185.
+(pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
+ [17
+
+ <../../figs/dateimmchi.png>]
 \tf@nav=\write6
 \openout6 = `slides_oct7.nav'.
 
@@ -752,21 +770,24 @@ Package pdftex.def Info: ../../figs/taxbyyear.png  used on input line 99.
 
  (./slides_oct7.aux)
 Package rerunfilecheck Info: File `slides_oct7.out' has not changed.
-(rerunfilecheck)             Checksum: FAA6AAEECC6D6213AE1BB9939C95D8F9;529.
+(rerunfilecheck)             Checksum: E2AD5C9E703FCE5898B6191EA3E09239;852.
  ) 
 Here is how much of TeX's memory you used:
- 21671 strings out of 478268
- 423419 string characters out of 5846347
- 678012 words of memory out of 5000000
- 39381 multiletter control sequences out of 15000+600000
+ 21774 strings out of 478268
+ 425574 string characters out of 5846347
+ 679434 words of memory out of 5000000
+ 39467 multiletter control sequences out of 15000+600000
  482751 words of font info for 76 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 128i,15n,122p,516b,559s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 128i,15n,122p,516b,590s stack positions out of 10000i,1000n,20000p,200000b,200000s
+
+pdfTeX warning (dest): name{originchi} has been referenced but does not exist, replaced by a fixed one
+
 {/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss9.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfss1095.pfb>
-Output written on slides_oct7.pdf (14 pages, 470462 bytes).
+Output written on slides_oct7.pdf (17 pages, 779764 bytes).
 PDF statistics:
- 462 PDF objects out of 1000 (max. 8388607)
- 413 compressed objects within 5 object streams
- 33 named destinations out of 1000 (max. 500000)
- 90 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 572 PDF objects out of 1000 (max. 8388607)
+ 515 compressed objects within 6 object streams
+ 50 named destinations out of 1000 (max. 500000)
+ 116 words of extra memory for PDF output out of 10000 (max. 10000000)
 

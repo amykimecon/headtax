@@ -56,23 +56,27 @@ clean1881 <- raw1881 %>% rename(BPL = birthplace_ccri, ETH = ethnicity_ccri, OCC
                             OCCGRP == "Farmer" ~ "Unskilled",
                             TRUE ~ NA_character_)) %>% 
   select(c(MALE, AGE, MAR, ETH, OCC, NAPHISCOSTR, OCCGRP, BPL, IMM, LASTNAME, FIRSTNAME)) %>% 
-  mutate(YEAR = 1881, BPLCHI = ifelse(str_detect(BPL, "China"),1,0), BPLRUS = ifelse(str_detect(BPL, "Russia"), 1, 0), 
-         BPLFRA = ifelse(str_detect(BPL, "France"), 1, 0), 
-         BPLGER = ifelse(str_detect(BPL, "Germany"), 1, 0),
-         BPLJAP = ifelse(str_detect(BPL, "Japan"),1,0),
-         BPLIND = ifelse(str_detect(BPL, "India"),1,0),
+  mutate(YEAR = 1881, BORNCHI = ifelse(str_detect(BPL, "China"),1,0), BORNRUS = ifelse(str_detect(BPL, "Russia"), 1, 0), 
+         BORNFRA = ifelse(str_detect(BPL, "France"), 1, 0), 
+         BORNGER = ifelse(str_detect(BPL, "Germany"), 1, 0),
+         BORNJAP = ifelse(str_detect(BPL, "Japan"),1,0),
+         BORNIND = ifelse(str_detect(BPL, "India"),1,0),
+         BORNIRE = ifelse(str_detect(BPL, "Ireland"), 1, 0),
+         BORNAUS = ifelse(str_detect(BPL, "Austria"), 1, 0),
          ETHCHI = ifelse(str_detect(ETH, "Chinese"), 1, 0), WEIGHT = 1)
 
 
 clean1891 <- raw1891 %>% mutate(WEIGHT = case_when(samplesize == 5 ~ 20,
                                                    samplesize == 10 ~ 10,
                                                    samplesize == 100 ~ 1),
-                                BPLCHI = ifelse(bplcode == 50000, 1, 0),
-                                BPLRUS = ifelse(bplcode >= 46100 & bplcode < 49000, 1, 0),
-                                BPLFRA = ifelse(bplcode == 42100, 1, 0),
-                                BPLGER = ifelse(bplcode == 45300, 1, 0),
-                                BPLJAP = ifelse(bplcode == 50100, 1, 0),
-                                BPLIND = ifelse(bplcode == 52100, 1, 0),
+                                BORNCHI = ifelse(bplcode == 50000, 1, 0),
+                                BORNRUS = ifelse(bplcode >= 46100 & bplcode < 49000, 1, 0),
+                                BORNFRA = ifelse(bplcode == 42100, 1, 0),
+                                BORNGER = ifelse(bplcode == 45300, 1, 0),
+                                BORNJAP = ifelse(bplcode == 50100, 1, 0),
+                                BORNIND = ifelse(bplcode == 52100, 1, 0),
+                                BORNIRE = ifelse(bplcode == 41400, 1, 0),
+                                BORNAUS = ifelse(bplcode == 45000, 1, 0),
                                 MALE = case_when(SEX == "M  " ~ 1,
                                                  SEX == "F  " ~ 0,
                                                  TRUE ~ NA_real_),
@@ -88,17 +92,19 @@ clean1891 <- raw1891 %>% mutate(WEIGHT = case_when(samplesize == 5 ~ 20,
                                                    TRUE ~ NA_character_)) %>%
   select(-c(AGE)) %>%
   rename(NAPHISCO = NappHisco, AGE = agecode, LASTNAME = NAMELAST, FIRSTNAME = NAMEFIRST) %>%
-  select(c(MALE, AGE, MAR, CANREAD, starts_with("BPL"), BPLRUS, UNEMP, OCCGRP, WEIGHT, IMM, LASTNAME, FIRSTNAME)) %>%
+  select(c(MALE, AGE, MAR, CANREAD, starts_with("BORN"), UNEMP, OCCGRP, WEIGHT, IMM, LASTNAME, FIRSTNAME)) %>%
   mutate(YEAR = 1891)
 
 clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr, YRIMM = immyr, PROPOWNR = propownr, NATL = natl, OCC = occ, 
                                 EARN = earnings, CANREAD = canread, LASTNAME = indlnm, FIRSTNAME = indfnm) %>%
-  mutate(BPLCHI = ifelse(bpl2 == 50000, 1, 0),
-         BPLRUS = ifelse(str_detect(BPL, "RUS"), 1, 0),
-         BPLFRA = ifelse(str_detect(BPL, "FRA"), 1, 0),
-         BPLGER = ifelse(str_detect(BPL, "GER"), 1, 0),
-         BPLJAP = ifelse(str_detect(BPL, "JAP"), 1, 0),
-         BPLIND = ifelse(str_detect(BPL, "IND"), 1, 0),
+  mutate(BORNCHI = ifelse(bpl2 == 50000, 1, 0),
+         BORNRUS = ifelse(str_detect(BPL, "RUS"), 1, 0),
+         BORNFRA = ifelse(str_detect(BPL, "FRA"), 1, 0),
+         BORNGER = ifelse(str_detect(BPL, "GER"), 1, 0),
+         BORNJAP = ifelse(str_detect(BPL, "JAP"), 1, 0),
+         BORNIND = ifelse(str_detect(BPL, "IND"), 1, 0),
+         BORNIRE = ifelse(str_detect(BPL, "IRE"), 1, 0),
+         BORNAUS = ifelse(str_detect(BPL, "AUS") & !str_detect(BPL, "AUSTRALIA"), 1, 0),
          OCCSTR = ifelse(occ1 == "99999", NA, as.numeric(as.character(str_extract(occ1,"^[0-9]{2}")))), 
          MALE = case_when(SEX == "Male" ~ 1,
                           SEX == "Female" ~ 0,
@@ -116,7 +122,7 @@ clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr
                             OCCSTR >= 40 & OCCSTR <= 70 ~ "Skilled",
                             OCCSTR < 40 ~ "Skilled",
                             TRUE ~ NA_character_)) %>%
-  select(c(MALE, AGE, starts_with("BPL"), MAR, YRIMM, PROPOWNR, NATL, OCCGRP, EARN, CANREAD, IMM, FIRSTNAME, LASTNAME)) %>%
+  select(c(MALE, AGE, starts_with("BORN"), MAR, YRIMM, PROPOWNR, NATL, OCCGRP, EARN, CANREAD, IMM, FIRSTNAME, LASTNAME)) %>%
   mutate(YEAR = 1901, WEIGHT = 20)
 
 bplcanadastrings <- "(Ontario)|(Quebec)|(Nova Scotia)|(New Brunswick)|(Manitoba)|(Saskatchewan)|(Prince Edward Island)|(British Columbia)|(Alberta)|(Canada)|(Newfoundland)|(Northwest Territories)|(Yukon)|(Cape Breton)|(Labrador)"
@@ -145,9 +151,10 @@ clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM 
                             str_starts(occ1, "Manufactures") | occ1 == "Trade and Merchandising" ~ "Skilled",
                             occ1 == "Civil and municipal service" | occ1 == "Professional pursuits" ~ "Skilled")) %>%
   select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, FIRSTNAME, LASTNAME)) %>% 
-  mutate(YEAR = 1911, BPLCHI = ifelse(BPL == "China", 1, 0), BPLRUS = ifelse(BPL == "Russia", 1, 0),
-         BPLFRA = ifelse(BPL == "France", 1, 0), BPLGER = ifelse(BPL == "Germany", 1, 0),
-         BPLJAP = ifelse(BPL == "Japan", 1, 0), BPLIND = ifelse(BPL == "India", 1, 0))
+  mutate(YEAR = 1911, BORNCHI = ifelse(BPL == "China", 1, 0), BORNRUS = ifelse(BPL == "Russia", 1, 0),
+         BORNFRA = ifelse(BPL == "France", 1, 0), BORNGER = ifelse(BPL == "Germany", 1, 0),
+         BORNJAP = ifelse(BPL == "Japan", 1, 0), BORNIND = ifelse(BPL == "India", 1, 0),
+         BORNIRE = ifelse(BPL == "Ireland", 1, 0), BORNAUS = ifelse(BPL == "Austria", 1, 0))
 
 clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STATUS, YRIMM = YEAR_OF_IMMIGRATION, BPL = INDIVIDUAL_BIRTH_COUNTRY, NATL = NATIONALITY,
                                 CANREAD = CAN_READ_INDICATOR, OCC = CHIEFOCCUP, FIRSTNAME = FIRST_NAME, LASTNAME = LAST_NAME) %>%
@@ -169,9 +176,10 @@ clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STAT
          OCCGRP = case_when(str_detect(CHIEF_OCCUPATION, "Farm") | str_detect(CHIEF_OCCUPATION, "Labor") | str_detect(CHIEF_OCCUPATION, "Mine") | CHIEF_OCCUPATION == "Private household workers (n.e.c.)" | str_detect(CHIEF_OCCUPATION, "Lumbermen") | CHIEF_OCCUPATION == "Carpenters" | CHIEF_OCCUPATION == "Machinists" | CHIEF_OCCUPATION == "Housekeepers, private household" | CHIEF_OCCUPATION == "Fishermen and oystermen" ~ "Unskilled",
                             CHIEF_OCCUPATION != "Blank" & CHIEF_OCCUPATION != "Unemployed/ without occupation" ~ "Skilled")) %>%
   select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, FIRSTNAME, LASTNAME)) %>% 
-  mutate(YEAR = 1921, BPLCHI = ifelse(BPL == "China", 1, 0), BPLRUS = ifelse(BPL == "Russia", 1, 0),
-         BPLFRA = ifelse(BPL == "France", 1, 0), BPLGER = ifelse(BPL == "Germany", 1, 0),
-         BPLJAP = ifelse(BPL == "Japan", 1, 0), BPLIND = ifelse(BPL == "India", 1, 0))
+  mutate(YEAR = 1921, BORNCHI = ifelse(BPL == "China", 1, 0), BORNRUS = ifelse(BPL == "Russia", 1, 0),
+         BORNFRA = ifelse(BPL == "France", 1, 0), BORNGER = ifelse(BPL == "Germany", 1, 0),
+         BORNJAP = ifelse(BPL == "Japan", 1, 0), BORNIND = ifelse(BPL == "India", 1, 0),
+         BORNIRE = ifelse(BPL == "Ireland", 1, 0), BORNAUS = ifelse(BPL == "Austria", 1, 0))
 
 # binding all years and cleaning together
 clean_all <- bind_rows(clean1881, clean1891) %>% bind_rows(clean1901) %>%
@@ -179,7 +187,7 @@ clean_all <- bind_rows(clean1881, clean1891) %>% bind_rows(clean1901) %>%
   mutate(AGE = ifelse(AGE > 200, NA, AGE),
          YRIMM = ifelse(YRIMM < 1500 | YRIMM > YEAR, NA, YRIMM))
 clean_imm <- clean_all %>% filter(IMM == 1)
-clean_chi <- clean_all %>% filter(BPLCHI == 1)
+clean_chi <- clean_all %>% filter(BORNCHI == 1)
 
 # #### IMPUTING RACE/ETHNICITY FROM NAME FOR 1852 AND 1871 DATA ####
 # ## using predictrace package

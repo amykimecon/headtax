@@ -89,14 +89,47 @@
 
 % INITIAL DESCRIPTIVES
 \section{Initial Descriptives}
-\subsection{Validating Chinese Registry Data}
-\begin{frame}{Chinese Immigration to Canada by Year and Data Source}
-    \includegraphics[width = \textwidth]{../../figs/yrimm.png}
+\subsection{Immigration in Response to Head Tax}
+\begin{frame}[label = yrimmchi]{Chinese Immigration to Canada by Year and Data Source}
+    \centering
+    \includegraphics[width = 0.9\textwidth]{../../figs/yrimmchi.png}
+    \hyperlink{dateimmchi}{\beamerbutton{Denisty of Chinese Immigration by Date}}
+\end{frame}
+
+\begin{frame}[label = events1912]
+	\frametitle{Relevant Events in the 1910s}
+	\begin{itemize}
+        \item Canada: Head Tax Certificates reissued with photo 
+        \begin{itemize}
+            \item Unlikely to have such a massive spike just from using other people's certificates 
+        \end{itemize}
+        \item China: Republic of China established in 1912 following Xinhai Revolution (1911)
+        \begin{itemize}
+            \item If this is primary cause of spike, would expect some change in regional origin of Chinese immigrants \hyperlink{originchi}{\beamerbutton{Chinese Immigration by Origin by Year}}
+            \item Also would not expect to see spike in immigration from other countries \hyperlink{yrimmall}{\beamerbutton{Immigration to Canada from Different Countries}}
+        \end{itemize}
+        \item Worldwide: WWI begins July 1914
+        \begin{itemize}
+            \item Unclear why most of spike is prior to 1914 -- general global unrest?
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[label = yrimmall]
+	\frametitle{Immigration to Canada by Year by Country}
+    \centering
+	\begin{figure}[H]
+		\begin{center}
+			\includegraphics[width=\textwidth]{../../figs/yrimmall.png}
+		\end{center}
+	\end{figure}
 \end{frame}
 
 \begin{frame}{Head Tax Payers: Taxes Paid and Fraction of Arrivals}
     \includegraphics[width = \textwidth]{../../figs/taxbyyear.png}
 \end{frame}
+
+\subsection{Decomposing Chinese Immigration}
 
 \begin{frame}{Summary Statistics}
     ADD CHINESE REGISTRY SUMM STATS IN NEW COLUMN
@@ -131,6 +164,29 @@
     \end{tabular}
     }
 \end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%      A  P  P  E  N  D  I  X      %%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Appendix}
+%---------------------------
+%   Density of Chinese Immigration to Canada by Date
+%---------------------------
+
+\begin{frame}[label = dateimmchi]
+	\frametitle{Density of Chinese Immigration to Canada by Date}
+    \centering
+	\begin{figure}[H]
+		\begin{center}
+			\includegraphics[width=\textwidth]{../../figs/dateimmchi.png}
+		\end{center}
+	\end{figure}
+    \hyperlink{yrimmchi}{\beamerbutton{Chinese Immigration by Year}}
+\end{frame}
+
+%---------------------------
+%   Important Events in 1912
+%---------------------------
 
 
 \end{document}

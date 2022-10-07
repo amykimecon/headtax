@@ -1,4 +1,5 @@
 \beamer@sectionintoc {1}{Background}{4}{0}{1}
 \beamer@sectionintoc {2}{Data}{7}{0}{2}
 \beamer@sectionintoc {3}{Initial Descriptives}{11}{0}{3}
-\beamer@subsectionintoc {3}{1}{Validating Chinese Registry Data}{12}{0}{3}
+\beamer@subsectionintoc {3}{1}{Immigration in Response to Head Tax}{12}{0}{3}
+\beamer@subsectionintoc {3}{2}{Decomposing Chinese Immigration}{16}{0}{3}

@@ -37,6 +37,11 @@ chireg <- chiregraw %>% mutate(COUNTYGRP = case_when(COUNTY_ID == 1 ~ "Taishan",
                                                      COUNTY_ID == 5 ~ "Heshan",
                                                      TRUE ~ "Other"),
                                YEAR = YEAR_ARRIV,
+                               MONTH = str_pad(MONTH_ARRI, 2, "left", pad = "0"),
+                               DAY = str_pad(DATE_ARRIV, 2, "left", pad = "0"),
+                               DATE = case_when(DAY == "00" & MONTH != "00" ~ as.Date(glue("{YEAR}-{MONTH}-15"), format = "%Y-%m-%d"),
+                                                MONTH == "00" & YEAR != 0 ~ as.Date(glue("{YEAR}-07-01"), format = "%Y-%m-%d"),
+                                                TRUE ~ as.Date(glue("{YEAR}-{MONTH}-{DAY}"), format = "%Y-%m-%d")),
                                PORT = case_when(ARR_PORT == "Victoria" ~ "Victoria",
                                                 ARR_PORT == "Vancouver" ~ "Vancouver",
                                                 TRUE ~ "Other"),
@@ -55,7 +60,7 @@ chireg <- chiregraw %>% mutate(COUNTYGRP = case_when(COUNTY_ID == 1 ~ "Taishan",
                                BIRTHYEAR = REG_Year - AGE,
                                MALE = ifelse(SEX == "Male", 1, 0),
                                REGID = row_number()) %>%
-  filter(YEAR != 0) #excluding entries without any arrival year (for now) -- only 521 such entries out of ~100k
+  filter(!is.na(DATE) & YEAR != 0) #excluding entries without valid arrival date (for now) -- only 522 such entries out of ~100k
 write_csv(chireg, glue("{dbox}/cleaned/chireg.csv"))
 
 ########################################################################
