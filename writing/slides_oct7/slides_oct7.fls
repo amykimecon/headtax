@@ -1246,10 +1246,6 @@ INPUT ../../figs/census_tweet.png
 INPUT ../../figs/census_tweet.png
 INPUT ../../figs/census_tweet.png
 INPUT /usr/local/texlive/2022/texmf-dist/fonts/tfm/public/cm/cmssbx10.tfm
-INPUT ../../figs/summstats.tex
-INPUT ../../figs/summstats.tex
-INPUT ../../figs/summstats.tex
-INPUT ../../figs/summstats.tex
 INPUT ./slides_oct7.toc
 INPUT slides_oct7.toc
 INPUT slides_oct7.toc
@@ -1273,6 +1269,10 @@ INPUT ../../figs/chiocc.png
 INPUT ../../figs/chiocc.png
 INPUT ../../figs/chiocc.png
 INPUT ../../figs/chiocc.png
+INPUT ../../figs/summstats.tex
+INPUT ../../figs/summstats.tex
+INPUT ../../figs/summstats.tex
+INPUT ../../figs/summstats.tex
 INPUT ../../figs/dateimmchi.png
 INPUT ../../figs/dateimmchi.png
 INPUT ../../figs/dateimmchi.png

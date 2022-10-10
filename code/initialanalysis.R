@@ -1,9 +1,9 @@
 ########################################################################
-### FILE DESCRIPTION: Initial Look at Canadian and US Historical Data
-### PRIMARY OBJECTIVE: Seeing what is available and reliable, initial patterns in data
+### FILE DESCRIPTION: Initial look at data
+### PRIMARY OBJECTIVE: 
 ### CREATED BY: Amy Kim
 ### CREATED ON: Aug 7 2022 
-### LAST MODIFIED: Oct 6 2022
+### LAST MODIFIED: Oct 10 2022
 ########################################################################
 library(Hmisc)
 library(tidyverse)
@@ -65,6 +65,8 @@ chinums <- chireg %>% group_by(YEAR) %>% summarize(n=n(), tax = mean(ifelse(FEES
                                                    numtaxpayers = sum(ifelse(FEES > 0, 1, 0))) %>%
   mutate(pcttaxpayers = 100*numtaxpayers/n)
 
+headtaxcuts <- data.frame(yrs = c(1885, 1900, 1903, 1923), labs = c("Initial Head Tax", "Incr. to $100", "Incr. to $500", "Total Imm. Ban"))
+
 ### FLOW OF IMMIGRANTS BY YEAR OF IMMIGRATION AND DATA SOURCE
 yrimm_censusdata <- clean_imm %>% filter(YEAR > 1900) %>% 
   group_by(YRIMM, YEAR) %>% 
@@ -80,12 +82,23 @@ dateimmchi <- ggplot(data = chireg %>% filter(YEAR >= 1880 & YEAR <= 1930),
   labs(x = "Date of Immigration", y = "Density of Chinese Immigrant Inflow")
 ggsave(glue("{git}/figs/dateimmchi.png"), dateimmchi, height = 4, width = 6)
 
+geom_vline(mapping = aes(xintercept = vals,
+                         colour = Ref),
+           data = cuts,
+           show.legend = FALSE) +
+  geom_text(mapping = aes(x = vals,
+                          y = 0,
+                          label = Ref,
+                          hjust = -1,
+                          vjust = -1),
+            data = cuts)
 # chinese immigrants -- by year (census + registry)
 yrimmchi <- ggplot(data = yrimm_censusdata %>% select(c(YRIMM, BORNCHI, datasource)) %>%
                   rbind(chinums %>% mutate(YRIMM = YEAR, BORNCHI = n, datasource = "Chinese Registry") %>% select(c(YRIMM, BORNCHI, datasource))) %>%
                   filter(YRIMM >= 1880 & YRIMM <= 1930), 
                 aes(x = YRIMM, y = BORNCHI, color = datasource)) + geom_line() +
-  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923) + geom_vline(xintercept = 1912) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE) + 
+  geom_text(aes(x = yrs, y = 7000, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8) +
   labs(x = "Year of Immigration", y = "Inflow of Chinese Immigrants", color = "Data Source") + theme(legend.position='bottom')
 
 ggsave(glue("{git}/figs/yrimmchi.png"), yrimmchi, height = 4, width = 6)
@@ -95,7 +108,8 @@ yrimmall <- ggplot(data = yrimm_censusdata %>% filter(YRIMM >= 1880 & YRIMM <= 1
                      pivot_longer(starts_with("BORN"), names_to = "BPL", names_prefix = "BORN", values_to = "NUM") %>%
                      filter(BPL != "RUS", BPL != "IND", BPL != "GER"), 
                    aes(x = YRIMM, y = NUM, color = BPL)) + geom_line() +
-  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923) + 
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE) + 
+  geom_text(aes(x = yrs, y = 5000, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.5) +
   labs(x = "Year of Immigration", y = "Inflow of Immigrants (Census Avg)", color = "Birth Country") + theme(legend.position='bottom') + guides(color = guide_legend(nrow = 1))
 
 ggsave(glue("{git}/figs/yrimmall.png"), yrimmall, height = 4, width = 6)
@@ -120,15 +134,16 @@ ggsave(glue("{git}/figs/taxbyyear.png"), taxbyyear, height = 4, width = 6)
 ########################################################################
 chiocc <- ggplot(chireg %>% filter(AGE >= 18 & SEX == "Male") %>% group_by(OCCGRP, YEAR) %>% summarize(n=n()) %>% 
                    group_by(YEAR) %>% mutate(pct = n/sum(n)) %>% filter(YEAR >= 1880 & YEAR <= 1930), 
-       aes(x = YEAR, y = n, fill = OCCGRP)) + geom_area() + 
-  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923) + geom_vline(xintercept = 1912) +
-  labs(x = "Year of Immigration", y = "Chinese Immigrant Inflow", color = "Occupation Group")
+       aes(x = YEAR, y = n, fill = OCCGRP)) + geom_area() +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE) + 
+  geom_text(aes(x = yrs, y = 6000, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.5) +
+  labs(x = "Year of Immigration", y = "Chinese Immigrant Inflow", fill = "Occupation Group") + theme(legend.position='bottom') 
 ggsave(glue("{git}/figs/chiocc.png"), chiocc, height = 4, width = 6)
 
 chiorig <- ggplot(chireg %>% group_by(COUNTYGRP, YEAR) %>% summarize(n=n()) %>%
          group_by(YEAR) %>% mutate(pct = n/sum(n)) %>% filter(YEAR >= 1880 & YEAR <= 1930), aes(x = YEAR, y = pct, fill = COUNTYGRP)) + geom_area()+ 
-  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923) + geom_vline(xintercept = 1912) +
-  labs(x = "Year of Immigration", y = "Percentage of Chinese Immigrants", color = "County of Origin") + theme(legend.position='bottom') + guides(color = guide_legend(nrow = 1))
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE) + 
+  labs(x = "Year of Immigration", y = "Fraction of Chinese Immigrants", fill = "County of Origin") + theme(legend.position='bottom') + guides(color = guide_legend(nrow = 1))
 ggsave(glue("{git}/figs/chiorig.png"), chiorig, height = 4, width = 6)
 
 

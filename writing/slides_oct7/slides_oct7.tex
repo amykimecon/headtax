@@ -8,7 +8,7 @@
 
 \title{The Chinese Head Tax and Chinese Immigration to Canada}
 \author{Amy Kim}
-\date{October 7, 2022}
+\date{October 11, 2022}
 
 \begin{document}
 \begin{frame}
@@ -58,6 +58,7 @@
 
 % DATA
 \section{Data}
+\subsection{Census Data}
 \begin{frame}{Canadian Census Data}
     \centering
     \begin{tabular}{|r||c|c|}
@@ -80,24 +81,19 @@
     \includegraphics[width = \textwidth]{../../figs/census_tweet.png}
 \end{frame}
 
+\subsection{Chinese Registry}
 \begin{frame}{Chinese Registry Data}
+    \centering
     \begin{itemize}
         \item Publicly available and fully digitized
         \item Includes a full count of every person of Chinese origin arriving in Canada from 1885-1949
         \item Also includes information on pre-1885 entrants who chose to register for re-entry 
         \item Includes: Name, Age, Sex, Occupation, Date \& Port of Arrival, \textbf{Fee paid}, Area of Origin in China, Date of Re-Entry (if applicable) 
     \end{itemize}
+    \hyperlink{summstats}{\beamerbutton{Summary Statistics for Census vs Registry Data}} \\ 
+    TODO : add t-test to the summ stats table 
 \end{frame}
 
-\begin{frame}
-	\frametitle{Summary Statistics}
-	\begin{table}[H]
-        \centering 
-		\resizebox{\textwidth}{!}{
-            \input{../../figs/summstats.tex}
-		}
-	\end{table}  
-\end{frame}
 
 
 % INITIAL DESCRIPTIVES
@@ -151,6 +147,19 @@
 %%%%%%%%%%      A  P  P  E  N  D  I  X      %%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendix
+%---------------------------
+%   Summary Statistics for Census vs Registry Data
+%---------------------------
+\begin{frame}[label = summstats]
+	\frametitle{Summary Statistics}
+	\begin{table}[H]
+        \centering 
+		\resizebox{\textwidth}{!}{
+            \input{../../figs/summstats.tex}
+		}
+	\end{table}  
+\end{frame}
+
 %---------------------------
 %   Density of Chinese Immigration to Canada by Date
 %---------------------------
