@@ -1,10 +1,10 @@
 \documentclass[pdf]{beamer}
+\usetheme{Berlin}
 \setbeamertemplate{footline}[frame number]
 \setbeamertemplate{section in toc}[sections numbered]
+\setbeamertemplate{navigation symbols}{} 
 \usepackage{graphicx}
-\mode<presentation>{
-    \setbeamertemplate{page number in head/foot}[appendixframenumber]
-}
+\usepackage{appendixnumberbeamer}
 
 \title{The Chinese Head Tax and Chinese Immigration to Canada}
 \author{Amy Kim}
@@ -58,7 +58,6 @@
 
 % DATA
 \section{Data}
-\subsection{Census Data}
 \begin{frame}{Canadian Census Data}
     \centering
     \begin{tabular}{|r||c|c|}
@@ -81,7 +80,6 @@
     \includegraphics[width = \textwidth]{../../figs/census_tweet.png}
 \end{frame}
 
-\subsection{Chinese Registry}
 \begin{frame}{Chinese Registry Data}
     \centering
     \begin{itemize}
@@ -95,33 +93,22 @@
 \end{frame}
 
 
-
 % INITIAL DESCRIPTIVES
 \section{Initial Descriptives}
-\subsection{Immigration in Response to Head Tax}
 \begin{frame}[label = yrimmchi]{Chinese Immigration to Canada by Year and Data Source}
     \centering
-    \includegraphics[width = 0.9\textwidth]{../../figs/yrimmchi.png}
-    \hyperlink{dateimmchi}{\beamerbutton{Denisty of Chinese Immigration by Date}}
+    \includegraphics[width = 0.9\textwidth]{../../figs/yrimmchi_maxes.png}
+    \hyperlink{taxespaid}{\beamerbutton{Avg Taxes Paid}}
+    \hyperlink{taxbyyear}{\beamerbutton{\% Taxpayers by Year}}
+    \hyperlink{dateimmchi}{\beamerbutton{Denisty by Year}}
+    \hyperlink{yrimmchi_means}{\beamerbutton{Alt. Calculation}}
+    \hyperlink{events1912}{\beamerbutton{Events in 1910s}}
 \end{frame}
 
-\begin{frame}[label = events1912]
-	\frametitle{Relevant Events in the 1910s}
-	\begin{itemize}
-        \item Canada: Head Tax Certificates reissued with photo 
-        \begin{itemize}
-            \item Unlikely to have such a massive spike just from using other people's certificates 
-        \end{itemize}
-        \item China: Republic of China established in 1912 following Xinhai Revolution (1911)
-        \begin{itemize}
-            \item If this is primary cause of spike, would expect some change in regional origin of Chinese immigrants \hyperlink{originchi}{\beamerbutton{Chinese Immigration by Origin by Year}}
-            \item Also would not expect to see spike in immigration from other countries \hyperlink{yrimmall}{\beamerbutton{Immigration to Canada from Different Countries}}
-        \end{itemize}
-        \item Worldwide: WWI begins July 1914
-        \begin{itemize}
-            \item Unclear why most of spike is prior to 1914 -- general global unrest?
-        \end{itemize}
-    \end{itemize}
+\begin{frame}[label = yrimmchius]{Chinese Immigration to Canada vs. US}
+    \centering
+    \includegraphics[width = 0.9\textwidth]{../../figs/yrimmchi_us.png}
+    \hyperlink{yrimm_us}{\beamerbutton{All Immigration to US vs. Canada}}
 \end{frame}
 
 \begin{frame}[label = yrimmall]
@@ -134,11 +121,8 @@
 	\end{figure}
 \end{frame}
 
-\begin{frame}{Head Tax Payers: Taxes Paid and Fraction of Arrivals}
-    \includegraphics[width = \textwidth]{../../figs/taxbyyear.png}
-\end{frame}
 
-\subsection{Decomposing Chinese Immigration}
+
 \begin{frame}{Chinese Immigration by Occupation Group}
     \includegraphics[width = \textwidth]{../../figs/chiocc.png}
 \end{frame}
@@ -161,17 +145,76 @@
 \end{frame}
 
 %---------------------------
-%   Density of Chinese Immigration to Canada by Date
+%  Taxes Paid by Year
+%---------------------------
+\begin{frame}[label=taxespaid]
+    \frametitle{Head Tax Payers: Average Taxes Paid by Year}
+    \centering
+    \includegraphics[width = 0.9\textwidth]{../../figs/taxespaid.png}
+    \hyperlink{yrimmchi}{\beamerbutton{Back to Slides}}
+\end{frame}
+
+%---------------------------
+%  Taxpayers as % of Arrivals by Year
+%---------------------------
+\begin{frame}[label=taxbyyear]
+    \frametitle{Taxpayers as \% of Arrivals by Year}
+    \centering
+    \includegraphics[width = 0.9\textwidth]{../../figs/taxbyyear.png}
+    \hyperlink{yrimmchi}{\beamerbutton{Back to Slides}}
+\end{frame}
+
+%---------------------------
+%  Chinese Immigration to Canada by Year and Data Source -- Using Census Means instead of Census Maxes
 %---------------------------
 
-\begin{frame}[label = dateimmchi]
+\begin{frame}[label = yrimmchi_means]
 	\frametitle{Density of Chinese Immigration to Canada by Date}
     \centering
 	\begin{figure}[H]
 		\begin{center}
-			\includegraphics[width=\textwidth]{../../figs/dateimmchi.png}
+			\includegraphics[width=0.9\textwidth]{../../figs/dateimmchi.png}
 		\end{center}
 	\end{figure}
+    \hyperlink{yrimmchi}{\beamerbutton{Back to Slides}}
+\end{frame}
+
+%---------------------------
+%   Density of Chinese Immigration to Canada by Date
+%---------------------------
+
+\begin{frame}[label = dateimmchi]
+	\frametitle{Chinese Immigration to Canada Using Cross-Year Means for Census Data}
+    \centering
+	\begin{figure}[H]
+		\begin{center}
+			\includegraphics[width=0.9\textwidth]{../../figs/yrimmchi_means.png}
+		\end{center}
+	\end{figure}
+    \hyperlink{yrimmchi}{\beamerbutton{Back to Slides}}
+\end{frame}
+
+%---------------------------
+%   Major Events in 1910s
+%---------------------------
+\begin{frame}[label = events1912]
+	\frametitle{Relevant Events in the 1910s}
+	\begin{itemize}
+        \item Canada [1910]: Immigration Act of 1910 further restricts immigration, not expands
+        \item Canada [1912]: Head Tax Certificates reissued with photo 
+        \begin{itemize}
+            \item Unlikely to have such a massive spike just from using other people's certificates 
+        \end{itemize}
+        \item China: Republic of China established in 1912 following Xinhai Revolution (1911)
+        \begin{itemize}
+            \item If this is primary cause of spike, would expect some change in regional origin of Chinese immigrants \hyperlink{originchi}{\beamerbutton{Chinese Immigration by Origin by Year}}
+            \item Also would not expect to see spike in immigration from other countries \hyperlink{yrimmall}{\beamerbutton{Immigration to Canada from Different Countries}}
+        \end{itemize}
+        \item Worldwide: WWI begins July 1914
+        \begin{itemize}
+            \item Unclear why most of spike is prior to 1914 -- general global unrest?
+        \end{itemize}
+    \end{itemize}
     \hyperlink{yrimmchi}{\beamerbutton{Back to Slides}}
 \end{frame}
 
@@ -183,10 +226,24 @@
     \centering
 	\begin{figure}[H]
 		\begin{center}
-			\includegraphics[width=\textwidth]{../../figs/chiorig.png}
+			\includegraphics[width=0.9\textwidth]{../../figs/chiorig.png}
 		\end{center}
 	\end{figure}
-    \hyperlink{events1912}{\beamerbutton{Back to Slides}}
+    \hyperlink{events1912}{\beamerbutton{Back to 1910s Events}}
+\end{frame}
+
+%---------------------------
+%  All Immigration to Canada vs. US
+%---------------------------
+\begin{frame}[label = yrimm_us]
+	\frametitle{All Immigration to Canada vs. US}
+    \centering
+	\begin{figure}[H]
+		\begin{center}
+			\includegraphics[width=0.9\textwidth]{../../figs/yrimm_us.png}
+		\end{center}
+	\end{figure}
+    \hyperlink{yrimmchius}{\beamerbutton{Back to Chinese Imm. to CA/US}}
 \end{frame}
 
 \end{document}

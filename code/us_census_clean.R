@@ -21,4 +21,44 @@ if (Sys.getenv("USER") == "amykim"){
 ########################################################################
 ### IMPORTING DATA
 ########################################################################
-us_raw <- read_csv(glue("{dbox}/usa_fullcount_historical.csv"))
+us_raw <- read_csv(glue("{dbox}/usa_fullcount.csv"))
+
+########################################################################
+### CLEANING DATA FOR MERGE W CANADIAN CENSUS DATA
+########################################################################
+us_clean <- us_raw %>% 
+  mutate(BORNCHI = ifelse(BPL == 500, 1, 0),
+         BORNGER = ifelse(BPL == 453, 1, 0),
+         BORNAUS = ifelse(BPL == 450, 1, 0),
+         BORNFRA = ifelse(BPL == 421, 1, 0),
+         BORNIRE = ifelse(BPL == 414, 1, 0),
+         BORNJAP = ifelse(BPL == 501, 1, 0),
+         BORNIND = ifelse(BPL == 521, 1, 0),
+         BORNRUS = ifelse(BPL == 465, 1, 0),
+         IMM = ifelse(NATIVITY == 5, 1, 0),
+         YRIMM = YRIMMIG,
+         MALE = ifelse(SEX == 1, 1, 0),
+         CANREAD = ifelse(LIT == 3 | LIT == 4, 1, 0)) %>%
+  select(c(YEAR,starts_with("BORN"),IMM, YRIMM, AGE, MALE, CANREAD, OCC1950))
+
+us_clean_yrimm <- us_clean %>%
+  group_by(YEAR, YRIMM) %>%
+  summarize(across(starts_with("BORN"), sum, na.rm=TRUE), 
+            IMM = sum(IMM, na.rm=TRUE), IMMPCT = sum(IMM, na.rm=TRUE)/n()) %>%
+  ungroup() %>%
+  group_by(YRIMM) %>%
+  summarize(across(starts_with("BORN"), max, na.rm=TRUE), 
+            IMM = max(IMM, na.rm=TRUE), IMMPCT = max(IMMPCT, na.rm=TRUE))
+write_csv(us_clean_yrimm, glue("{dbox}/cleaned/us_clean_yrimm.csv"))
+
+us_clean_chi <- us_clean %>% filter(BORNCHI == 1) %>%
+  mutate(AGEIMM = AGE - (YEAR - YRIMM),
+         LABOR = ifelse((OCC1950 <= 970 & OCC1950 > 800) | OCC1950 == 720 | OCC1950 == 690 | OCC1950 == 650, 1, 0)) %>% select(-c(IMM, YRIMM, AGE)) %>%
+  group_by(YEAR) %>% summarize(across(!starts_with("BORN"), mean, na.rm=TRUE), NUM = n())
+write_csv(us_clean_chi, glue("{dbox}/cleaned/us_clean_chi.csv"))
+
+
+
+
+
+

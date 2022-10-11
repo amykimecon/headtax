@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  10 OCT 2022 00:15
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  10 OCT 2022 21:17
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -521,7 +521,7 @@ Package: amsthm 2020/05/29 v2.20.6
 ) (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamerbasethemes.sty)) (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamerthemedefault.sty (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamerfontthemedefault.sty) (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamercolorthemedefault.sty) (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamerinnerthemedefault.sty
 \beamer@dima=\dimen290
 \beamer@dimb=\dimen291
-) (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamerouterthemedefault.sty))) (/usr/local/texlive/2022/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
+) (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamerouterthemedefault.sty))) (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamerthemeBerlin.sty (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamerouterthememiniframes.sty) (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamercolorthemewhale.sty) (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamercolorthemeorchid.sty) (/usr/local/texlive/2022/texmf-dist/tex/latex/beamer/beamerinnerthemerectangles.sty)) (/usr/local/texlive/2022/texmf-dist/tex/latex/appendixnumberbeamer/appendixnumberbeamer.sty) (/usr/local/texlive/2022/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2022-02-07 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count333
 \l__pdf_internal_box=\box75
@@ -678,15 +678,19 @@ Dictionary: translator-months-dictionary, Language: English
 Dictionary: translator-numbers-dictionary, Language: English 
 ) (/usr/local/texlive/2022/texmf-dist/tex/latex/translator/translator-theorem-dictionary-English.dict
 Dictionary: translator-theorem-dictionary, Language: English 
-) (./slides_oct7.nav) [1
+) (./slides_oct7.nav) [1{/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
 
-{/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2
+] [2
 
 ] (./slides_oct7.toc) [3
 
 ] (./slides_oct7.toc) [4
 
 ]
+LaTeX Font Info:    Trying to load font information for TS1+cmss on input line 47.
+ (/usr/local/texlive/2022/texmf-dist/tex/latex/base/ts1cmss.fd
+File: ts1cmss.fd 2019/12/16 v2.5j Standard LaTeX font definitions
+)
 LaTeX Font Info:    Trying to load font information for U+msa on input line 47.
  (/usr/local/texlive/2022/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
@@ -698,10 +702,6 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 LaTeX Font Info:    Trying to load font information for OT1+mathkerncmss on input line 47.
  (/usr/local/texlive/2022/texmf-dist/tex/latex/sansmathaccent/ot1mathkerncmss.fd
 File: ot1mathkerncmss.fd 2020/01/31 Fontinst v1.933 font definitions for OT1/mathkerncmss.
-)
-LaTeX Font Info:    Trying to load font information for TS1+cmss on input line 47.
- (/usr/local/texlive/2022/texmf-dist/tex/latex/base/ts1cmss.fd
-File: ts1cmss.fd 2019/12/16 v2.5j Standard LaTeX font definitions
 ) [5
 
 ] [6
@@ -711,75 +711,135 @@ File: ts1cmss.fd 2019/12/16 v2.5j Standard LaTeX font definitions
 ] [8
 
 ]
-<../../figs/census_tweet.png, id=300, 595.22375pt x 397.485pt>
+<../../figs/census_tweet.png, id=229, 595.22375pt x 397.485pt>
 File: ../../figs/census_tweet.png Graphic file (type png)
 <use ../../figs/census_tweet.png>
-Package pdftex.def Info: ../../figs/census_tweet.png  used on input line 82.
+Package pdftex.def Info: ../../figs/census_tweet.png  used on input line 81.
 (pdftex.def)             Requested size: 307.28987pt x 205.20135pt.
- [9
+
+Overfull \vbox (1.25249pt too high) detected at line 81
+ []
+
+[9
 
  <../../figs/census_tweet.png>] [10
 
 ] (./slides_oct7.toc) [11
 
 ]
-<../../figs/yrimmchi.png, id=392, 1806.75pt x 1204.5pt>
-File: ../../figs/yrimmchi.png Graphic file (type png)
-<use ../../figs/yrimmchi.png>
-Package pdftex.def Info: ../../figs/yrimmchi.png  used on input line 106.
+<../../figs/yrimmchi_maxes.png, id=296, 1806.75pt x 1204.5pt>
+File: ../../figs/yrimmchi_maxes.png Graphic file (type png)
+<use ../../figs/yrimmchi_maxes.png>
+Package pdftex.def Info: ../../figs/yrimmchi_maxes.png  used on input line 106.
 (pdftex.def)             Requested size: 276.559pt x 184.36142pt.
  [12
 
- <../../figs/yrimmchi.png>] [13
+ <../../figs/yrimmchi_maxes.png>]
+<../../figs/yrimmchi_us.png, id=329, 1806.75pt x 1204.5pt>
+File: ../../figs/yrimmchi_us.png Graphic file (type png)
+<use ../../figs/yrimmchi_us.png>
+Package pdftex.def Info: ../../figs/yrimmchi_us.png  used on input line 112.
+(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
+ [13
 
-]
-<../../figs/yrimmall.png, id=460, 1806.75pt x 1204.5pt>
+ <../../figs/yrimmchi_us.png>]
+<../../figs/yrimmall.png, id=355, 1806.75pt x 1204.5pt>
 File: ../../figs/yrimmall.png Graphic file (type png)
 <use ../../figs/yrimmall.png>
-Package pdftex.def Info: ../../figs/yrimmall.png  used on input line 135.
+Package pdftex.def Info: ../../figs/yrimmall.png  used on input line 122.
 (pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
- [14
+
+Overfull \vbox (8.90532pt too high) detected at line 122
+ []
+
+[14
 
  <../../figs/yrimmall.png>]
-<../../figs/taxbyyear.png, id=490, 1806.75pt x 1204.5pt>
-File: ../../figs/taxbyyear.png Graphic file (type png)
-<use ../../figs/taxbyyear.png>
-Package pdftex.def Info: ../../figs/taxbyyear.png  used on input line 139.
-(pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
- [15
-
- <../../figs/taxbyyear.png>]
-<../../figs/chiocc.png, id=518, 1806.75pt x 1204.5pt>
+<../../figs/chiocc.png, id=379, 1806.75pt x 1204.5pt>
 File: ../../figs/chiocc.png Graphic file (type png)
 <use ../../figs/chiocc.png>
-Package pdftex.def Info: ../../figs/chiocc.png  used on input line 144.
+Package pdftex.def Info: ../../figs/chiocc.png  used on input line 128.
 (pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
- [16
+
+Overfull \vbox (0.90532pt too high) detected at line 128
+ []
+
+[15
 
  <../../figs/chiocc.png>]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\translate ' on input line 153.
+(hyperref)                removing `\translate ' on input line 133.
 
-(../../figs/summstats.tex) [17
+(../../figs/summstats.tex) [16
 
 ]
-<../../figs/dateimmchi.png, id=575, 1806.75pt x 1204.5pt>
-File: ../../figs/dateimmchi.png Graphic file (type png)
-<use ../../figs/dateimmchi.png>
-Package pdftex.def Info: ../../figs/dateimmchi.png  used on input line 176.
-(pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
+<../../figs/taxespaid.png, id=421, 1806.75pt x 1204.5pt>
+File: ../../figs/taxespaid.png Graphic file (type png)
+<use ../../figs/taxespaid.png>
+Package pdftex.def Info: ../../figs/taxespaid.png  used on input line 155.
+(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
+ [17
+
+ <../../figs/taxespaid.png>]
+<../../figs/taxbyyear.png, id=437, 1806.75pt x 1204.5pt>
+File: ../../figs/taxbyyear.png Graphic file (type png)
+<use ../../figs/taxbyyear.png>
+Package pdftex.def Info: ../../figs/taxbyyear.png  used on input line 165.
+(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
  [18
 
+ <../../figs/taxbyyear.png>]
+<../../figs/dateimmchi.png, id=453, 1806.75pt x 1204.5pt>
+File: ../../figs/dateimmchi.png Graphic file (type png)
+<use ../../figs/dateimmchi.png>
+Package pdftex.def Info: ../../figs/dateimmchi.png  used on input line 180.
+(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
+
+Overfull \vbox (2.01256pt too high) detected at line 180
+ []
+
+[19
+
  <../../figs/dateimmchi.png>]
-<../../figs/chiorig.png, id=605, 1806.75pt x 1204.5pt>
+<../../figs/yrimmchi_means.png, id=470, 1806.75pt x 1204.5pt>
+File: ../../figs/yrimmchi_means.png Graphic file (type png)
+<use ../../figs/yrimmchi_means.png>
+Package pdftex.def Info: ../../figs/yrimmchi_means.png  used on input line 195.
+(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
+
+Overfull \vbox (20.01256pt too high) detected at line 195
+ []
+
+[20
+
+ <../../figs/yrimmchi_means.png>] [21
+
+]
+<../../figs/chiorig.png, id=504, 1806.75pt x 1204.5pt>
 File: ../../figs/chiorig.png Graphic file (type png)
 <use ../../figs/chiorig.png>
-Package pdftex.def Info: ../../figs/chiorig.png  used on input line 190.
-(pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
- [19
+Package pdftex.def Info: ../../figs/chiorig.png  used on input line 233.
+(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
+
+Overfull \vbox (2.01256pt too high) detected at line 233
+ []
+
+[22
 
  <../../figs/chiorig.png>]
+<../../figs/yrimm_us.png, id=520, 1806.75pt x 1204.5pt>
+File: ../../figs/yrimm_us.png Graphic file (type png)
+<use ../../figs/yrimm_us.png>
+Package pdftex.def Info: ../../figs/yrimm_us.png  used on input line 247.
+(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
+
+Overfull \vbox (2.01256pt too high) detected at line 247
+ []
+
+[23
+
+ <../../figs/yrimm_us.png>]
 \tf@nav=\write6
 \openout6 = `slides_oct7.nav'.
 
@@ -791,21 +851,21 @@ Package pdftex.def Info: ../../figs/chiorig.png  used on input line 190.
 
  (./slides_oct7.aux)
 Package rerunfilecheck Info: File `slides_oct7.out' has not changed.
-(rerunfilecheck)             Checksum: D25AC932D7DD8D569C419F0E82B65C23;1106.
+(rerunfilecheck)             Checksum: 10BAE21E09E955AA5FC2157ACBEB1665;383.
  ) 
 Here is how much of TeX's memory you used:
- 21837 strings out of 478268
- 426790 string characters out of 5846347
- 678771 words of memory out of 5000000
- 39517 multiletter control sequences out of 15000+600000
+ 22147 strings out of 478268
+ 437822 string characters out of 5846347
+ 689605 words of memory out of 5000000
+ 39793 multiletter control sequences out of 15000+600000
  482751 words of font info for 76 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 128i,15n,122p,516b,590s stack positions out of 10000i,1000n,20000p,200000b,200000s
-{/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss9.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfss1095.pfb>
-Output written on slides_oct7.pdf (19 pages, 1076095 bytes).
+ 128i,19n,122p,491b,771s stack positions out of 10000i,1000n,20000p,200000b,200000s
+{/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss9.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfss1095.pfb>
+Output written on slides_oct7.pdf (23 pages, 1716817 bytes).
 PDF statistics:
- 688 PDF objects out of 1000 (max. 8388607)
- 624 compressed objects within 7 object streams
- 59 named destinations out of 1000 (max. 500000)
- 142 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 587 PDF objects out of 1000 (max. 8388607)
+ 500 compressed objects within 5 object streams
+ 73 named destinations out of 1000 (max. 500000)
+ 130 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -118,11 +118,12 @@ clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr
          PROPOWNR = ifelse(PROPOWNR == "Yes", 1, 0),
          YRIMM = as.numeric(YRIMM),
          IMM = ifelse(bpl2 < 16000 & bpl2 >= 15000, 0, 1),
+         LABOR = ifelse(str_detect(OCC, "LAB"), 1, 0),
          OCCGRP = case_when(OCCSTR >= 71 ~ "Unskilled",
                             OCCSTR >= 40 & OCCSTR <= 70 ~ "Skilled",
                             OCCSTR < 40 ~ "Skilled",
                             TRUE ~ NA_character_)) %>%
-  select(c(MALE, AGE, starts_with("BORN"), MAR, YRIMM, PROPOWNR, NATL, OCCGRP, EARN, CANREAD, IMM, FIRSTNAME, LASTNAME)) %>%
+  select(c(MALE, AGE, starts_with("BORN"), MAR, YRIMM, PROPOWNR, NATL, OCCGRP, EARN, CANREAD, IMM, FIRSTNAME, LASTNAME, LABOR)) %>%
   mutate(YEAR = 1901, WEIGHT = 20)
 
 bplcanadastrings <- "(Ontario)|(Quebec)|(Nova Scotia)|(New Brunswick)|(Manitoba)|(Saskatchewan)|(Prince Edward Island)|(British Columbia)|(Alberta)|(Canada)|(Newfoundland)|(Northwest Territories)|(Yukon)|(Cape Breton)|(Labrador)"
@@ -145,12 +146,14 @@ clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM 
                             str_starts(Dwelling_Unit_Type, "SU") ~ 10,
                             str_starts(Dwelling_Unit_Type, "MU") ~ 4),
          IMM = ifelse(str_detect(BPL, bplcanadastrings), 0, 1),
+         OCCIND = str_to_lower(OCCUPATION_CHIEF_OCC_IND_CL),
+         LABOR = ifelse(str_detect(OCCIND, "Labour"), 1, 0),
          OCCGRP = case_when(OCC == "Laborers (n.e.c.)" ~ "Unskilled",
                             OCC == "Managers, officials, and proprietors (n.e.c.)" ~ "Skilled",
                             occ1 == "Agriculture" | occ1 == "Forestry and lumbering" | occ1 == "Mining" | occ1 == "Fisheries and hunting" | occ1 == "Building trades" | occ1 == "Transportation" | str_starts(occ1, "Domestic")~ "Unskilled",
                             str_starts(occ1, "Manufactures") | occ1 == "Trade and Merchandising" ~ "Skilled",
                             occ1 == "Civil and municipal service" | occ1 == "Professional pursuits" ~ "Skilled")) %>%
-  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, FIRSTNAME, LASTNAME)) %>% 
+  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, FIRSTNAME, LASTNAME, LABOR)) %>% 
   mutate(YEAR = 1911, BORNCHI = ifelse(BPL == "China", 1, 0), BORNRUS = ifelse(BPL == "Russia", 1, 0),
          BORNFRA = ifelse(BPL == "France", 1, 0), BORNGER = ifelse(BPL == "Germany", 1, 0),
          BORNJAP = ifelse(BPL == "Japan", 1, 0), BORNIND = ifelse(BPL == "India", 1, 0),
@@ -173,9 +176,11 @@ clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STAT
                             str_starts(Dwelling_Unit_Type, "SU") ~ 10,
                             str_starts(Dwelling_Unit_Type, "MU") ~ 5),
          IMM = ifelse(str_detect(BPL, bplcanadastrings), 0, 1),
+         OCC = str_to_lower(OCC),
+         LABOR = ifelse(str_detect(OCC, "labor") | str_detect(OCC, "labour"), 1, 0),
          OCCGRP = case_when(str_detect(CHIEF_OCCUPATION, "Farm") | str_detect(CHIEF_OCCUPATION, "Labor") | str_detect(CHIEF_OCCUPATION, "Mine") | CHIEF_OCCUPATION == "Private household workers (n.e.c.)" | str_detect(CHIEF_OCCUPATION, "Lumbermen") | CHIEF_OCCUPATION == "Carpenters" | CHIEF_OCCUPATION == "Machinists" | CHIEF_OCCUPATION == "Housekeepers, private household" | CHIEF_OCCUPATION == "Fishermen and oystermen" ~ "Unskilled",
                             CHIEF_OCCUPATION != "Blank" & CHIEF_OCCUPATION != "Unemployed/ without occupation" ~ "Skilled")) %>%
-  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, FIRSTNAME, LASTNAME)) %>% 
+  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, FIRSTNAME, LASTNAME, LABOR)) %>% 
   mutate(YEAR = 1921, BORNCHI = ifelse(BPL == "China", 1, 0), BORNRUS = ifelse(BPL == "Russia", 1, 0),
          BORNFRA = ifelse(BPL == "France", 1, 0), BORNGER = ifelse(BPL == "Germany", 1, 0),
          BORNJAP = ifelse(BPL == "Japan", 1, 0), BORNIND = ifelse(BPL == "India", 1, 0),
@@ -205,6 +210,5 @@ clean_chi <- clean_all %>% filter(BORNCHI == 1)
 #                                 predchi = ifelse((str_to_lower(lastname) %in% str_to_lower(chineselastnames)) & nchar(lastname) > 1 & lastname_predrace == "asian", 1, 0))
 
 write_csv(clean_all, glue("{dbox}/cleaned/census_all.csv"))
-write_csv(clean_chi, glue("{dbox}/cleaned/census_chi.csv"))
 
 
