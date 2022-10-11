@@ -38,8 +38,9 @@ us_clean <- us_raw %>%
          IMM = ifelse(NATIVITY == 5, 1, 0),
          YRIMM = YRIMMIG,
          MALE = ifelse(SEX == 1, 1, 0),
-         CANREAD = ifelse(LIT == 3 | LIT == 4, 1, 0)) %>%
-  select(c(YEAR,starts_with("BORN"),IMM, YRIMM, AGE, MALE, CANREAD, OCC1950))
+         CANREAD = ifelse(LIT == 3 | LIT == 4, 1, 0),
+         MAR = ifelse(MARST == 1 | MARST == 2, 1, 0)) %>%
+  select(c(YEAR,starts_with("BORN"),IMM, YRIMM, AGE, MALE, CANREAD, OCC1950, MAR))
 
 us_clean_yrimm <- us_clean %>%
   group_by(YEAR, YRIMM) %>%
@@ -51,11 +52,10 @@ us_clean_yrimm <- us_clean %>%
             IMM = max(IMM, na.rm=TRUE), IMMPCT = max(IMMPCT, na.rm=TRUE))
 write_csv(us_clean_yrimm, glue("{dbox}/cleaned/us_clean_yrimm.csv"))
 
-us_clean_chi <- us_clean %>% filter(BORNCHI == 1) %>%
-  mutate(AGEIMM = AGE - (YEAR - YRIMM),
-         LABOR = ifelse((OCC1950 <= 970 & OCC1950 > 800) | OCC1950 == 720 | OCC1950 == 690 | OCC1950 == 650, 1, 0)) %>% select(-c(IMM, YRIMM, AGE)) %>%
-  group_by(YEAR) %>% summarize(across(!starts_with("BORN"), mean, na.rm=TRUE), NUM = n())
-write_csv(us_clean_chi, glue("{dbox}/cleaned/us_clean_chi.csv"))
+us_chi <- us_clean %>% filter(BORNCHI == 1) %>%
+  mutate(AGEATIMM = AGE - (YEAR - YRIMM),
+         LABOR = ifelse((OCC1950 <= 970 & OCC1950 > 800) | OCC1950 == 720 | OCC1950 == 690 | OCC1950 == 650, 1, 0))
+write_csv(us_chi, glue("{dbox}/cleaned/us_chi.csv"))
 
 
 

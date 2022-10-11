@@ -3,7 +3,7 @@
 ### PRIMARY OBJECTIVE: Graphing Trends, etc.
 ### CREATED BY: Amy Kim
 ### CREATED ON: Sep 29 2022
-### LAST MODIFIED: Sep 29 2022
+### LAST MODIFIED: Oct 10 2022
 ########################################################################
 library(Hmisc)
 library(tidyverse)
@@ -59,7 +59,8 @@ chireg <- chiregraw %>% mutate(COUNTYGRP = case_when(COUNTY_ID == 1 ~ "Taishan",
                                FIRSTNAME = str_to_lower(str_remove(NAMECLEAN, "\\s\\S*$")),
                                BIRTHYEAR = REG_Year - AGE,
                                MALE = ifelse(SEX == "Male", 1, 0),
-                               REGID = row_number()) %>%
+                               REGID = row_number(),
+                               LABOR = ifelse(PROFESSION == "Labourer", 1, 0)) %>%
   filter(!is.na(DATE) & YEAR != 0) #excluding entries without valid arrival date (for now) -- only 522 such entries out of ~100k
 write_csv(chireg, glue("{dbox}/cleaned/chireg.csv"))
 

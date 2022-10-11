@@ -5,27 +5,28 @@
 \setbeamertemplate{navigation symbols}{} 
 \usepackage{graphicx}
 \usepackage{appendixnumberbeamer}
+\renewcommand{\arraystretch}{1.5}
 
 \title{The Chinese Head Tax and Chinese Immigration to Canada}
 \author{Amy Kim}
 \date{October 11, 2022}
 
 \begin{document}
-\begin{frame}
+\begin{frame}[plain]
     \titlepage
 \end{frame}
 
-\begin{frame}{Research Question}
+\begin{frame}[plain]{Research Question}
     How did the Chinese Head Tax affect selection into immigration and/or immigrant wealth of Chinese immigrants to Canada in the early 20th century?    
 \end{frame}
 
-\begin{frame}{Outline}
+\begin{frame}[plain]{Outline}
     \tableofcontents
 \end{frame}
 
 \AtBeginSection[ ]
 {
-\begin{frame}{Outline}
+\begin{frame}[plain]{Outline}
     \tableofcontents[currentsection]
 \end{frame}
 }
@@ -35,61 +36,54 @@
 \begin{frame}{Timeline}
     \begin{itemize}
         \item Early 1880s: Influx of Chinese immigrants for construction of Canadian Pacific Railway
-        \item 1885: Chinese Exclusion Act institutes \$50 tax
+        \item 1885: Chinese Exclusion Act institutes \$50 (~1.5k USD) tax
         \begin{itemize}
             \item Only exceptions for students, merchants, and diplomats
             \item Was not applied retroactively, but the tax was required even for re-entry going forward
-            \item One-time tax\footnote{Repayment was only required if someone was out of the country for more than 2 years}, applied at the port of entry
-            \item Payment was tracked using a physical `head-tax certificate'
             \item Failure to pay would result in being sent back to China -- many immigrants had to borrow money or enter indentured servitude contracts
         \end{itemize}
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Timeline}
-    \begin{itemize}
-        \item 1900: Tax raised to \$100 
-        \item 1903: Tax raised to \$500 
-        \item 1912: All certificates re-issued with a photo (to prevent entry using someone else's certificate)
+        \item 1900: Tax raised to \$100 (~3.5k USD)
+        \item 1903: Tax raised to \$500 (~16k USD)
         \item 1923: Chinese immigration banned completely (with very few exceptions)
-        \item Chan (2014) estimates that the Canadian government generated \$23 million in revenue from the Head Tax (approx. 440 million USD today)
     \end{itemize}
 \end{frame}
 
 % DATA
 \section{Data}
-\begin{frame}{Canadian Census Data}
-    \centering
-    \begin{tabular}{|r||c|c|}
-        \hline 
-        Year & Coverage & Sampling Method \\
-        \hline 
-        1852 & 20\% & Random, clustered sample \\
-        1871 & 1.8\% & Stratified sample (8 strata)\\
-        1881 & 100\% & Full sample \\
-        1891 & 5\% & Random sample\footnote{Also includes 10\% of cities and 100\% of all large dwellings and some areas of Ontario} \\
-        1901 & 5\% & \textit{Not Specified} \\
-        1911 & 5\% & Random sample\footnote{Also includes 10\% of large dwellings and 25\% of multi-unit dwellings} \\
-        1921 & 4\% & Random sample\footnote{Also includes 10\% of large dwellings and 20\% of multi-unit dwellings} \\
-        \hline
-    \end{tabular} \\
-    Note: China was not listed as a country of origin in the data until the 1881 census.
-\end{frame}
-
-\begin{frame}{Canadian Census Data}
-    \includegraphics[width = \textwidth]{../../figs/census_tweet.png}
-\end{frame}
-
-\begin{frame}{Chinese Registry Data}
+\begin{frame}[label = datasources]
+    \frametitle{Data Sources}
     \centering
     \begin{itemize}
-        \item Publicly available and fully digitized
-        \item Includes a full count of every person of Chinese origin arriving in Canada from 1885-1949
-        \item Also includes information on pre-1885 entrants who chose to register for re-entry 
-        \item Includes: Name, Age, Sex, Occupation, Date \& Port of Arrival, \textbf{Fee paid}, Area of Origin in China, Date of Re-Entry (if applicable) 
+        \item Canadian Census \hyperlink{cancensus}{\beamerbutton{Details on Canadian Census}}
+        \begin{itemize}
+            \item Currently: at least 5\% sample from 1881-1921
+            \item Entire Full-Count Data? \hyperlink{censustweet}{\beamerbutton{See Tweet}}
+            \item Missing: mid-decade arrivals who exited before subsequent census
+        \end{itemize}
+        \item Chinese Registry 
+        \begin{itemize}
+            \item \textbf{Full count} of every person of Chinese origin arriving in Canada from 1885-1949
+            \item Missing: full count of pre-1885 arrivals
+        \end{itemize}
+        \item US Census 
+        \begin{itemize}
+            \item For now, just a point of comparison
+            \item Full count data from IPUMS from 1850-1940
+            \item Missing: income/wealth data
+        \end{itemize}
     \end{itemize}
-    \hyperlink{summstats}{\beamerbutton{Summary Statistics for Census vs Registry Data}} \\ 
-    TODO : add t-test to the summ stats table 
+    
+\end{frame}
+
+\begin{frame}[label = summstats]
+	\frametitle{Chinese Immigrants Summary Statistics by Data Source}        
+    \centering 
+	\begin{table}[H]
+		\resizebox{\textwidth}{!}{
+            \input{../../figs/summstats.tex}
+		}
+	\end{table}  
+    \hyperlink{summstatscensus}{\beamerbutton{Summ. Stats by Group in CA Census}}
 \end{frame}
 
 
@@ -109,18 +103,8 @@
     \centering
     \includegraphics[width = 0.9\textwidth]{../../figs/yrimmchi_us.png}
     \hyperlink{yrimm_us}{\beamerbutton{All Immigration to US vs. Canada}}
+    \hyperlink{yrimmall}{\beamerbutton{Immigration to Canada by Country}}
 \end{frame}
-
-\begin{frame}[label = yrimmall]
-	\frametitle{Immigration to Canada by Year by Country}
-    \centering
-	\begin{figure}[H]
-		\begin{center}
-			\includegraphics[width=\textwidth]{../../figs/yrimmall.png}
-		\end{center}
-	\end{figure}
-\end{frame}
-
 
 
 \begin{frame}{Chinese Immigration by Occupation Group}
@@ -132,16 +116,50 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendix
 %---------------------------
-%   Summary Statistics for Census vs Registry Data
+%  Details on sampling for currently publically available Canadian Census Data
 %---------------------------
-\begin{frame}[label = summstats]
-	\frametitle{Summary Statistics}
+\renewcommand{\arraystretch}{1}
+\begin{frame}[label = cancensus]
+    \frametitle{Canadian Census Data}
+    \centering
+    \begin{tabular}{|r||c|c|}
+        \hline 
+        Year & Coverage & Sampling Method \\
+        \hline 
+        1852 & 20\% & Random, clustered sample \\
+        1871 & 1.8\% & Stratified sample (8 strata)\\
+        1881 & 100\% & Full sample \\
+        1891 & 5\% & Random sample\footnote{Also includes 10\% of cities and 100\% of all large dwellings and some areas of Ontario} \\
+        1901 & 5\% & \textit{Not Specified} \\
+        1911 & 5\% & Random sample\footnote{Also includes 10\% of large dwellings and 25\% of multi-unit dwellings} \\
+        1921 & 4\% & Random sample\footnote{Also includes 10\% of large dwellings and 20\% of multi-unit dwellings} \\
+        \hline
+    \end{tabular} \\
+    Note: China was not listed as a country of origin in the data until the 1881 census.
+    \hyperlink{datasources}{\beamerbutton{Back to Slides}}
+\end{frame}
+
+%---------------------------
+%  Tweet on Census Data
+%---------------------------
+\begin{frame}[label=censustweet]
+    \frametitle{Full-Count Canadian Census Data -- Coming Soon!}
+    \includegraphics[width = 0.9\textwidth]{../../figs/census_tweet.png}
+    \hyperlink{datasources}{\beamerbutton{Back to Slides}}
+\end{frame}
+
+%---------------------------
+%   Summary Statistics for Census by Group
+%---------------------------
+\begin{frame}[label = summstatscensus]
+	\frametitle{Summary Statistics for by Group in Canadian Census}
 	\begin{table}[H]
         \centering 
-		\resizebox{\textwidth}{!}{
-            \input{../../figs/summstats.tex}
+		\resizebox{0.6\textwidth}{!}{
+            \input{../../figs/summstatscensus.tex}
 		}
 	\end{table}  
+    \hyperlink{datasources}{\beamerbutton{Back to Slides}}
 \end{frame}
 
 %---------------------------
@@ -151,6 +169,7 @@
     \frametitle{Head Tax Payers: Average Taxes Paid by Year}
     \centering
     \includegraphics[width = 0.9\textwidth]{../../figs/taxespaid.png}
+    \centering
     \hyperlink{yrimmchi}{\beamerbutton{Back to Slides}}
 \end{frame}
 
@@ -246,4 +265,16 @@
     \hyperlink{yrimmchius}{\beamerbutton{Back to Chinese Imm. to CA/US}}
 \end{frame}
 
+%---------------------------
+%  Immigration to Canada by Year by Country
+%---------------------------
+\begin{frame}[label = yrimmall]
+	\frametitle{Immigration to Canada by Year by Country}
+    \centering
+	\begin{figure}[H]
+		\begin{center}
+			\includegraphics[width=\textwidth]{../../figs/yrimmall.png}
+		\end{center}
+	\end{figure}
+\end{frame}
 \end{document}

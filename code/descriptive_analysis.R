@@ -28,16 +28,16 @@ us <- "#00BFC4"
 ### IMPORTING DATA
 ########################################################################
 ## chinese registry -- immigration data through ports
-# hannah's excel sheet
 chireg <- read_csv(glue("{dbox}/cleaned/chireg.csv"))
 
 ## census data
 clean_all <- read_csv(glue("{dbox}/cleaned/census_all.csv"), guess_max = 5715448)
+clean_imm <- clean_all %>% filter(IMM == 1)
 clean_chi <- clean_all %>% filter(BORNCHI == 1)
 
 ## us census data
 us_clean_yrimm <- read_csv(glue("{dbox}/cleaned/us_clean_yrimm.csv"))
-us_clean_chi <- read_csv(glue("{dbox}/cleaned/us_clean_chi.csv"))
+us_chi <- read_csv(glue("{dbox}/cleaned/us_chi.csv"))
 
 ########################################################################
 ### CLEANING DATA FOR ANALYSIS
@@ -65,35 +65,51 @@ yrimm_censusdata_maxes <- clean_imm %>% filter(YEAR > 1900) %>%
   filter(YRIMM < YEAR) %>% # drop imm numbers from year that census was taken
   group_by(YRIMM) %>% dplyr::summarize(across(starts_with("BORN"), max, na.rm=TRUE), IMM = max(IMM, na.rm=TRUE)) %>% ungroup() %>%
   mutate(datasource = "Census (1901-1921 Max)")
+
+## census data transformed for summary stats
+census_summ <- clean_all %>% filter(YEAR > 1900) %>% mutate(AGEATIMM = ifelse(IMM == 1, AGE - (YEAR - YRIMM), NA),
+                                                            EARN = ifelse(EARN == 0, NA, EARN)) %>%
+  select(c(MALE, AGEATIMM, AGE, MAR, CANREAD, EARN, WEIGHT, IMM, BORNCHI, LABOR))
+
 ########################################################################
 ### SUMMARY STATISTICS
 ########################################################################
-census_summ <- clean_all %>% filter(YEAR > 1900) %>% mutate(AGEATIMM = ifelse(IMM == 1, AGE - (YEAR - YRIMM), NA),
-                                                            EARN = ifelse(EARN == 0, NA, EARN)) %>%
-  select(c(MALE, AGEATIMM, AGE, MAR, CANREAD, EARN, WEIGHT, IMM, BORNCHI))
-
+# summary stats among canadian census (1901-1921) -- everyone, all immigrants, chinese immigrants
 summ_stats_census <- bind_rows(census_summ %>% mutate(group = "All", AGEATIMM = NA), census_summ %>% mutate(group = "Immigrants") %>% filter(IMM == 1)) %>%
   bind_rows(census_summ %>% mutate(group = "Chinese Imm") %>% filter(BORNCHI == 1)) %>%
-  group_by(group) %>% summarize(across(-c(WEIGHT, IMM, BORNCHI), .fns = c(~round(weighted.mean(.x, WEIGHT, na.rm=TRUE), 2), 
+  select(c(group, MALE, MAR, AGE, CANREAD, EARN, LABOR, WEIGHT)) %>%
+  group_by(group) %>% summarize(across(-c(WEIGHT), .fns = c(~round(weighted.mean(.x, WEIGHT, na.rm=TRUE), 2), 
                                                                           ~ifelse(is.na(mean(.x,na.rm=TRUE)),
                                                                                   NA,
                                                                                   paste0("(", round(sqrt(wtd.var(.x, WEIGHT, na.rm=TRUE)), 2), ")")))), 
                                 OBS = n()) 
+summ_stats_out_census <- t(summ_stats_census)[,c(1,3,2)] %>% as.data.frame()
+colnames(summ_stats_out_census) <- summ_stats_out_census[1,]
+rownames(summ_stats_out_census) <- c("group", "% Male", "", "% Married", " ", "Avg. Age", "  ", "% Can Read", "   ","Avg. Earnings", "    ", "% Labourers", "     ", "Obs")
 
-summ_stats <- bind_rows(census_summ %>% mutate(group = "CA Census", NUM = 1) %>% filter(BORNCHI == 1), 
-                        chireg %>% mutate(group = "Chinese Registry", AGEATIMM = AGE - (REG_Year - YEAR), WEIGHT = 1, NUM = 1) %>% select(c(group, MALE, AGE, AGEATIMM, WEIGHT))) %>%
-  bind_rows(us_clean_chi %>% mutate(group = "US Census", WEIGHT = 1)) %>%
-  group_by(group) %>% summarize(across(-c(WEIGHT, IMM, BORNCHI), .fns = c(~round(weighted.mean(.x, WEIGHT, na.rm=TRUE), 2), 
+print(xtable(summ_stats_out_census[-1,], align = "lccc", type = "latex"), 
+      file = glue("{git}/figs/summstatscensus.tex"), 
+      floating = FALSE, NA.string = "-",
+      hline.after = c(-1,0,nrow(summ_stats_out_census)-2,nrow(summ_stats_out_census)-1))
+
+
+# summary stats among chinese immigrants -- canadian census (1901-1921), chinese registry, us census (1900-1920)
+summ_stats <- bind_rows(census_summ %>% mutate(group = "CA Census (1901-1921)") %>% filter(BORNCHI == 1), 
+                        chireg %>% filter(YEAR < 1924 & YEAR >= 1885) %>% mutate(group = "Chinese Registry (1885-1924)", AGEATIMM = AGE - (REG_Year - YEAR), WEIGHT = 1)) %>%
+  bind_rows(us_chi %>% mutate(group = "US Census (1900-1920)", WEIGHT = 1)) %>%
+  select(c(WEIGHT, MALE, MAR, AGE, AGEATIMM, CANREAD, LABOR, group)) %>%
+  mutate(LABOR = LABOR * ifelse(AGE > 18 & MALE == 1, 1, 0)) %>%
+  group_by(group) %>% summarize(across(-c(WEIGHT, AGE), .fns = c(~round(weighted.mean(.x, WEIGHT, na.rm=TRUE), 2), 
                                                                           ~ifelse(is.na(mean(.x,na.rm=TRUE)),
                                                                                   NA,
-                                                                                  paste0("(", round(sqrt(wtd.var(.x, WEIGHT, na.rm=TRUE)), 2), ")")))), 
-                                OBS = sum(NUM)) 
+                                                                                  paste0("(", round(sqrt(wtd.var(.x, WEIGHT, na.rm=TRUE)), 2), ")")))),
+                                OBS = n())
 
-summ_stats_out <- t(summ_stats)[,c(1,4,2,3)] %>% as.data.frame()
+summ_stats_out <- t(summ_stats) %>% as.data.frame()
 colnames(summ_stats_out) <- summ_stats_out[1,]
-rownames(summ_stats_out) <- c("group", "% Male", "", "Avg. Imm Age", " ", "Avg. Age", "  ", "% Married","   ",  "% Can Read", "     ", "Avg. Earnings", "        ", "Obs")
+rownames(summ_stats_out) <- c("group", "% Male", "", "% Married", " ", "Avg. Age at Imm", "  ", "% Can Read", "     ", "% Labourers", "        ", "Obs")
 
-print(xtable(summ_stats_out[-1,], align = "lcccc", type = "latex"), 
+print(xtable(summ_stats_out[-1,], align = "lccc", type = "latex"), 
       file = glue("{git}/figs/summstats.tex"), 
       floating = FALSE, NA.string = "-",
       hline.after = c(-1,0,nrow(summ_stats_out)-2,nrow(summ_stats_out)-1))
@@ -170,7 +186,7 @@ chiocc <- ggplot(chireg %>% filter(AGE >= 18 & SEX == "Male") %>% group_by(OCCGR
                    group_by(YEAR) %>% mutate(pct = n/sum(n)) %>% filter(YEAR >= 1880 & YEAR <= 1930), 
                  aes(x = YEAR, y = n, fill = OCCGRP)) + geom_area() +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE) + 
-  geom_text(aes(x = yrs, y = 6000, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.5) +
+  geom_text(aes(x = yrs, y = 6000, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.5, size = 3) + guides(fill = guide_legend(nrow = 2)) +
   labs(x = "Year of Immigration", y = "Chinese Immigrant Inflow", fill = "Occupation Group") + theme(legend.position='bottom') 
 ggsave(glue("{git}/figs/chiocc.png"), chiocc, height = 4, width = 6)
 
