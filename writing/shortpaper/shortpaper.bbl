@@ -1,8 +1,75 @@
-\begin{thebibliography}{0}
+\begin{thebibliography}{10}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[{Canadian Century Research Infrastructure}(2011)]{census1911}
+{Canadian Century Research Infrastructure}.
+\newblock {Canadian Census of Population Microdata, 1911 [Canada]}.
+\newblock Dataset, 2011.
+\newblock Data retrieved from odesi,
+  \url{https://odesi.ca/#/details?uri=/odesi/ccri-census-G-E-1911.xml}.
+
+\bibitem[{Canadian Century Research Infrastructure}(2015)]{census1921}
+{Canadian Century Research Infrastructure}.
+\newblock {1921 Census Database}.
+\newblock Dataset, 2015.
+\newblock Data retrieved from CCRI,
+  \url{https://ccri.library.ualberta.ca/en1921census/database/index.html}.
+
+\bibitem[{Canadian Families Project, University of Victoria}(2012)]{census1901}
+{Canadian Families Project, University of Victoria}.
+\newblock {National Sample of the 1901 Census [Canada]}.
+\newblock Dataset, Carleton University Data Resource Center, 2012.
+\newblock Data retrieved from odesi,
+  \url{https://odesi.ca/#/details?uri=/odesi/cen-E-1901.xml}.
+
+\bibitem[Chan(2016)]{chan2016}
+A.~Chan.
+\newblock Chinese head tax in canada, Sep 2016.
+\newblock URL
+  \url{https://www.thecanadianencyclopedia.ca/en/article/chinese-head-tax-in-canada}.
+
+\bibitem[Chan(2019)]{chan2019}
+A.~B. Chan.
+\newblock Chinese canadians, May 2019.
+\newblock URL
+  \url{https://www.thecanadianencyclopedia.ca/en/article/chinese-canadians}.
+
+\bibitem[Chen(2015)]{Chen2015}
+J.~J. Chen.
+\newblock The impact of skill-based immigration restrictions: The chinese
+  exclusion act of 1882.
+\newblock \emph{Journal of Human Capital}, 9\penalty0 (3):\penalty0 298--328,
+  2015.
+
+\bibitem[Chen and Xie(2020)]{ChenXie2020}
+S.~Chen and B.~Xie.
+\newblock {Institutional Discrimination and Assimilation: Evidence from the
+  Chinese Exclusion Act of 1882}.
+\newblock IZA Discussion Papers 13647, Institute of Labor Economics (IZA), Aug.
+  2020.
+
+\bibitem[Postel(2023)]{Postel2023}
+H.~M. Postel.
+\newblock Record linkage for character-based surnames: Evidence from chinese
+  exclusion.
+\newblock \emph{Explorations in Economic History}, 87:\penalty0 101493, 2023.
+
+\bibitem[Ruggles et~al.(2021)Ruggles, Fitch, Goeken, Hacker, Nelson, Roberts,
+  Schouweiler, and Sobek]{ipums}
+S.~Ruggles, C.~A. Fitch, R.~Goeken, J.~D. Hacker, M.~A. Nelson, E.~Roberts,
+  M.~Schouweiler, and M.~Sobek.
+\newblock {IPUMS Ancestry Full Count Data: Version 3.0}.
+\newblock Dataset, {Minneapolis, MN: IPUMS}, 2021.
+
+\bibitem[Ward and Yu(2008)]{chineseregister}
+P.~W. Ward and H.~Yu.
+\newblock {Register of Chinese Immigrants to Canada, 1886-1949}.
+\newblock Dataset, Vancouver: University of British Columbia Library, 2008.
+\newblock
+  \url{https://open.library.ubc.ca/cIRcle/collections/facultyresearchandpublications/52383/items/1.0075988}.
 
 \end{thebibliography}

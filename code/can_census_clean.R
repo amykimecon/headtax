@@ -265,6 +265,6 @@ clean_all_occ <- clean_all %>% group_by(YEAR) %>% summarize(pct_labor1 = sum(LAB
                                                             pct_na = sum(ifelse(is.na(OCCGRP), 1, 0))/sum(ifelse(!is.na(OCCGRP), 1, 0)))
 
 
-
+clean_all_houseown <- clean_all %>% group_by(YEAR) %>% summarize(pct_house_own = sum(HOUSEOWN, na.rm=TRUE)/n())
 
 
