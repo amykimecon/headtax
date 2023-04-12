@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  10 OCT 2022 23:49
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  12 APR 2023 12:01
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -613,7 +613,6 @@ Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 LaTeX Info: Redefining \ref on input line 14.
 LaTeX Info: Redefining \pageref on input line 14.
 LaTeX Info: Redefining \nameref on input line 14.
- (./slides_oct7.out) (./slides_oct7.out)
 \@outlinefile=\write5
 \openout5 = `slides_oct7.out'.
 
@@ -678,13 +677,19 @@ Dictionary: translator-months-dictionary, Language: English
 Dictionary: translator-numbers-dictionary, Language: English 
 ) (/usr/local/texlive/2022/texmf-dist/tex/latex/translator/translator-theorem-dictionary-English.dict
 Dictionary: translator-theorem-dictionary, Language: English 
-) (./slides_oct7.nav) [1
+)
+No file slides_oct7.nav.
+[1
 
 {/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2
 
-] (./slides_oct7.toc) [3
+]
+No file slides_oct7.toc.
+[3
 
-] (./slides_oct7.toc) [4
+]
+No file slides_oct7.toc.
+[4
 
 ]
 LaTeX Font Info:    Trying to load font information for TS1+cmss on input line 49.
@@ -692,55 +697,144 @@ LaTeX Font Info:    Trying to load font information for TS1+cmss on input line 4
 File: ts1cmss.fd 2019/12/16 v2.5j Standard LaTeX font definitions
 ) [5
 
-] (./slides_oct7.toc) [6
+]
+No file slides_oct7.toc.
+[6
 
 ] [7
 
 ] (../../figs/summstats.tex
-LaTeX Font Info:    Trying to load font information for U+msa on input line 3.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 1.
  (/usr/local/texlive/2022/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 3.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 1.
  (/usr/local/texlive/2022/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Trying to load font information for OT1+mathkerncmss on input line 3.
+LaTeX Font Info:    Trying to load font information for OT1+mathkerncmss on input line 1.
  (/usr/local/texlive/2022/texmf-dist/tex/latex/sansmathaccent/ot1mathkerncmss.fd
 File: ot1mathkerncmss.fd 2020/01/31 Fontinst v1.933 font definitions for OT1/mathkerncmss.
-)) [8
+)
+../../figs/summstats.tex:2: Undefined control sequence.
+l.2 \hhline
+           {==========}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
 
-] (./slides_oct7.toc) [9
+../../figs/summstats.tex:4: Undefined control sequence.
+<recently read> \hhline 
+                        
+l.4 \hhline
+           {~--~--~---}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+../../figs/summstats.tex:7: Undefined control sequence.
+<recently read> \hhline 
+                        
+l.7  \hhline
+            {----------}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+../../figs/summstats.tex:24: Undefined control sequence.
+<recently read> \hhline 
+                        
+l.24 \hhline
+            {----------}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+)
+Overfull \vbox (10.44962pt too high) detected at line 87
+ []
+
+[8
 
 ]
-<../../figs/yrimmchi_maxes.png, id=155, 1806.75pt x 1204.5pt>
-File: ../../figs/yrimmchi_maxes.png Graphic file (type png)
-<use ../../figs/yrimmchi_maxes.png>
-Package pdftex.def Info: ../../figs/yrimmchi_maxes.png  used on input line 100.
-(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
- [10
+No file slides_oct7.toc.
+[9
 
- <../../figs/yrimmchi_maxes.png>]
-<../../figs/yrimmchi_us.png, id=186, 1806.75pt x 1204.5pt>
-File: ../../figs/yrimmchi_us.png Graphic file (type png)
-<use ../../figs/yrimmchi_us.png>
-Package pdftex.def Info: ../../figs/yrimmchi_us.png  used on input line 107.
-(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
- [11
+]
 
- <../../figs/yrimmchi_us.png>]
-<../../figs/chiocc.png, id=210, 1806.75pt x 1204.5pt>
-File: ../../figs/chiocc.png Graphic file (type png)
-<use ../../figs/chiocc.png>
-Package pdftex.def Info: ../../figs/chiocc.png  used on input line 112.
-(pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
+LaTeX Warning: File `../../figs/yrimmchi_maxes.png' not found on input line 100.
 
-Overfull \vbox (0.90532pt too high) detected at line 112
+
+/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex:100: Package pdftex.def Error: File `../../figs/yrimmchi_maxes.png' not found: using draft setting.
+
+See the pdftex.def package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.100 \end{frame}
+                 
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+Overfull \vbox (83.1648pt too high) detected at line 100
+ []
+
+[10
+
+]
+
+LaTeX Warning: File `../../figs/yrimmchi_us.png' not found on input line 107.
+
+
+/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex:107: Package pdftex.def Error: File `../../figs/yrimmchi_us.png' not found: using draft setting.
+
+See the pdftex.def package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.107 \end{frame}
+                 
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+Overfull \vbox (83.1648pt too high) detected at line 107
+ []
+
+[11
+
+]
+
+LaTeX Warning: File `../../figs/chiocc.png' not found on input line 112.
+
+
+/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex:112: Package pdftex.def Error: File `../../figs/chiocc.png' not found: using draft setting.
+
+See the pdftex.def package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.112 \end{frame}
+                 
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+Overfull \vbox (100.30402pt too high) detected at line 112
  []
 
 [12
 
- <../../figs/chiocc.png>]
+]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `\translate ' on input line 117.
@@ -748,120 +842,49 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 [13
 
 ]
-<../../figs/census_tweet.png, id=259, 595.22375pt x 397.485pt>
-File: ../../figs/census_tweet.png Graphic file (type png)
-<use ../../figs/census_tweet.png>
-Package pdftex.def Info: ../../figs/census_tweet.png  used on input line 149.
-(pdftex.def)             Requested size: 276.559pt x 184.68304pt.
- [14
 
- <../../figs/census_tweet.png>] (../../figs/summstatscensus.tex) [15
+LaTeX Warning: File `../../figs/census_tweet.png' not found on input line 149.
+
+
+/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex:149: Package pdftex.def Error: File `../../figs/census_tweet.png' not found: using draft setting.
+
+See the pdftex.def package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.149 \end{frame}
+                 
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+Overfull \vbox (83.1648pt too high) detected at line 149
+ []
+
+[14
 
 ]
-<../../figs/taxespaid.png, id=296, 1806.75pt x 1204.5pt>
-File: ../../figs/taxespaid.png Graphic file (type png)
-<use ../../figs/taxespaid.png>
-Package pdftex.def Info: ../../figs/taxespaid.png  used on input line 174.
-(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
- [16
 
- <../../figs/taxespaid.png>]
-<../../figs/taxbyyear.png, id=315, 1806.75pt x 1204.5pt>
-File: ../../figs/taxbyyear.png Graphic file (type png)
-<use ../../figs/taxbyyear.png>
-Package pdftex.def Info: ../../figs/taxbyyear.png  used on input line 184.
-(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
- [17
+! LaTeX Error: File `../../figs/summstatscensus.tex' not found.
 
- <../../figs/taxbyyear.png>]
-<../../figs/dateimmchi.png, id=334, 1806.75pt x 1204.5pt>
-File: ../../figs/dateimmchi.png Graphic file (type png)
-<use ../../figs/dateimmchi.png>
-Package pdftex.def Info: ../../figs/dateimmchi.png  used on input line 199.
-(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: tex)
 
-Overfull \vbox (2.01256pt too high) detected at line 199
- []
+Enter file name: 
+/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex:163: Emergency stop.
+<read *> 
+         
+l.163 \end{frame}
+                 ^^M
+*** (cannot \read from terminal in nonstop modes)
 
-[18
-
- <../../figs/dateimmchi.png>]
-<../../figs/yrimmchi_means.png, id=353, 1806.75pt x 1204.5pt>
-File: ../../figs/yrimmchi_means.png Graphic file (type png)
-<use ../../figs/yrimmchi_means.png>
-Package pdftex.def Info: ../../figs/yrimmchi_means.png  used on input line 214.
-(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
-
-Overfull \vbox (20.01256pt too high) detected at line 214
- []
-
-[19
-
- <../../figs/yrimmchi_means.png>] [20
-
-]
-<../../figs/chiorig.png, id=394, 1806.75pt x 1204.5pt>
-File: ../../figs/chiorig.png Graphic file (type png)
-<use ../../figs/chiorig.png>
-Package pdftex.def Info: ../../figs/chiorig.png  used on input line 252.
-(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
-
-Overfull \vbox (2.01256pt too high) detected at line 252
- []
-
-[21
-
- <../../figs/chiorig.png>]
-<../../figs/yrimm_us.png, id=413, 1806.75pt x 1204.5pt>
-File: ../../figs/yrimm_us.png Graphic file (type png)
-<use ../../figs/yrimm_us.png>
-Package pdftex.def Info: ../../figs/yrimm_us.png  used on input line 266.
-(pdftex.def)             Requested size: 276.559pt x 184.36142pt.
-
-Overfull \vbox (2.01256pt too high) detected at line 266
- []
-
-[22
-
- <../../figs/yrimm_us.png>]
-<../../figs/yrimmall.png, id=432, 1806.75pt x 1204.5pt>
-File: ../../figs/yrimmall.png Graphic file (type png)
-<use ../../figs/yrimmall.png>
-Package pdftex.def Info: ../../figs/yrimmall.png  used on input line 279.
-(pdftex.def)             Requested size: 307.28987pt x 204.85419pt.
-
-Overfull \vbox (8.90532pt too high) detected at line 279
- []
-
-[23
-
- <../../figs/yrimmall.png>]
-\tf@nav=\write6
-\openout6 = `slides_oct7.nav'.
-
-\tf@toc=\write7
-\openout7 = `slides_oct7.toc'.
-
-\tf@snm=\write8
-\openout8 = `slides_oct7.snm'.
-
- (./slides_oct7.aux)
-Package rerunfilecheck Info: File `slides_oct7.out' has not changed.
-(rerunfilecheck)             Checksum: 10BAE21E09E955AA5FC2157ACBEB1665;383.
- ) 
+ 
 Here is how much of TeX's memory you used:
- 22195 strings out of 478268
- 439117 string characters out of 5846347
- 690556 words of memory out of 5000000
- 39831 multiletter control sequences out of 15000+600000
- 480602 words of font info for 68 fonts, out of 8000000 for 9000
+ 22014 strings out of 478268
+ 437059 string characters out of 5846347
+ 694504 words of memory out of 5000000
+ 39681 multiletter control sequences out of 15000+600000
+ 480770 words of font info for 69 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 128i,19n,122p,491b,771s stack positions out of 10000i,1000n,20000p,200000b,200000s
-{/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss9.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfss1095.pfb>
-Output written on slides_oct7.pdf (23 pages, 1703336 bytes).
-PDF statistics:
- 503 PDF objects out of 1000 (max. 8388607)
- 419 compressed objects within 5 object streams
- 81 named destinations out of 1000 (max. 500000)
- 130 words of extra memory for PDF output out of 10000 (max. 10000000)
-
+ 128i,15n,122p,491b,596s stack positions out of 10000i,1000n,20000p,200000b,200000s
+/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex:163:  ==> Fatal error occurred, no output PDF file produced!

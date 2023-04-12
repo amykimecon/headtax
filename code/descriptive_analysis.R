@@ -35,11 +35,13 @@ reg_chi <- read_csv(glue("{dbox}/cleaned/chireg.csv")) %>% mutate(source = "xReg
 can_all <- read_csv(glue("{dbox}/cleaned/census_all.csv"), guess_max = 5715448) %>% mutate(group = "All", source = "CA Census")
 can_imm <- can_all %>% filter(IMM == 1) %>% mutate(group = "All Immigrants")
 can_chi <- can_all %>% filter(BORNCHI == 1) %>% mutate(group = "Chinese Immigrants")
+can_match <- can_imm %>% filter(matched == 1) %>% mutate(group = "Matched Immigrants")
 
 ## us census data
-us_all <- read_csv(glue("{dbox}/cleaned/us_clean.csv")) %>% mutate(group = "All", source = "US Census")
+us_all <- read_csv(glue("{dbox}/cleaned/us_clean_matched.csv")) %>% mutate(group = "All", source = "US Census")
 us_imm <- us_all %>% filter(IMM == 1) %>% mutate(group = "All Immigrants")
 us_chi <- us_all %>% filter(BORNCHI == 1) %>% mutate(group = "Chinese Immigrants")
+us_match <- us_imm %>% filter(matched == 1) %>% mutate(group = "Matched Immigrants")
 
 ## key head tax years for graphing & labeling vertical lines
 headtaxcuts <- data.frame(yrs = c(1885, 1900, 1903, 1923), labs = c("Initial Head Tax", "Incr. to $100", "Incr. to $500", "Total Imm. Ban"))
@@ -97,10 +99,19 @@ us_imm_summ <- us_imm %>% mutate(across(c(LABOR, MAR, CANREAD), ~ ifelse(AGE >= 
                                                                               sd(.x, na.rm=TRUE)/sqrt(length(!is.na(.x)))))), # sd
                                         OBS = n())
 
-summ_stats <- bind_rows(can_imm, 
+# us -- matched immigrants
+us_match_summ <- us_match %>% filter(YRIMM >= 1885 & YRIMM <= 1920) %>% mutate(across(c(LABOR, MAR, CANREAD), ~ ifelse(AGE >= 18, .x, NA))) %>% select(c(source, group, all_of(summ_vars))) %>%
+  group_by(source, group) %>% summarize(across(everything(), .fns = c(~round(mean(.x, na.rm=TRUE), 2), # mean
+                                                                      ~ifelse(is.na(mean(.x,na.rm=TRUE)),
+                                                                              NA,
+                                                                              sd(.x, na.rm=TRUE)/sqrt(length(!is.na(.x)))))), # sd
+                                        OBS = n())
+
+summ_stats <- bind_rows(can_imm %>% filter(YEAR >= 1900), 
                         can_chi %>% filter(YRIMM >= 1885 & YRIMM <= 1920), 
                         us_chi %>% mutate(WEIGHT = 1) %>% filter(YRIMM >= 1885 & YRIMM <= 1920), 
-                        reg_chi %>% mutate(WEIGHT = 1, YRIMM = YEAR_ARRIV) %>% filter(YRIMM >= 1885 & YRIMM <= 1920)) %>% 
+                        reg_chi %>% mutate(WEIGHT = 1, YRIMM = YEAR_ARRIV) %>% filter(YRIMM >= 1885 & YRIMM <= 1920),
+                        can_match %>% filter(YEAR >= 1900)) %>% 
   mutate(across(c(LABOR, MAR, CANREAD), ~ ifelse(AGE >= 18, .x, NA))) %>%
   select(c(source, group, all_of(summ_vars), WEIGHT)) %>%
   group_by(source, group) %>% summarize(across(-c(WEIGHT), .fns = c(~round(weighted.mean(.x, WEIGHT, na.rm=TRUE), 2), #weighted mean
@@ -108,7 +119,7 @@ summ_stats <- bind_rows(can_imm,
                                                                     NA,
                                                                     wtd_se(.x, WEIGHT)))), #weighted sd
                                 OBS = n()) %>%
-  bind_rows(us_summ, can_summ, us_imm_summ) %>%
+  bind_rows(us_summ, can_summ, us_imm_summ, us_match_summ) %>%
   select(c(group, source, starts_with("MALE"), starts_with("MAR"), starts_with("AGE"), starts_with("CANREAD"), starts_with("LABOR"), starts_with("YRIMM"), OBS)) %>%
   arrange(across(c(group, source)))
 
@@ -117,18 +128,18 @@ summ_stats_out <- t(summ_stats) %>% as.data.frame()
 # writing
 summ_cats <- c("\\% Male", "\\% Married*", "Age", "\\% Literate*", "\\% Laborers*","Year of Imm.")
 summtex <- file(glue("{git}/figs/summstats.tex"), open = "w")
-writeLines(c("\\begin{tabular}{lccccccccc}", "\\hhline{==========}", "& \\multicolumn{2}{c}{Entire Population} & & \\multicolumn{2}{c}{All Immigrants} & & \\multicolumn{3}{c}{Chinese Immigrants (1885-1920)} \\\\ ", 
-             "\\hhline{~--~--~---}", "& (1) & (2) & & (3) & (4) & & (5) & (6) & (7) \\\\ ",
-              "& CA Census & US Census & & CA Census & US Census & & CA Census & US Census & Chinese Reg. \\\\ ", " \\hhline{----------}"), summtex)
+writeLines(c("\\begin{tabular}{lcccccccccccc}", "\\hhline{=============}", "& \\multicolumn{2}{c}{Entire Population} & & \\multicolumn{2}{c}{All Immigrants} & & \\multicolumn{3}{c}{Chinese Immigrants (1885-1920)} & & \\multicolumn{2}{c}{Matched Imm. (1885-1920)} \\\\ ", 
+             "\\hhline{~--~--~---~--}", "& (1) & (2) & & (3) & (4) & & (5) & (6) & (7) & & (8) & (9) \\\\ ",
+              "& CA Census & US Census & & CA Census & US Census & & CA Census & US Census & Chinese Reg. & & CA Census & US Census \\\\ ", " \\hhline{-------------}"), summtex)
 for (i in 1:length(summ_cats)){
   means <- ifelse(is.na(summ_stats_out[2*i+1,]), "-", summ_stats_out[2*i+1,])
   sds <- ifelse(is.na(summ_stats_out[2*i+2,]), "", paste0("(",round(as.numeric(summ_stats_out[2*i+2,]),4),")"))
-  writeLines(c(paste(summ_cats[i], "&", glue_collapse(c(means[1:2],"",means[3:4],"",means[5:7]), sep = "&", last = ""), "\\\\ "), 
-               paste("&", glue_collapse(c(sds[1:2],"",sds[3:4],"",sds[5:7]), sep = "&", last = ""), "\\\\ ")), summtex)
+  writeLines(c(paste(summ_cats[i], "&", glue_collapse(c(means[1:2],"",means[3:4],"",means[5:7], "", means[8:9]), sep = "&", last = ""), "\\\\ "), 
+               paste("&", glue_collapse(c(sds[1:2],"",sds[3:4],"",sds[5:7], "", sds[8:9]), sep = "&", last = ""), "\\\\ ")), summtex)
 }
 obs <- ifelse(is.na(summ_stats_out[2*(length(summ_cats)+1)+1,]), "-", round(as.numeric(summ_stats_out[2*(length(summ_cats)+1)+1,])/1000, 0))
-writeLines(c("Obs. (Thousands)", "&", glue_collapse(c(obs[1:2],"",obs[3:4],"",obs[5:7]), sep = "&", last = ""), "\\\\ "), summtex)
-writeLines(c("\\hhline{----------}","\\end{tabular}"), summtex)
+writeLines(c("Obs. (Thousands)", "&", glue_collapse(c(obs[1:2],"",obs[3:4],"",obs[5:7],"", obs[8:9]), sep = "&", last = ""), "\\\\ "), summtex)
+writeLines(c("\\hhline{-------------}","\\end{tabular}"), summtex)
 close(summtex)
 
 
@@ -323,7 +334,7 @@ ggsave(glue("{git}/figs/fig3_us_can.png"), fig3_us_can, height = 5, width = 9)
 ########################################################################
 ### TABLE 4: US VS CAN REGRESSIONS
 ########################################################################
-did_data_us_can <- us_imm %>% filter(BORNCHI == 1 | BORNJAP == 1) %>% filter(YEAR >= 1900 & YRIMM > 1890) %>% #only keeping years with earnings/yrimm data
+did_data_us <- us_imm %>% filter(BORNCHI == 1 | BORNJAP == 1) %>% filter(YEAR >= 1900 & YRIMM > 1890) %>% #only keeping years with earnings/yrimm data
   mutate(tax = case_when(YRIMM < 1885 ~ 0,
                          YRIMM < 1900 ~ 50,
                          YRIMM < 1903 ~ 100,
@@ -335,10 +346,36 @@ did_data_us_can <- us_imm %>% filter(BORNCHI == 1 | BORNJAP == 1) %>% filter(YEA
          YEARSSINCEIMM = YEAR - YRIMM) %>%
   filter(AGE >= 18 & MALE == 1) %>% #only looking at men over 18
   filter((YEAR == 1900 & YRIMM < 1900) | (YEAR == 1910 & YRIMM < 1910 & YRIMM >= 1900) | (YEAR == 1920 & YRIMM < 1920 & YRIMM >= 1910)) %>% # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
-  mutate(CAN = 0, WEIGHT = 1) %>% bind_rows(did_data %>% filter(YRIMM < 1920 & (BORNCHI == 1 | BORNJAP == 1)) %>% mutate(CAN = 1))
+  mutate(CAN = 0, WEIGHT = 1) 
+
+did_data_us_jap <- did_data_us %>% filter(BORNCHI == 1 | BORNJAP == 1) 
+
+did_data_us_can <- did_data_us %>% bind_rows(did_data %>% filter(YRIMM < 1920 & (BORNCHI == 1 | BORNJAP == 1)) %>% mutate(CAN = 1))
+
+# run regressions -- did with just us data
+did_reg_labor_us <- lm(LABOR ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us, weights = WEIGHT)
+did_reg_labor_us_jap <- lm(LABOR ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us_jap, weights = WEIGHT)
+did_reg_canread_us <- lm(CANREAD ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us, weights = WEIGHT)
+did_reg_canread_us_jap <- lm(CANREAD ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us_jap, weights = WEIGHT)
+did_reg_earn_us <- lm(EARN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us, weights = WEIGHT)
+did_reg_earn_us_jap <- lm(EARN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us_jap, weights = WEIGHT)
+did_reg_houseown_us <- lm(HOUSEOWN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us, weights = WEIGHT)
+did_reg_houseown_us_jap <- lm(HOUSEOWN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us_jap, weights = WEIGHT)
+
+stargazer(did_reg_labor_us, did_reg_canread_us, did_reg_earn_us, did_reg_houseown_us, did_reg_labor_us_jap, did_reg_canread_us_jap, did_reg_earn_us_jap, did_reg_houseown_us_jap,
+          out = glue("{git}/figs/outcome_regs_us.tex"), float = FALSE, 
+          intercept.bottom =FALSE,
+          column.labels = c("Sample: All Immigrants", "Sample: Chinese and Japanese Immigrants"),
+          column.separate = c(4,4),
+          dep.var.labels = c("$LABORER$", "$LITERATE$", "$EARNINGS$", "$HOMEOWN$","$LABORER$","$LITERATE$", "$EARNINGS$", "$HOMEOWN$"),
+          keep = c(31,32,33),
+          covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
+          keep.stat=c("n","adj.rsq"),
+          add.lines = list(c("Includes Year FE", rep("Yes", 8))),
+          table.layout = "=cld#-ta-s-")
 
 
-# run regressions
+# run regressions -- triple diff with us and canada
 did_reg_uscan_labor <- lm(LABOR ~ factor(YRIMM)*CAN + BORNCHI*CAN*factor(tax), data = did_data_us_can, weights = WEIGHT)
 did_reg_uscan_canread <- lm(CANREAD ~ factor(YRIMM)*CAN + BORNCHI*CAN*factor(tax), data = did_data_us_can, weights = WEIGHT)
 did_reg_uscan_houseown <- lm(HOUSEOWN  ~ factor(YRIMM)*CAN + BORNCHI*CAN*factor(tax), data = did_data_us_can, weights = WEIGHT)

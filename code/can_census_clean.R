@@ -9,6 +9,7 @@ library(Hmisc)
 library(tidyverse)
 library(glue)
 library(foreign)
+library(MatchIt)
 
 ########################################################################
 ### DEFINING PATHS
@@ -230,13 +231,30 @@ clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STAT
          BORNJAP = ifelse(BPL == "Japan", 1, 0), BORNIND = ifelse(BPL == "India", 1, 0),
          BORNIRE = ifelse(BPL == "Ireland", 1, 0), BORNAUS = ifelse(BPL == "Austria", 1, 0))
 
+
 # binding all years and cleaning together
 clean_all <- bind_rows(clean1881, clean1891) %>% bind_rows(clean1901) %>%
   bind_rows(clean1911) %>% bind_rows(clean1921) %>%
   mutate(AGE = ifelse(AGE > 200, NA, AGE),
-         YRIMM = ifelse(YRIMM < 1500 | YRIMM > YEAR, NA, YRIMM))
-clean_imm <- clean_all %>% filter(IMM == 1)
-clean_chi <- clean_all %>% filter(BORNCHI == 1)
+         YRIMM = ifelse(YRIMM < 1500 | YRIMM > YEAR, NA, YRIMM),
+         IDNUM = row_number())
+
+#### MATCHING NON-CHINESE IMMIGRANTS ON PRE-1885 CHINESE IMMIGRANT CHARACTERISTICS ####
+match_data <- clean_all %>% filter((YEAR == 1881 & BORNCHI == 1)|(YEAR != 1881 & BORNCHI == 0 & IMM == 1)) %>%
+  mutate(pretax_chi = ifelse(YEAR == 1881 & BORNCHI == 1, 1, 0)) %>%
+  filter(!is.na(MALE) & !is.na(AGE) & !is.na(MAR) & !is.na(PROVINCE))
+
+match_inds <- c()
+for (yr in seq(1891,1921,10)){
+  match_data_filt <- match_data %>% filter(YEAR == 1881 | YEAR == yr)
+  matches <- matchit(pretax_chi ~ MALE + AGE + MAR + factor(PROVINCE), data = match_data_filt)
+  match_inds <- c(match_inds, match_data_filt[matches$match.matrix,]$IDNUM)
+  print(summary(matches))
+}
+
+clean_all_matched <- clean_all %>% mutate(matched = ifelse(IDNUM %in% match_inds, 1, 0))
+
+write_csv(clean_all_matched, glue("{dbox}/cleaned/census_all.csv"))
 
 # #### IMPUTING RACE/ETHNICITY FROM NAME FOR 1852 AND 1871 DATA ####
 # ## using predictrace package
@@ -253,7 +271,6 @@ clean_chi <- clean_all %>% filter(BORNCHI == 1)
 #                                 predasian = ifelse(firstname_predrace == "asian" & lastname_predrace == "asian", 1, 0),
 #                                 predchi = ifelse((str_to_lower(lastname) %in% str_to_lower(chineselastnames)) & nchar(lastname) > 1 & lastname_predrace == "asian", 1, 0))
 
-write_csv(clean_all, glue("{dbox}/cleaned/census_all.csv"))
 
 
 # check occupation dist over years -- NOTE: CAN'T COMPARE OCC ACROSS YEARS SINCE DIFF DEFNS, JUST COMPARE WITHIN YEARS BETWEEN GROUPS
