@@ -1,8 +1,8 @@
-PWD /Users/amykim/Documents/GitHub/headtax/writing/paper_sketch
+PWD /Users/amykim/Documents/GitHub/headtax/writing/shortpaper
 INPUT /usr/local/texlive/2022/texmf.cnf
 INPUT /usr/local/texlive/2022/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2022/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT /Users/amykim/Documents/GitHub/headtax/writing/paper_sketch/shortpaper.tex
+INPUT /Users/amykim/Documents/GitHub/headtax/writing/shortpaper/shortpaper.tex
 OUTPUT shortpaper.log
 INPUT /usr/local/texlive/2022/texmf-dist/tex/latex/base/article.cls
 INPUT /usr/local/texlive/2022/texmf-dist/tex/latex/base/article.cls

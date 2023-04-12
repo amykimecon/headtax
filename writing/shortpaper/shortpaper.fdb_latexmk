@@ -1,12 +1,12 @@
 # Fdb version 3
-["bibtex shortpaper"] 1680458796 "shortpaper.aux" "shortpaper.bbl" "shortpaper" 1680458798
+["bibtex shortpaper"] 1680458796 "shortpaper.aux" "shortpaper.bbl" "shortpaper" 1680656331
   "../headtax.bib" 1680328681 19099 092e6b266cd021433a23ee341fb02729 ""
   "/usr/local/texlive/2022/texmf-dist/bibtex/bst/natbib/abbrvnat.bst" 1233624470 26532 66bed5cc59495faaa3f9ae9af9fa5e42 ""
-  "shortpaper.aux" 1680458798 6574 e4160425ce4e7b1edc2d56fafd9182f0 "pdflatex"
+  "shortpaper.aux" 1680656330 6574 e4160425ce4e7b1edc2d56fafd9182f0 "pdflatex"
   (generated)
   "shortpaper.bbl"
   "shortpaper.blg"
-["pdflatex"] 1680458796 "/Users/amykim/Documents/GitHub/headtax/writing/paper_sketch/shortpaper.tex" "shortpaper.pdf" "shortpaper" 1680458798
+["pdflatex"] 1680656328 "/Users/amykim/Documents/GitHub/headtax/writing/shortpaper/shortpaper.tex" "shortpaper.pdf" "shortpaper" 1680656331
   "../../figs/shortpaper_figs/fig1_taxespaid.png" 1680323781 164500 dfc4fdd2681f7e17d8f62c47bb908f1e ""
   "../../figs/shortpaper_figs/fig2_flow.png" 1680323782 235362 99d5f841745c4bd437298bd38e19c0d7 ""
   "../../figs/shortpaper_figs/immflow_regs.tex" 1680325596 1645 2975ebc58ed734d4befb92375192ea4a ""
@@ -14,7 +14,7 @@
   "../../figs/shortpaper_figs/summstats.tex" 1680457974 1250 79c2454c299cd785ea64c9cddc2e602b ""
   "../../figs/shortpaper_figs/uscan_regs.tex" 1680458190 1407 4c391809646ca7519abee9150d040c0b ""
   "../preamble.sty" 1679969539 520 5451d55aaaea4c9f2cc9ebbd8b94cbb1 ""
-  "/Users/amykim/Documents/GitHub/headtax/writing/paper_sketch/shortpaper.tex" 1680458793 32778 2d661f976fe537d959ca4a24ce1bd1f7 ""
+  "/Users/amykim/Documents/GitHub/headtax/writing/shortpaper/shortpaper.tex" 1680458793 32778 2d661f976fe537d959ca4a24ce1bd1f7 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -129,9 +129,9 @@
   "/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1649608881 4410336 7d30a02e9fa9a16d7d1f8d037ba69641 ""
   "/usr/local/texlive/2022/texmf-var/web2c/pdftex/pdflatex.fmt" 1649608384 2826445 11fb308a3b72202293059f9400dba38f ""
   "/usr/local/texlive/2022/texmf.cnf" 1647878952 577 209b46be99c9075fd74d4c0369380e8c ""
-  "shortpaper.aux" 1680458798 6574 e4160425ce4e7b1edc2d56fafd9182f0 "pdflatex"
+  "shortpaper.aux" 1680656330 6574 e4160425ce4e7b1edc2d56fafd9182f0 "pdflatex"
   "shortpaper.bbl" 1680458796 2964 471f0e4b7f6a645cfdcce1dc99a12cfb "bibtex shortpaper"
-  "shortpaper.out" 1680458798 2435 e8525fed155b44f5261d11eacea687b1 "pdflatex"
+  "shortpaper.out" 1680656330 2435 e8525fed155b44f5261d11eacea687b1 "pdflatex"
   "shortpaper.tex" 1680458793 32778 2d661f976fe537d959ca4a24ce1bd1f7 ""
   (generated)
   "shortpaper.aux"
