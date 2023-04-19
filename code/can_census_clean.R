@@ -76,7 +76,10 @@ bplcanadastrings <- "(Ontario)|(Quebec)|(Nova Scotia)|(New Brunswick)|(Manitoba)
 
 clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM = YEAR_OF_IMMIGRATION, BPL = INDIVIDUAL_BIRTH_COUNTRY, NATL = NATIONALITY,
                                 CANREAD = CAN_READ_INDICATOR, OCC = OCCUPATION_CHIEF_OCC_IND, FIRSTNAME = FIRST_NAME, LASTNAME = LAST_NAME) %>%
-  mutate(EARN = ifelse(AGE >= 18, as.numeric(ifelse(!grepl("[0-9]+", EARNINGS_AT_CHIEF_OCC), NA_real_, EARNINGS_AT_CHIEF_OCC)), NA),
+  mutate(EARN = ifelse(AGE >= 18, 
+                       ifelse(!grepl("[0-9]+", EARNINGS_AT_CHIEF_OCC), 
+                              NA_real_, 
+                              suppressWarnings(as.numeric(as.character(EARNINGS_AT_CHIEF_OCC)))), NA),
          MALE = case_when(SEX == "Male" ~ 1,
                           SEX == "Female" ~ 0,
                           TRUE ~ NA_real_),
@@ -88,7 +91,7 @@ clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM 
                              CANREAD == "Yes" ~ 1,
                              CANREAD == "No" ~ 0,
                              TRUE ~ NA_real_),
-         YRIMM = as.numeric(ifelse(grepl("[0-9]+", YRIMM), YRIMM, NA_real_)),
+         YRIMM = ifelse(grepl("[0-9]+", YRIMM), suppressWarnings(as.numeric(as.character(YRIMM))), NA_real_),
          WEIGHT = case_when(str_starts(Dwelling_Unit_Type, "UU") ~ 20,
                             str_starts(Dwelling_Unit_Type, "SU") ~ 10,
                             str_starts(Dwelling_Unit_Type, "MU") ~ 4),
@@ -110,7 +113,7 @@ clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM 
 
 clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STATUS, YRIMM = YEAR_OF_IMMIGRATION, BPL = INDIVIDUAL_BIRTH_COUNTRY, NATL = NATIONALITY,
                                 CANREAD = CAN_READ_INDICATOR, OCC = CHIEFOCCUP, FIRSTNAME = FIRST_NAME, LASTNAME = LAST_NAME, PROVINCE = Province) %>%
-  mutate(EARN = ifelse(AGE >= 18, as.numeric(ifelse(grepl("[0-9]+", ANNUAL_EARNING_AMOUNT), ANNUAL_EARNING_AMOUNT, NA_real_)), NA),
+  mutate(EARN = ifelse(AGE >= 18, ifelse(grepl("[0-9]+", ANNUAL_EARNING_AMOUNT), suppressWarnings(as.numeric(as.character(ANNUAL_EARNING_AMOUNT))), NA_real_), NA),
          MALE = case_when(SEX == "Male" ~ 1,
                           SEX == "Female" ~ 0,
                           TRUE ~ NA_real_),
@@ -122,7 +125,7 @@ clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STAT
                              CANREAD == "Yes" ~ 1,
                              CANREAD == "No" ~ 0,
                              TRUE ~ NA_real_),
-         YRIMM = as.numeric(ifelse(grepl("[0-9]+", YRIMM), YRIMM, NA_real_)),
+         YRIMM = ifelse(grepl("[0-9]+", YRIMM), suppressWarnings(as.numeric(as.character(YRIMM))), NA_real_),
          WEIGHT = case_when(str_starts(Dwelling_Unit_Type, "UU") ~ 25,
                             str_starts(Dwelling_Unit_Type, "SU") ~ 10,
                             str_starts(Dwelling_Unit_Type, "MU") ~ 5),

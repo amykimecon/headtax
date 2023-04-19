@@ -1,12 +1,12 @@
 # Fdb version 3
-["bibtex main"] 1681318537 "main.aux" "main.bbl" "main" 1681320199
+["bibtex main"] 1681871946 "main.aux" "main.bbl" "main" 1681872067
   "../headtax.bib" 1680328681 19099 092e6b266cd021433a23ee341fb02729 ""
   "/usr/local/texlive/2022/texmf-dist/bibtex/bst/natbib/abbrvnat.bst" 1233624470 26532 66bed5cc59495faaa3f9ae9af9fa5e42 ""
-  "main.aux" 1681320199 7433 218d3d7b3ccbe1a715591d09ca54a339 "pdflatex"
+  "main.aux" 1681872067 7433 aa3f2a19c4b4835c318bad6a97a6ab1d "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
-["pdflatex"] 1681320196 "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" "main.pdf" "main" 1681320199
+["pdflatex"] 1681872064 "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" "main.pdf" "main" 1681872067
   "../../figs/fig3_us_can.png" 1680458041 245190 e481208cd6092f7373d95007e57d4d14 ""
   "../../figs/immflow_regs.tex" 1681318162 1584 2e94533ef79e746e07954b96cebebb0e ""
   "../../figs/outcome_regs.tex" 1681320192 1679 87818f273a338bc1d01a8bf7aa2c895c ""
@@ -14,7 +14,7 @@
   "../../figs/shortpaper_figs/fig1_taxespaid.png" 1680323781 164500 dfc4fdd2681f7e17d8f62c47bb908f1e ""
   "../../figs/shortpaper_figs/fig2_flow.png" 1680323782 235362 99d5f841745c4bd437298bd38e19c0d7 ""
   "../../figs/shortpaper_figs/uscan_regs.tex" 1680458190 1407 4c391809646ca7519abee9150d040c0b ""
-  "../../figs/summstats.tex" 1681320094 1440 7ac34d1e753d7f3fb5ae20894eb4474c ""
+  "../../figs/summstats.tex" 1681872063 1653 cf299cef56ebdef690e139bcb9475e57 ""
   "../preamble.sty" 1679969539 520 5451d55aaaea4c9f2cc9ebbd8b94cbb1 ""
   "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" 1681318533 34608 4d9cb469c520efb3442f5d52ebd3c1d9 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
@@ -131,9 +131,9 @@
   "/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1649608881 4410336 7d30a02e9fa9a16d7d1f8d037ba69641 ""
   "/usr/local/texlive/2022/texmf-var/web2c/pdftex/pdflatex.fmt" 1649608384 2826445 11fb308a3b72202293059f9400dba38f ""
   "/usr/local/texlive/2022/texmf.cnf" 1647878952 577 209b46be99c9075fd74d4c0369380e8c ""
-  "main.aux" 1681320199 7433 218d3d7b3ccbe1a715591d09ca54a339 "pdflatex"
-  "main.bbl" 1681318537 2964 471f0e4b7f6a645cfdcce1dc99a12cfb "bibtex main"
-  "main.out" 1681320199 2435 e8525fed155b44f5261d11eacea687b1 "pdflatex"
+  "main.aux" 1681872067 7433 aa3f2a19c4b4835c318bad6a97a6ab1d "pdflatex"
+  "main.bbl" 1681871946 2964 471f0e4b7f6a645cfdcce1dc99a12cfb "bibtex main"
+  "main.out" 1681872067 2435 e8525fed155b44f5261d11eacea687b1 "pdflatex"
   "main.tex" 1681318533 34608 4d9cb469c520efb3442f5d52ebd3c1d9 ""
   (generated)
   "main.aux"
