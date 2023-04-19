@@ -125,7 +125,7 @@ Figure \ref{fig:inflow} shows the flow of immigrants into Canada between 1880 an
     \begin{threeparttable}
         \caption{Summary of regression results showing the relationship between the Chinese Head Tax and Chinese immigrant inflow to Canada.}
         \label{tab:immflow}
-        \input{../../figs/shortpaper_figs/immflow_regs.tex}
+        \input{../../figs/immflow_regs.tex}
         \begin{tablenotes}
             \item $^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01
             \item 
@@ -151,11 +151,28 @@ Finally, columns (9)-(10) replicate columns (7) and (8), but for Japanese immigr
     \begin{threeparttable}
         \caption{Regression results from Equation \ref{eq:did} showing the relationship between the Chinese Head Tax and Chinese immigrant outcomes in Canada.}
         \label{tab:outcomes}
-        \input{../../figs/shortpaper_figs/outcome_regs.tex}
+        \input{../../figs/outcome_regs.tex}
         \begin{tablenotes}
             \item $^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01
             \item 
             \item \textbf{Notes:} Analysis in this table uses only Canadian census data from 1901-1921. As in Table \ref{tab:immflow}, immigrants are only counted in the closest subsequent census from their year of arrival. Unlike in Table \ref{tab:immflow}, I further restrict the sample such that only immigrants who arrived after 1890 and prior to 1921 are included, which ensures that there is a maximum of 10 years between arrival and being recorded in the census (allowing for uniformity across census years of attrition bias due to outmigration). Columns (1)-(4) use all immigrants to Canada during this time period, while columns (5)-(8) restrict the sample to only Chinese and Japanese immigrants.
+        \end{tablenotes}
+    \end{threeparttable}
+    }
+\end{table}
+
+\begin{table}[!h]
+    \centering 
+    \renewcommand{\arraystretch}{1.5}
+    \resizebox{\textwidth}{!}{
+    \begin{threeparttable}
+        \caption{Regression results from Equation \ref{eq:did} showing the relationship between the Chinese Head Tax and Chinese immigrant outcomes in Canada.}
+        \label{tab:outcomes_match}
+        \input{../../figs/outcome_regs_match.tex}
+        \begin{tablenotes}
+            \item $^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01
+            \item 
+            \item \textbf{Notes:} Analysis in this table uses only Canadian census data from 1901-1921. As in Table \ref{tab:immflow}, immigrants are only counted in the closest subsequent census from their year of arrival. Unlike in Table \ref{tab:immflow}, I further restrict the sample such that only immigrants who arrived after 1890 and prior to 1921 are included, which ensures that there is a maximum of 10 years between arrival and being recorded in the census (allowing for uniformity across census years of attrition bias due to outmigration). Columns (1)-(4) use all immigrants to Canada during this time period, while columns (5)-(8) restrict the sample to only Chinese and matched immigrants.
         \end{tablenotes}
     \end{threeparttable}
     }

@@ -237,24 +237,30 @@ clean_all <- bind_rows(clean1881, clean1891) %>% bind_rows(clean1901) %>%
   bind_rows(clean1911) %>% bind_rows(clean1921) %>%
   mutate(AGE = ifelse(AGE > 200, NA, AGE),
          YRIMM = ifelse(YRIMM < 1500 | YRIMM > YEAR, NA, YRIMM),
-         IDNUM = row_number())
+         IDNUM = row_number(),
+         across(c(LABOR, MAR, CANREAD), ~ ifelse(AGE >= 18, .x, NA)))
 
-#### MATCHING NON-CHINESE IMMIGRANTS ON PRE-1885 CHINESE IMMIGRANT CHARACTERISTICS ####
-match_data <- clean_all %>% filter((YEAR == 1881 & BORNCHI == 1)|(YEAR != 1881 & BORNCHI == 0 & IMM == 1)) %>%
-  mutate(pretax_chi = ifelse(YEAR == 1881 & BORNCHI == 1, 1, 0)) %>%
-  filter(!is.na(MALE) & !is.na(AGE) & !is.na(MAR) & !is.na(PROVINCE))
+write_csv(clean_all, glue("{dbox}/cleaned/census_all.csv"))
 
-match_inds <- c()
-for (yr in seq(1891,1921,10)){
-  match_data_filt <- match_data %>% filter(YEAR == 1881 | YEAR == yr)
-  matches <- matchit(pretax_chi ~ MALE + AGE + MAR + factor(PROVINCE), data = match_data_filt)
-  match_inds <- c(match_inds, match_data_filt[matches$match.matrix,]$IDNUM)
-  print(summary(matches))
-}
-
-clean_all_matched <- clean_all %>% mutate(matched = ifelse(IDNUM %in% match_inds, 1, 0))
-
-write_csv(clean_all_matched, glue("{dbox}/cleaned/census_all.csv"))
+# #### MATCHING NON-CHINESE IMMIGRANTS ON PRE-1885 CHINESE IMMIGRANT CHARACTERISTICS ####
+# match_data <- clean_all %>% filter((YEAR == 1881 & BORNCHI == 1)|(YEAR != 1881 & BORNCHI == 0 & IMM == 1)) %>%
+#   mutate(pretax_chi = ifelse(YEAR == 1881 & BORNCHI == 1, 1, 0)) %>%
+#   filter(!is.na(MALE) & !is.na(AGE) & !is.na(MAR))
+# 
+# match_inds <- c()
+# for (yr in seq(1891,1921,10)){
+#   match_data_filt <- match_data %>% filter(YEAR == 1881 | YEAR == yr)
+#   matches <- matchit(pretax_chi ~ MALE + AGE + MAR, data = match_data_filt, replace = TRUE)
+#   match_inds <- c(match_inds, match_data_filt[matches$match.matrix,]$IDNUM)
+#   print(summary(matches))
+# }
+# 
+# match_inds_df <- data.frame(IDNUM = match_inds) %>%
+#   group_by(IDNUM) %>% summarize(MATCHWT = n())
+# #clean_all_matched <- clean_all %>% mutate(matched = ifelse(IDNUM %in% match_inds, 1, 0))
+# clean_all_matched <- clean_all %>% left_join(match_inds_df) 
+# 
+# write_csv(clean_all_matched, glue("{dbox}/cleaned/census_all.csv"))
 
 # #### IMPUTING RACE/ETHNICITY FROM NAME FOR 1852 AND 1871 DATA ####
 # ## using predictrace package

@@ -1,12 +1,12 @@
 # Fdb version 3
-["pdflatex"] 1681315265 "/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex" "slides_oct7.pdf" "slides_oct7" 1681315265
+["pdflatex"] 1681833448 "/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex" "slides_oct7.pdf" "slides_oct7" 1681833448
   "../../figs/census_tweet.png" 0 -1 0 ""
   "../../figs/chiocc.png" 0 -1 0 ""
-  "../../figs/summstats.tex" 1680458034 1150 514d9014009f83e96d40dfb1450dd3ba ""
+  "../../figs/summstats.tex" 1681747342 1440 7ac34d1e753d7f3fb5ae20894eb4474c ""
   "../../figs/summstatscensus.tex" 0 -1 0 ""
   "../../figs/yrimmchi_maxes.png" 0 -1 0 ""
   "../../figs/yrimmchi_us.png" 0 -1 0 ""
-  "/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex" 1665460196 10107 9e42c38ca8f8c432ffd605031b05d5d0 ""
+  "/Users/amykim/Documents/GitHub/headtax/writing/slides_oct7/slides_oct7.tex" 1681833446 10107 9e42c38ca8f8c432ffd605031b05d5d0 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/tfm/jknappen/ec/tcss1095.tfm" 1136768653 1536 f0fa079cdc83a6ffeda21e42352cf1ea ""
   "/usr/local/texlive/2022/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
@@ -207,9 +207,9 @@
   "/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1649608881 4410336 7d30a02e9fa9a16d7d1f8d037ba69641 ""
   "/usr/local/texlive/2022/texmf-var/web2c/pdftex/pdflatex.fmt" 1649608384 2826445 11fb308a3b72202293059f9400dba38f ""
   "/usr/local/texlive/2022/texmf.cnf" 1647878952 577 209b46be99c9075fd74d4c0369380e8c ""
-  "slides_oct7.aux" 1681315265 32 3985256e7290058c681f74d7a3565a19 "pdflatex"
+  "slides_oct7.aux" 1681833448 32 3985256e7290058c681f74d7a3565a19 "pdflatex"
   "slides_oct7.nav" 0 -1 0 ""
-  "slides_oct7.tex" 1665460196 10107 9e42c38ca8f8c432ffd605031b05d5d0 ""
+  "slides_oct7.tex" 1681833446 10107 9e42c38ca8f8c432ffd605031b05d5d0 ""
   "slides_oct7.toc" 0 -1 0 ""
   (generated)
   "slides_oct7.aux"

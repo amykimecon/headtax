@@ -35,7 +35,8 @@ reg_chi <- read_csv(glue("{dbox}/cleaned/chireg.csv")) %>% mutate(source = "xReg
 can_all <- read_csv(glue("{dbox}/cleaned/census_all.csv"), guess_max = 5715448) %>% mutate(group = "All", source = "CA Census")
 can_imm <- can_all %>% filter(IMM == 1) %>% mutate(group = "All Immigrants")
 can_chi <- can_all %>% filter(BORNCHI == 1) %>% mutate(group = "Chinese Immigrants")
-can_match <- can_imm %>% filter(matched == 1) %>% mutate(group = "Matched Immigrants")
+can_match <- can_imm %>% filter(!is.na(MATCHWT)) %>% mutate(group = "Matched Immigrants",
+                                                            WEIGHT = MATCHWT*WEIGHT)
 
 ## us census data
 us_all <- read_csv(glue("{dbox}/cleaned/us_clean_matched.csv")) %>% mutate(group = "All", source = "US Census")
@@ -180,6 +181,7 @@ yrimm_reg <- reg_chi %>% mutate(YRIMM = YEAR_ARRIV) %>% group_by(YRIMM) %>% summ
   arrange(YRIMM) %>% filter(YRIMM >= 1880 & YRIMM <= 1930)
 
 yrimm_census_allim <- can_imm %>% group_by(YEAR, YRIMM) %>% summarize(IMMPOP = sum(WEIGHT), 
+                                                                      MATCHPOP = sum(ifelse(matched == 1, WEIGHT, 0)),
                                                                       JAPPOP = sum(ifelse(BORNJAP == 1, WEIGHT, 0)), 
                                                                       CHIPOP = sum(ifelse(BORNCHI == 1, WEIGHT, 0)),
                                                                       AUSPOP = sum(ifelse(BORNAUS == 1, WEIGHT, 0))) %>% 
@@ -273,21 +275,40 @@ did_data <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1890) %>% #only keeping ye
 
 did_data_jap <- did_data %>% filter(BORNCHI == 1 | BORNJAP == 1) 
 
+did_data_match <- did_data %>% filter(BORNCHI == 1 | !is.na(MATCHWT)) %>% mutate(WEIGHT = ifelse(!is.na(MATCHWT), MATCHWT*WEIGHT, WEIGHT)) 
+
 
 # run regressions
 did_reg_labor <- lm(LABOR ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
 did_reg_labor_jap <- lm(LABOR ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
+did_reg_labor_match <- lm(LABOR ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_match, weights = WEIGHT)
 did_reg_canread <- lm(CANREAD ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
 did_reg_canread_jap <- lm(CANREAD ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
+did_reg_canread_match <- lm(CANREAD ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_match, weights = WEIGHT)
 did_reg_earn <- lm(EARN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
 did_reg_earn_jap <- lm(EARN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
+did_reg_earn_match <- lm(EARN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_match, weights = WEIGHT)
+
 did_reg_houseown <- lm(HOUSEOWN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
 did_reg_houseown_jap <- lm(HOUSEOWN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
+did_reg_houseown_match <- lm(HOUSEOWN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_match, weights = WEIGHT)
 
 stargazer(did_reg_labor, did_reg_canread, did_reg_earn, did_reg_houseown, did_reg_labor_jap, did_reg_canread_jap, did_reg_earn_jap, did_reg_houseown_jap,
           out = glue("{git}/figs/outcome_regs.tex"), float = FALSE, 
           intercept.bottom =FALSE,
           column.labels = c("Sample: All Immigrants", "Sample: Chinese and Japanese Immigrants"),
+          column.separate = c(4,4),
+          dep.var.labels = c("$LABORER$", "$LITERATE$", "$EARNINGS$", "$HOMEOWN$","$LABORER$","$LITERATE$", "$EARNINGS$", "$HOMEOWN$"),
+          keep = c(31,32,33),
+          covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
+          keep.stat=c("n","adj.rsq"),
+          add.lines = list(c("Includes Year FE", rep("Yes", 8))),
+          table.layout = "=cld#-ta-s-")
+
+stargazer(did_reg_labor, did_reg_canread, did_reg_earn, did_reg_houseown, did_reg_labor_match, did_reg_canread_match, did_reg_earn_match, did_reg_houseown_match,
+          out = glue("{git}/figs/outcome_regs_match.tex"), float = FALSE, 
+          intercept.bottom =FALSE,
+          column.labels = c("Sample: All Immigrants", "Sample: Chinese and Matched Immigrants"),
           column.separate = c(4,4),
           dep.var.labels = c("$LABORER$", "$LITERATE$", "$EARNINGS$", "$HOMEOWN$","$LABORER$","$LITERATE$", "$EARNINGS$", "$HOMEOWN$"),
           keep = c(31,32,33),
@@ -318,13 +339,13 @@ yrimm_census_jap <- can_imm %>% filter(BORNJAP == 1) %>% group_by(YEAR, YRIMM) %
 
 yrimm_us_can <- bind_rows(yrimm_us, yrimm_census %>% mutate(IMM = "Chinese", POP = CHIPOP)) %>% bind_rows(yrimm_census_jap)
 
-fig3_us_can <- ggplot(data = yrimm_us_can %>% filter(YRIMM >= 1870), aes(x = YRIMM, y = POP, color = IMM, linetype = source)) + geom_line() +
+fig3_us_can <- ggplot(data = yrimm_us_can %>% filter(YRIMM >= 1870), aes(x = YRIMM, y = POP, color = source, linetype = IMM)) + geom_line() +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts[1:3,], show.legend = FALSE) +
   geom_text(aes(x = yrs, y = 7000, label = labs), data = headtaxcuts[1:3,], inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 4) +
   geom_vline(aes(xintercept = x), data = data.frame(x = c(1882)), show.legend = FALSE, color = "dark blue") +
   geom_text(aes(x = x, y = 7000, label = labs), data = data.frame(x = c(1882), labs = c("US Chi. Excl. Act")), inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 4) +
-  scale_linetype_manual(breaks=c("CA Census", "US Census"), values=c(2,3)) +
-  scale_color_manual(breaks=c("Chinese", "Japanese"), values=c("black", "red")) +
+  scale_color_manual(breaks=c("CA Census", "US Census"), values=c("black","blue")) +
+  scale_linetype_manual(breaks=c("Chinese", "Japanese"), values=c(1,3)) +
   labs(x = "Year of Immigration", y = "Inflow of Chinese Immigrants", linetype = "Data Source", color = "Immigrant Group") + theme_minimal() + theme(legend.position='bottom')
 
 

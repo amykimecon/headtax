@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  12 APR 2023 12:01
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  18 APR 2023 11:57
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -718,7 +718,7 @@ File: ot1mathkerncmss.fd 2020/01/31 Fontinst v1.933 font definitions for OT1/mat
 )
 ../../figs/summstats.tex:2: Undefined control sequence.
 l.2 \hhline
-           {==========}
+           {=============}
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
 misspelled it (e.g., `\hobx'), type `I' and the correct
@@ -729,7 +729,7 @@ and I'll forget about whatever was undefined.
 <recently read> \hhline 
                         
 l.4 \hhline
-           {~--~--~---}
+           {~--~--~---~--}
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
 misspelled it (e.g., `\hobx'), type `I' and the correct
@@ -740,7 +740,7 @@ and I'll forget about whatever was undefined.
 <recently read> \hhline 
                         
 l.7  \hhline
-            {----------}
+            {-------------}
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
 misspelled it (e.g., `\hobx'), type `I' and the correct
@@ -751,18 +751,14 @@ and I'll forget about whatever was undefined.
 <recently read> \hhline 
                         
 l.24 \hhline
-            {----------}
+            {-------------}
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
 misspelled it (e.g., `\hobx'), type `I' and the correct
 spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
-)
-Overfull \vbox (10.44962pt too high) detected at line 87
- []
-
-[8
+) [8
 
 ]
 No file slides_oct7.toc.
@@ -882,7 +878,7 @@ l.163 \end{frame}
 Here is how much of TeX's memory you used:
  22014 strings out of 478268
  437059 string characters out of 5846347
- 694504 words of memory out of 5000000
+ 700504 words of memory out of 5000000
  39681 multiletter control sequences out of 15000+600000
  480770 words of font info for 69 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
