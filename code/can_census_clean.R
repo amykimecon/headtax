@@ -3,7 +3,7 @@
 ### PRIMARY OBJECTIVE: Standardizing Primary Variables, Creating Single Multi-Year Dataframe
 ### CREATED BY: Amy Kim
 ### CREATED ON: Sep 29 2022
-### LAST MODIFIED: Oct 5 2022
+### LAST MODIFIED: Apr 18 2023
 ########################################################################
 library(Hmisc)
 library(tidyverse)
@@ -24,130 +24,40 @@ if (Sys.getenv("USER") == "amykim"){
 ########################################################################
 ## canadian census data from 1852-1921
 years <- c(1852, seq(1871, 1921, 10))
-raw1852 <- read.spss(glue("{dbox}/census1852.sav")) %>% as.data.frame() # 20% sample
-raw1871 <- read.spss(glue("{dbox}/census1871.sav")) %>% as.data.frame() #1.8% stratified sample w weights
-raw1881 <- read.spss(glue("{dbox}/census1881.sav")) %>% as.data.frame() # 100% sample
-raw1891 <- read.spss(glue("{dbox}/census1891.sav")) %>% as.data.frame() # 5% sample
+#raw1852 <- read.spss(glue("{dbox}/census1852.sav")) %>% as.data.frame() # 20% sample
+#raw1871 <- read.spss(glue("{dbox}/census1871.sav")) %>% as.data.frame() #1.8% stratified sample w weights
+#raw1881 <- read.spss(glue("{dbox}/census1881.sav")) %>% as.data.frame() # 100% sample
+#raw1891 <- read.spss(glue("{dbox}/census1891.sav")) %>% as.data.frame() # 5% sample
 raw1901 <- read.spss(glue("{dbox}/census1901.sav")) %>% as.data.frame() # 5% sample
 raw1911 <- read.spss(glue("{dbox}/census1911.sav")) %>% as.data.frame() # 5% sample
 raw1921 <- read.spss(glue("{dbox}/census1921.sav")) %>% as.data.frame() # 4% sample
 
+# using helper functions
+source(glue("{git}/code/helper.R"))
+
 ########################################################################
 ### CLEANING DATA
 ########################################################################
-## BASE VARIABLES [no harmonization, only renaming/defining required]: LASTNAME, FIRSTNAME, MALE = 1[Male], MAR = 1[Married], SIN = 1[Single (Never Married)], AGE, PROVINCE, IMM = 1[not born in Canada]
-## WHEN AVAILABLE [not available for all years]: CANREAD, EARN, YRIMM, HOUSEOWN
-## HARMONIZED VARIABLES: BPL, ETH, OCC --> BPLCHI, BPL[OTHER], ETHCHI, ETH[OTHER], OCCGRP
-## ADDITIONAL VARIABLES [not required?]: UNEMP, RURAL
-## ADD: YEAR, WEIGHT
-# note: 1881, 1891 have NAPHISCO
-# occ groups: skilled, semi-skilled, laborer, farmer, other unskilled
-#### 1881 DATA ####
-## OCCUPATION NOTES: merc/agent/manu, profesl, white collar -> skilled; artisan (dressmaker, painter, engineer, etc.) -> skilled, "semi & unskilled" (looks like these are primarily fishermen, laundresses, so categorizing as unskilled) --> unskilled
-clean1881 <- raw1881 %>% 
-  rename(BPL = birthplace_ccri, ETH = ethnicity_ccri, OCCGRP = occgrp2, LASTNAME = NAMLAST, FIRSTNAME = NAMFRST) %>%
-  mutate(MALE = case_when(SEX == "Female" ~ 0,
-                          SEX == "Male" ~ 1,
-                          TRUE ~ NA_real_),
-         MAR = case_when(MARST == "Married" ~ 1,
-                         MARST == "Unknown" ~ NA_real_,
-                         TRUE ~ 0),
-         IMM = ifelse(imm == "born in Canada", 0, 1),
-         LABOR = ifelse(OCCGRP == "Labourer", 1, 0),
-         OCCGRP = case_when(OCCGRP == "White collar" | OCCGRP == "Profesl" | OCCGRP == "Merc/Agent/Manu" ~ "Skilled",
-                             OCCGRP == "Artisan" ~ "Skilled",
-                             OCCGRP == "Servant" | OCCGRP == "Semi & Unskilled" ~ "Unskilled",
-                             OCCGRP == "Farmer" ~ "Farmer",
-                             OCCGRP == "Labourer" ~ "Laborer",
-                             TRUE ~ NA_character_),
-         HOUSEOWN = ifelse(CANREL == "head", 1, 0),
-         RURAL = ifelse(urbanna != "Urban", 1, 0),
-         NAPHISCOSTR = as.character(NAPHISCO),
-         PROVINCE = case_when(str_detect(PROVINCE, "British Columbia") ~ "BC",
-                              str_detect(PROVINCE, "Manitoba") ~ "MB",
-                              str_detect(PROVINCE, "New Brunswick") ~ "NB",
-                              str_detect(PROVINCE, "Nova Scotia") ~ "NS",
-                              str_detect(PROVINCE, "Ontario") ~ "ON",
-                              str_detect(PROVINCE, "Qu") ~ "QC",
-                              str_detect(PROVINCE, "Prince") ~ "PE",
-                              str_detect(PROVINCE, "Territories") ~ "UT")) %>% 
-  select(c(MALE, AGE, MAR, ETH, NAPHISCOSTR, OCCGRP, LABOR, BPL, IMM, LASTNAME, FIRSTNAME, HOUSEOWN, RURAL, PROVINCE)) %>% 
-  mutate(YEAR = 1881, 
-         BORNCHI = ifelse(str_detect(BPL, "China"),1,0), 
-         BORNRUS = ifelse(str_detect(BPL, "Russia"), 1, 0), 
-         BORNFRA = ifelse(str_detect(BPL, "France"), 1, 0), 
-         BORNGER = ifelse(str_detect(BPL, "Germany"), 1, 0),
-         BORNJAP = ifelse(str_detect(BPL, "Japan"),1,0),
-         BORNIND = ifelse(str_detect(BPL, "India"),1,0),
-         BORNIRE = ifelse(str_detect(BPL, "Ireland"), 1, 0),
-         BORNAUS = ifelse(str_detect(BPL, "Austria"), 1, 0),
-         ETHCHI = ifelse(str_detect(ETH, "Chinese"), 1, 0), 
-         WEIGHT = 1,
-         across(starts_with("BORN"), function(x) ifelse(is.na(x) & IMM == 0, 0, x))) %>%
-  filter(!is.na(BORNCHI))
-
-# occ50: 
-clean1891 <- raw1891 %>% mutate(WEIGHT = case_when(samplesize == 5 ~ 20,
-                                                   samplesize == 10 ~ 10,
-                                                   samplesize == 100 ~ 1),
-                                BORNCHI = ifelse(bplcode == 50000, 1, 0),
-                                BORNRUS = ifelse(bplcode >= 46100 & bplcode < 49000, 1, 0),
-                                BORNFRA = ifelse(bplcode == 42100, 1, 0),
-                                BORNGER = ifelse(bplcode == 45300, 1, 0),
-                                BORNJAP = ifelse(bplcode == 50100, 1, 0),
-                                BORNIND = ifelse(bplcode == 52100, 1, 0),
-                                BORNIRE = ifelse(bplcode == 41400, 1, 0),
-                                BORNAUS = ifelse(bplcode == 45000, 1, 0),
-                                MALE = case_when(SEX == "M  " ~ 1,
-                                                 SEX == "F  " ~ 0,
-                                                 TRUE ~ NA_real_),
-                                MAR = case_when(MARST == "married" ~ 1,
-                                                MARST == "single" | MARST == "Divorced" | MARST == "W" ~ 0,
-                                                TRUE ~ NA_real_),
-                                CANREAD = ifelse(CANREAD == "Yes, can read", 1, 0),
-                                LABOR = ifelse(occ50 >= 910 & occ50 < 972, 1, 0),
-                                IMM = ifelse(bplcode < 16000 & bplcode >= 15000, 0, 1),
-                                OCCGRP = case_when(occ50 >= 800 & occ50 < 900 ~ "Farmer",
-                                                   occ50 == 970 | occ50 == 972 ~ "Laborer",
-                                                   occ50 > 972 ~ NA_character_,
-                                                   occ50 >= 700 & occ50 <= 720 ~ "Unskilled",
-                                                   occ50 >= 900 & occ50 < 1000 ~ "Unskilled",
-                                                   !is.na(occ50) ~ "Skilled",
-                                                   TRUE ~ NA_character_),
-                                HOUSEOWN = case_when(!is.na(HICode1) ~ 1,
-                                                     !is.na(HUCode1) ~ 1,
-                                                     !is.na(HCCode1) ~ 1,
-                                                     TRUE ~ 0)) %>%
-  select(-c(AGE)) %>%
-  rename(AGE = agecode, LASTNAME = NAMELAST, FIRSTNAME = NAMEFIRST, PROVINCE = Province) %>%
-  select(c(MALE, AGE, MAR, CANREAD, starts_with("BORN"), UNEMP, OCCGRP, WEIGHT, IMM, LASTNAME, FIRSTNAME, HOUSEOWN, PROVINCE, LABOR)) %>%
-  mutate(YEAR = 1891)  %>%
-  filter(!is.na(IMM)) #i think this only drops 1 person
-
-clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr, YRIMM = immyr, PROPOWNR = propownr, NATL = natl, OCC = occ, 
-                                EARN = earnings, CANREAD = canread, LASTNAME = indlnm, FIRSTNAME = indfnm, PROVINCE = province) %>%
+clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr, YRIMM = immyr, PROPOWNR = propownr, NATL = natl, OCC = occ,
+                                CANREAD = canread, LASTNAME = indlnm, FIRSTNAME = indfnm, PROVINCE = province) %>%
   mutate(BORNCHI = ifelse(bpl2 == 50000, 1, 0),
-         BORNRUS = ifelse(str_detect(BPL, "RUS"), 1, 0),
-         BORNFRA = ifelse(str_detect(BPL, "FRA"), 1, 0),
-         BORNGER = ifelse(str_detect(BPL, "GER"), 1, 0),
          BORNJAP = ifelse(str_detect(BPL, "JAP"), 1, 0),
-         BORNIND = ifelse(str_detect(BPL, "IND"), 1, 0),
-         BORNIRE = ifelse(str_detect(BPL, "IRE"), 1, 0),
-         BORNAUS = ifelse(str_detect(BPL, "AUS") & !str_detect(BPL, "AUSTRALIA"), 1, 0),
          OCCSTR = ifelse(occ1 == "99999", NA, as.numeric(as.character(str_extract(occ1,"^[0-9]{3}")))), #extracts first three digits of occupation code (IPUMS)
          MALE = case_when(SEX == "Male" ~ 1,
                           SEX == "Female" ~ 0,
                           TRUE ~ NA_real_),
-         MAR = case_when(MARST == "Married" ~ 1,
+         MAR = case_when(AGE < 18 ~ NA_real_,
+                         MARST == "Married" ~ 1,
                          MARST == "Single" | MARST == "Widowed" | MARST == "Divorced" ~ 0,
                          TRUE ~ NA_real_),
-         CANREAD = case_when(CANREAD == "Yes" ~ 1,
+         CANREAD = case_when(AGE < 18 ~ NA_real_,
+                             CANREAD == "Yes" ~ 1,
                              CANREAD == "No" ~ 0,
                              TRUE ~ NA_real_),
-         HOUSEOWN = ifelse(PROPOWNR == "Yes", 1, 0),
+         HOUSEOWN = ifelse(AGE >= 18, ifelse(PROPOWNR == "Yes", 1, 0), NA),
          YRIMM = as.numeric(YRIMM),
          IMM = ifelse(bpl2 < 16000 & bpl2 >= 15000, 0, 1),
-         LABOR = ifelse(str_detect(OCC, "LAB"), 1, 0),
+         LABOR = ifelse(AGE >= 18, ifelse(str_detect(OCC, "LAB"), 1, 0), NA),
          OCCGRP = case_when(occ2 == "Labourer" | str_detect(OCC, "LAB") ~ "Laborer",
                             OCCSTR >= 711 & OCCSTR < 719 ~ "Farmer",
                             OCCSTR < 614 ~ "Skilled",
@@ -157,32 +67,34 @@ clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr
          PROVINCE = case_when(PROVINCE == "AT" | PROVINCE == "KE" | PROVINCE == "MC" | PROVINCE == "UN" | PROVINCE == "YU" ~ "UT",
                               PROVINCE == "QU" ~ "QC",
                               TRUE ~ PROVINCE),
-         RURAL = ifelse(urbplace == 999, 1, 0)) %>%
-  select(c(MALE, AGE, starts_with("BORN"), MAR, YRIMM, NATL, OCCGRP, EARN, CANREAD, IMM, FIRSTNAME, LASTNAME, PROVINCE, RURAL, HOUSEOWN, LABOR)) %>%
+         RURAL = ifelse(urbplace == 999, 1, 0),
+         EARN = ifelse(AGE >= 18, earnings, NA)) %>%
+  select(c(MALE, AGE, BORNCHI, BORNJAP, MAR, YRIMM, OCCGRP, EARN, CANREAD, IMM, PROVINCE, HOUSEOWN, LABOR)) %>%
   mutate(YEAR = 1901, WEIGHT = 20)
 
 bplcanadastrings <- "(Ontario)|(Quebec)|(Nova Scotia)|(New Brunswick)|(Manitoba)|(Saskatchewan)|(Prince Edward Island)|(British Columbia)|(Alberta)|(Canada)|(Newfoundland)|(Northwest Territories)|(Yukon)|(Cape Breton)|(Labrador)"
 
 clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM = YEAR_OF_IMMIGRATION, BPL = INDIVIDUAL_BIRTH_COUNTRY, NATL = NATIONALITY,
                                 CANREAD = CAN_READ_INDICATOR, OCC = OCCUPATION_CHIEF_OCC_IND, FIRSTNAME = FIRST_NAME, LASTNAME = LAST_NAME) %>%
-  mutate(EARN = ifelse(grepl("[0-9]+", EARNINGS_AT_CHIEF_OCC), as.numeric(as.character(EARNINGS_AT_CHIEF_OCC)), 0) + 
-           ifelse(grepl("[0-9]+", EARNINGS_AT_OTHER_OCC), as.numeric(as.character(EARNINGS_AT_OTHER_OCC)), 0),
+  mutate(EARN = ifelse(AGE >= 18, as.numeric(ifelse(!grepl("[0-9]+", EARNINGS_AT_CHIEF_OCC), NA_real_, EARNINGS_AT_CHIEF_OCC)), NA),
          MALE = case_when(SEX == "Male" ~ 1,
                           SEX == "Female" ~ 0,
                           TRUE ~ NA_real_),
-         MAR = case_when(MARST == "Married" ~ 1,
+         MAR = case_when(AGE < 18 ~ NA_real_,
+                         MARST == "Married" ~ 1,
                          MARST == "Single" | MARST == "Widowed" ~ 0,
                          TRUE ~ NA_real_),
-         CANREAD = case_when(CANREAD == "Yes" ~ 1,
+         CANREAD = case_when(AGE < 18 ~ NA_real_,
+                             CANREAD == "Yes" ~ 1,
                              CANREAD == "No" ~ 0,
                              TRUE ~ NA_real_),
-         YRIMM = ifelse(grepl("[0-9]+", YRIMM), as.numeric(as.character(YRIMM)), NA),
+         YRIMM = as.numeric(ifelse(grepl("[0-9]+", YRIMM), YRIMM, NA_real_)),
          WEIGHT = case_when(str_starts(Dwelling_Unit_Type, "UU") ~ 20,
                             str_starts(Dwelling_Unit_Type, "SU") ~ 10,
                             str_starts(Dwelling_Unit_Type, "MU") ~ 4),
          IMM = ifelse(str_detect(BPL, bplcanadastrings), 0, 1),
          OCCIND = str_to_lower(OCCUPATION_CHIEF_OCC_IND_CL),
-         LABOR = ifelse(str_detect(OCCIND, "(L|l)abour") | str_detect(OCCIND, "(L|l)abor"), 1, 0),
+         LABOR = ifelse(AGE >= 18, ifelse(str_detect(OCCIND, "(L|l)abour") | str_detect(OCCIND, "(L|l)abor"), 1, 0), NA),
          OCCGRP = case_when(occ1 == "Agriculture" ~ "Farmer",
                             OCC == "Laborers (n.e.c.)" |  str_detect(OCCIND, "Labour") ~ "Laborer",
                             OCC == "Managers, officials, and proprietors (n.e.c.)" ~ "Skilled",
@@ -191,56 +103,68 @@ clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM 
                             occ1 == "Civil and municipal service" | occ1 == "Professional pursuits" ~ "Skilled"),
          RURAL = ifelse(str_detect(CCRI_URBAN_RURAL_1911,"Rural"), 1, 0),
          PROVINCE = str_trim(PR_1911),
-         HOUSEOWN = ifelse(RELATIONSHIP == "Head", 1, 0)) %>%
-  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, FIRSTNAME, LASTNAME, LABOR, RURAL, PROVINCE, HOUSEOWN)) %>% 
-  mutate(YEAR = 1911, BORNCHI = ifelse(BPL == "China", 1, 0), BORNRUS = ifelse(BPL == "Russia", 1, 0),
-         BORNFRA = ifelse(BPL == "France", 1, 0), BORNGER = ifelse(BPL == "Germany", 1, 0),
-         BORNJAP = ifelse(BPL == "Japan", 1, 0), BORNIND = ifelse(BPL == "India", 1, 0),
-         BORNIRE = ifelse(BPL == "Ireland", 1, 0), BORNAUS = ifelse(BPL == "Austria", 1, 0))
+         HOUSEOWN = ifelse(AGE >= 18, ifelse(RELATIONSHIP == "Head", 1, 0), NA)) %>%
+  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, LABOR, RURAL, PROVINCE, HOUSEOWN)) %>% 
+  mutate(YEAR = 1911, BORNCHI = ifelse(BPL == "China", 1, 0), 
+         BORNJAP = ifelse(BPL == "Japan", 1, 0))
 
 clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STATUS, YRIMM = YEAR_OF_IMMIGRATION, BPL = INDIVIDUAL_BIRTH_COUNTRY, NATL = NATIONALITY,
                                 CANREAD = CAN_READ_INDICATOR, OCC = CHIEFOCCUP, FIRSTNAME = FIRST_NAME, LASTNAME = LAST_NAME, PROVINCE = Province) %>%
-  mutate(EARN = ifelse(grepl("[0-9]+", ANNUAL_EARNING_AMOUNT), as.numeric(as.character(ANNUAL_EARNING_AMOUNT)), 0),
+  mutate(EARN = ifelse(AGE >= 18, as.numeric(ifelse(grepl("[0-9]+", ANNUAL_EARNING_AMOUNT), ANNUAL_EARNING_AMOUNT, NA_real_)), NA),
          MALE = case_when(SEX == "Male" ~ 1,
                           SEX == "Female" ~ 0,
                           TRUE ~ NA_real_),
-         MAR = case_when(MARST == "Married" ~ 1,
+         MAR = case_when(AGE < 18 ~ NA_real_,
+                         MARST == "Married" ~ 1,
                          MARST == "Single" | MARST == "Widowed" | MARST == "Divorced" ~ 0,
                          TRUE ~ NA_real_),
-         CANREAD = case_when(CANREAD == "Yes" ~ 1,
+         CANREAD = case_when(AGE < 18 ~ NA_real_,
+                             CANREAD == "Yes" ~ 1,
                              CANREAD == "No" ~ 0,
                              TRUE ~ NA_real_),
-         YRIMM = ifelse(grepl("[0-9]+", YRIMM), as.numeric(as.character(YRIMM)), NA),
+         YRIMM = as.numeric(ifelse(grepl("[0-9]+", YRIMM), YRIMM, NA_real_)),
          WEIGHT = case_when(str_starts(Dwelling_Unit_Type, "UU") ~ 25,
                             str_starts(Dwelling_Unit_Type, "SU") ~ 10,
                             str_starts(Dwelling_Unit_Type, "MU") ~ 5),
          IMM = ifelse(str_detect(BPL, bplcanadastrings), 0, 1),
          OCC = str_to_lower(OCC),
-         LABOR = ifelse(str_detect(OCC, "labor") | str_detect(OCC, "labour"), 1, 0),
+         LABOR = ifelse(AGE >= 18, ifelse(str_detect(OCC, "labor") | str_detect(OCC, "labour"), 1, 0), NA),
          OCCGRP = case_when(str_detect(CHIEF_OCCUPATION, "Farm") ~ "Farmer",
                             str_detect(CHIEF_OCCUPATION, "Labor") | str_detect(CHIEF_OCCUPATION, "labor") ~ "Laborer",
                             str_detect(CHIEF_OCCUPATION, "Mine") | CHIEF_OCCUPATION == "Private household workers (n.e.c.)" | str_detect(CHIEF_OCCUPATION, "Lumbermen") | CHIEF_OCCUPATION == "Carpenters" | CHIEF_OCCUPATION == "Housekeepers, private household" | CHIEF_OCCUPATION == "Fishermen and oystermen" ~ "Unskilled",
                             str_detect(CHIEF_OCCUPATION, "home") | (str_detect(CHIEF_OCCUPATION, "house") & !str_detect(CHIEF_OCCUPATION, "except")) ~ "Unskilled",
                             CHIEF_OCCUPATION != "Blank" & CHIEF_OCCUPATION != "Unemployed/ without occupation" & CHIEF_OCCUPATION != "Illegible_duplicated_99999003" ~ "Skilled",
                             TRUE ~ NA_character_),
-         HOUSEOWN = ifelse(str_detect(HOME_OWNED_OR_RENTED, "Owned"), 1, 0),
+         HOUSEOWN = ifelse(AGE >= 18, ifelse(str_detect(HOME_OWNED_OR_RENTED, "Owned"), 1, 0), NA),
          RURAL = ifelse(str_detect(CCRI_URBAN_RURAL_1921,"Rural"), 1, 0),) %>%
-  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, FIRSTNAME, LASTNAME, LABOR, PROVINCE, RURAL, HOUSEOWN)) %>% 
-  mutate(YEAR = 1921, BORNCHI = ifelse(BPL == "China", 1, 0), BORNRUS = ifelse(BPL == "Russia", 1, 0),
-         BORNFRA = ifelse(BPL == "France", 1, 0), BORNGER = ifelse(BPL == "Germany", 1, 0),
-         BORNJAP = ifelse(BPL == "Japan", 1, 0), BORNIND = ifelse(BPL == "India", 1, 0),
-         BORNIRE = ifelse(BPL == "Ireland", 1, 0), BORNAUS = ifelse(BPL == "Austria", 1, 0))
+  select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, LABOR, PROVINCE, RURAL, HOUSEOWN)) %>% 
+  mutate(YEAR = 1921, BORNCHI = ifelse(BPL == "China", 1, 0), 
+         BORNJAP = ifelse(BPL == "Japan", 1, 0))
 
 
 # binding all years and cleaning together
-clean_all <- bind_rows(clean1881, clean1891) %>% bind_rows(clean1901) %>%
-  bind_rows(clean1911) %>% bind_rows(clean1921) %>%
+# clean_all_allyears <- bind_rows(clean1881, clean1891) %>% bind_rows(clean1901) %>%
+#   bind_rows(clean1911) %>% bind_rows(clean1921) %>%
+#   mutate(AGE = ifelse(AGE > 200, NA, AGE),
+#          YRIMM = ifelse(YRIMM < 1500 | YRIMM > YEAR, NA, YRIMM),
+#          IDNUM = row_number(),
+#          across(c(LABOR, MAR, CANREAD), ~ ifelse(AGE >= 18, .x, NA)))
+
+clean_all <- bind_rows(clean1901, clean1911) %>%
+  bind_rows(clean1921) %>%
   mutate(AGE = ifelse(AGE > 200, NA, AGE),
          YRIMM = ifelse(YRIMM < 1500 | YRIMM > YEAR, NA, YRIMM),
-         IDNUM = row_number(),
-         across(c(LABOR, MAR, CANREAD), ~ ifelse(AGE >= 18, .x, NA)))
+         IDNUM = row_number())
 
-write_csv(clean_all, glue("{dbox}/cleaned/census_all.csv"))
+clean_imm <- clean_all %>%   
+  filter(IMM == 1 & ((YEAR == 1901 & YRIMM < 1901) | (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)))
+
+write_csv(clean_all, glue("{dbox}/cleaned/can_clean.csv"))
+write_csv(clean_imm, glue("{dbox}/cleaned/can_clean_imm.csv"))
+
+# precomputing summary stats for all of canada
+can_all_summ <- summstats(clean_all %>% mutate(source = "CA Census", group = "All", WEIGHT = 1), c("MALE", "MAR", "AGE", "CANREAD", "LABOR", "EARN"))
+write_csv(can_all_summ, glue("{dbox}/cleaned/can_all_summ.csv"))
 
 # #### MATCHING NON-CHINESE IMMIGRANTS ON PRE-1885 CHINESE IMMIGRANT CHARACTERISTICS ####
 # match_data <- clean_all %>% filter((YEAR == 1881 & BORNCHI == 1)|(YEAR != 1881 & BORNCHI == 0 & IMM == 1)) %>%
@@ -278,16 +202,107 @@ write_csv(clean_all, glue("{dbox}/cleaned/census_all.csv"))
 #                                 predchi = ifelse((str_to_lower(lastname) %in% str_to_lower(chineselastnames)) & nchar(lastname) > 1 & lastname_predrace == "asian", 1, 0))
 
 
+# 
+# # check occupation dist over years -- NOTE: CAN'T COMPARE OCC ACROSS YEARS SINCE DIFF DEFNS, JUST COMPARE WITHIN YEARS BETWEEN GROUPS
+# clean_all_occ <- clean_all %>% group_by(YEAR) %>% summarize(pct_labor1 = sum(LABOR, na.rm=TRUE)/n(),
+#                                                             pct_labor = sum(ifelse(OCCGRP == "Laborer", 1, 0), na.rm=TRUE)/sum(ifelse(!is.na(OCCGRP), 1, 0)),
+#                                                             pct_farmer = sum(ifelse(OCCGRP == "Farmer", 1, 0), na.rm=TRUE)/sum(ifelse(!is.na(OCCGRP), 1, 0)),
+#                                                             pct_unskilled = sum(ifelse(OCCGRP == "Unskilled", 1, 0), na.rm=TRUE)/sum(ifelse(!is.na(OCCGRP), 1, 0)),
+#                                                             pct_skilled = sum(ifelse(OCCGRP == "Skilled", 1, 0), na.rm=TRUE)/sum(ifelse(!is.na(OCCGRP), 1, 0)),
+#                                                             pct_na = sum(ifelse(is.na(OCCGRP), 1, 0))/sum(ifelse(!is.na(OCCGRP), 1, 0)))
+# 
+# 
+# clean_all_houseown <- clean_all %>% group_by(YEAR) %>% summarize(pct_house_own = sum(HOUSEOWN, na.rm=TRUE)/n())
+# 
 
-# check occupation dist over years -- NOTE: CAN'T COMPARE OCC ACROSS YEARS SINCE DIFF DEFNS, JUST COMPARE WITHIN YEARS BETWEEN GROUPS
-clean_all_occ <- clean_all %>% group_by(YEAR) %>% summarize(pct_labor1 = sum(LABOR, na.rm=TRUE)/n(),
-                                                            pct_labor = sum(ifelse(OCCGRP == "Laborer", 1, 0), na.rm=TRUE)/sum(ifelse(!is.na(OCCGRP), 1, 0)),
-                                                            pct_farmer = sum(ifelse(OCCGRP == "Farmer", 1, 0), na.rm=TRUE)/sum(ifelse(!is.na(OCCGRP), 1, 0)),
-                                                            pct_unskilled = sum(ifelse(OCCGRP == "Unskilled", 1, 0), na.rm=TRUE)/sum(ifelse(!is.na(OCCGRP), 1, 0)),
-                                                            pct_skilled = sum(ifelse(OCCGRP == "Skilled", 1, 0), na.rm=TRUE)/sum(ifelse(!is.na(OCCGRP), 1, 0)),
-                                                            pct_na = sum(ifelse(is.na(OCCGRP), 1, 0))/sum(ifelse(!is.na(OCCGRP), 1, 0)))
-
-
-clean_all_houseown <- clean_all %>% group_by(YEAR) %>% summarize(pct_house_own = sum(HOUSEOWN, na.rm=TRUE)/n())
+### PRE-1901 CENSUS CLEANING
+## BASE VARIABLES [no harmonization, only renaming/defining required]: LASTNAME, FIRSTNAME, MALE = 1[Male], MAR = 1[Married], SIN = 1[Single (Never Married)], AGE, PROVINCE, IMM = 1[not born in Canada]
+## WHEN AVAILABLE [not available for all years]: CANREAD, EARN, YRIMM, HOUSEOWN
+## HARMONIZED VARIABLES: BPL, ETH, OCC --> BPLCHI, BPL[OTHER], ETHCHI, ETH[OTHER], OCCGRP
+## ADDITIONAL VARIABLES [not required?]: UNEMP, RURAL
+## ADD: YEAR, WEIGHT
+# note: 1881, 1891 have NAPHISCO
+# occ groups: skilled, semi-skilled, laborer, farmer, other unskilled
+#### 1881 DATA ####
+## OCCUPATION NOTES: merc/agent/manu, profesl, white collar -> skilled; artisan (dressmaker, painter, engineer, etc.) -> skilled, "semi & unskilled" (looks like these are primarily fishermen, laundresses, so categorizing as unskilled) --> unskilled
+# clean1881 <- raw1881 %>% 
+#   rename(BPL = birthplace_ccri, ETH = ethnicity_ccri, OCCGRP = occgrp2, LASTNAME = NAMLAST, FIRSTNAME = NAMFRST) %>%
+#   mutate(MALE = case_when(SEX == "Female" ~ 0,
+#                           SEX == "Male" ~ 1,
+#                           TRUE ~ NA_real_),
+#          MAR = case_when(MARST == "Married" ~ 1,
+#                          MARST == "Unknown" ~ NA_real_,
+#                          TRUE ~ 0),
+#          IMM = ifelse(imm == "born in Canada", 0, 1),
+#          LABOR = ifelse(OCCGRP == "Labourer", 1, 0),
+#          OCCGRP = case_when(OCCGRP == "White collar" | OCCGRP == "Profesl" | OCCGRP == "Merc/Agent/Manu" ~ "Skilled",
+#                              OCCGRP == "Artisan" ~ "Skilled",
+#                              OCCGRP == "Servant" | OCCGRP == "Semi & Unskilled" ~ "Unskilled",
+#                              OCCGRP == "Farmer" ~ "Farmer",
+#                              OCCGRP == "Labourer" ~ "Laborer",
+#                              TRUE ~ NA_character_),
+#          HOUSEOWN = ifelse(CANREL == "head", 1, 0),
+#          RURAL = ifelse(urbanna != "Urban", 1, 0),
+#          NAPHISCOSTR = as.character(NAPHISCO),
+#          PROVINCE = case_when(str_detect(PROVINCE, "British Columbia") ~ "BC",
+#                               str_detect(PROVINCE, "Manitoba") ~ "MB",
+#                               str_detect(PROVINCE, "New Brunswick") ~ "NB",
+#                               str_detect(PROVINCE, "Nova Scotia") ~ "NS",
+#                               str_detect(PROVINCE, "Ontario") ~ "ON",
+#                               str_detect(PROVINCE, "Qu") ~ "QC",
+#                               str_detect(PROVINCE, "Prince") ~ "PE",
+#                               str_detect(PROVINCE, "Territories") ~ "UT")) %>% 
+#   select(c(MALE, AGE, MAR, ETH, NAPHISCOSTR, OCCGRP, LABOR, BPL, IMM, LASTNAME, FIRSTNAME, HOUSEOWN, RURAL, PROVINCE)) %>% 
+#   mutate(YEAR = 1881, 
+#          BORNCHI = ifelse(str_detect(BPL, "China"),1,0), 
+#          BORNRUS = ifelse(str_detect(BPL, "Russia"), 1, 0), 
+#          BORNFRA = ifelse(str_detect(BPL, "France"), 1, 0), 
+#          BORNGER = ifelse(str_detect(BPL, "Germany"), 1, 0),
+#          BORNJAP = ifelse(str_detect(BPL, "Japan"),1,0),
+#          BORNIND = ifelse(str_detect(BPL, "India"),1,0),
+#          BORNIRE = ifelse(str_detect(BPL, "Ireland"), 1, 0),
+#          BORNAUS = ifelse(str_detect(BPL, "Austria"), 1, 0),
+#          ETHCHI = ifelse(str_detect(ETH, "Chinese"), 1, 0), 
+#          WEIGHT = 1,
+#          across(starts_with("BORN"), function(x) ifelse(is.na(x) & IMM == 0, 0, x))) %>%
+#   filter(!is.na(BORNCHI))
+# 
+# # occ50: 
+# clean1891 <- raw1891 %>% mutate(WEIGHT = case_when(samplesize == 5 ~ 20,
+#                                                    samplesize == 10 ~ 10,
+#                                                    samplesize == 100 ~ 1),
+#                                 BORNCHI = ifelse(bplcode == 50000, 1, 0),
+#                                 BORNRUS = ifelse(bplcode >= 46100 & bplcode < 49000, 1, 0),
+#                                 BORNFRA = ifelse(bplcode == 42100, 1, 0),
+#                                 BORNGER = ifelse(bplcode == 45300, 1, 0),
+#                                 BORNJAP = ifelse(bplcode == 50100, 1, 0),
+#                                 BORNIND = ifelse(bplcode == 52100, 1, 0),
+#                                 BORNIRE = ifelse(bplcode == 41400, 1, 0),
+#                                 BORNAUS = ifelse(bplcode == 45000, 1, 0),
+#                                 MALE = case_when(SEX == "M  " ~ 1,
+#                                                  SEX == "F  " ~ 0,
+#                                                  TRUE ~ NA_real_),
+#                                 MAR = case_when(MARST == "married" ~ 1,
+#                                                 MARST == "single" | MARST == "Divorced" | MARST == "W" ~ 0,
+#                                                 TRUE ~ NA_real_),
+#                                 CANREAD = ifelse(CANREAD == "Yes, can read", 1, 0),
+#                                 LABOR = ifelse(occ50 >= 910 & occ50 < 972, 1, 0),
+#                                 IMM = ifelse(bplcode < 16000 & bplcode >= 15000, 0, 1),
+#                                 OCCGRP = case_when(occ50 >= 800 & occ50 < 900 ~ "Farmer",
+#                                                    occ50 == 970 | occ50 == 972 ~ "Laborer",
+#                                                    occ50 > 972 ~ NA_character_,
+#                                                    occ50 >= 700 & occ50 <= 720 ~ "Unskilled",
+#                                                    occ50 >= 900 & occ50 < 1000 ~ "Unskilled",
+#                                                    !is.na(occ50) ~ "Skilled",
+#                                                    TRUE ~ NA_character_),
+#                                 HOUSEOWN = case_when(!is.na(HICode1) ~ 1,
+#                                                      !is.na(HUCode1) ~ 1,
+#                                                      !is.na(HCCode1) ~ 1,
+#                                                      TRUE ~ 0)) %>%
+#   select(-c(AGE)) %>%
+#   rename(AGE = agecode, LASTNAME = NAMELAST, FIRSTNAME = NAMEFIRST, PROVINCE = Province) %>%
+#   select(c(MALE, AGE, MAR, CANREAD, starts_with("BORN"), UNEMP, OCCGRP, WEIGHT, IMM, LASTNAME, FIRSTNAME, HOUSEOWN, PROVINCE, LABOR)) %>%
+#   mutate(YEAR = 1891)  %>%
+#   filter(!is.na(IMM)) #i think this only drops 1 person
 
 

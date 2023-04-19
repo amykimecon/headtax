@@ -40,11 +40,13 @@ us_clean <- us_raw %>%
          MAR = ifelse(AGE >= 18, ifelse((MARST == 1 | MARST == 2), 1, 0), NA),
          LABOR = ifelse(AGE >= 18, ifelse((OCC1950 <= 970 & OCC1950 >= 900), 1, 0), NA),
          HOUSEOWN = ifelse(AGE >= 18, ifelse(OWNERSHP == 1, 1, 0), NA),
-         IDNUM = row_number()) %>%
-  rename(YRIMM = YRIMMIG, EARN = ERSCOR50) %>%
+         IDNUM = row_number(),
+         EARN = ifelse(AGE >= 18, ERSCOR50, NA)) %>%
+  rename(YRIMM = YRIMMIG) %>%
   select(c(IDNUM,YEAR,STATEFIP,BORNCHI,BORNJAP,IMM, YRIMM, AGE, MALE, CANREAD, LABOR, OCC1950, MAR, HOUSEOWN, EARN))
 write_csv(us_clean, glue("{dbox}/cleaned/us_clean.csv"))
 
+# pre-computing summary stats for all of us
 us_all_summ <- summstats(us_clean %>% mutate(source = "US Census", group = "All", WEIGHT = 1), c("MALE", "MAR", "AGE", "CANREAD", "LABOR", "EARN"))
 write_csv(us_all_summ, glue("{dbox}/cleaned/us_all_summ.csv"))
 
