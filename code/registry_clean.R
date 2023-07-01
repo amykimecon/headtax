@@ -26,7 +26,7 @@ if (Sys.getenv("USER") == "amykim"){
 ########################################################################
 ## chinese registry -- immigration data through ports
 # source: https://open.library.ubc.ca/cIRcle/collections/facultyresearchandpublications/52383/items/1.0075988
-chiregraw <- read_excel(glue("{dbox}/ChineseRegistry.xlsx"), guess_max = 1000000)
+chiregraw <- read_excel(glue("{dbox}/raw/ChineseRegistry.xlsx"), guess_max = 1000000)
 
 chireg <- chiregraw %>% mutate(COUNTYGRP = case_when(COUNTY_ID == 1 ~ "Taishan",
                                                      COUNTY_ID == 2 ~ "Xinhui",
@@ -60,7 +60,11 @@ chireg <- chiregraw %>% mutate(COUNTYGRP = case_when(COUNTY_ID == 1 ~ "Taishan",
                                BIRTHYEAR = REG_Year - AGE,
                                MALE = ifelse(SEX == "Male", 1, 0),
                                REGID = row_number(),
-                               LABOR = ifelse(PROFESSION == "Labourer", 1, 0)) %>%
+                               LABOR = ifelse(PROFESSION == "Labourer", 1, 0),
+                               HEIGHT_IN_FRAC = str_extract(HEIGHT_IN, "[0-9]/[0-9]$"),
+                               HEIGHT_IN_WHOLE = as.numeric(str_extract(str_remove(HEIGHT_IN, "[0-9]/[0-9]$"), "^[0-9]{1,2}")),
+                               HEIGHT = ifelse(is.na(HEIGHT_FT) | HEIGHT_FT == 0, NA, HEIGHT_FT*12 + ifelse(is.na(HEIGHT_IN_WHOLE), 0, HEIGHT_IN_WHOLE) + 
+                                                 ifelse(is.na(HEIGHT_IN_FRAC), 0, as.numeric(str_extract(HEIGHT_IN_FRAC,"^[0-9]"))/as.numeric(str_extract(HEIGHT_IN_FRAC, "[0-9]$"))))) %>%
   filter(!is.na(DATE) & YEAR != 0) #excluding entries without valid arrival date (for now) -- only 522 such entries out of ~100k
 write_csv(chireg, glue("{dbox}/cleaned/chireg.csv"))
 
