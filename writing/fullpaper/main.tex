@@ -69,15 +69,15 @@ Finally, I also use US census data in my analysis. I use full-count census data 
     \renewcommand{\arraystretch}{1.5}
     \resizebox{\textwidth}{!}{
     \begin{threeparttable}
-        \caption{Summary statistics for pooled Canadian census data (1901-1921), pooled US census data (1900-1920), and the Chinese Register, grouped separately by the entire population, the entire immigrant population, and the Chinese immigrant population.}
+        \caption{Summary statistics for pooled Canadian census data (1901-1921), pooled US census data (1900-1920), and the Chinese Register, grouped separately by the entire immigrant population, the Chinese immigrant population, and the Japanese immigrant population (as a comparison group).}
         \label{tab:summstats}
         \input{../../figs/summstats.tex}
         \begin{tablenotes}
             \item *Calculated as a percentage of adults. 
             
-            \item \textbf{Notes:} Column (1) pools Canadian census data (as described in section 3.1.2) from 1901, 1911, 1921, calculating means and standard errors of each variable for the whole population, weighted based on the coverage of that year's census (5\% for 1901-1911, and 4\% for 1921). The small number of observations for Canada relative to the US is due to this sampling structure.
-            Column (3) repeats this exercise for individuals born outside of Canada, and Column (5) repeats this exercise for individuals born in China. Column (2) pools American census data (as described in section 3.1.3) from 1900, 1910, 1920 to calculate means and standard errors of each variable for the full population -- note that since these censuses all have 100\% coverage, there is no population weighting.
-            Column (4) repeats this exercise for individuals born outside of the US, and Column (6) repeats this exercise for individuals born in China. Finally, column (7) uses the entire Chinese Register (as described in section 3.1.1) to calculate means and standard errors of each variable for the population of Chinese immigrants to Canada recorded in the Chinese Register. Matched immigrants in columns (8) are non-Chinese immigrants from Canadian census years 1901-1921, matched to Chinese immigrants from the 1881 Canadian census. Matched immigrants in columns (9) are non-Chinese immigrants from a 1\% sample of the US census in years 1900-1920, matched to Chinese immigrants from a 10\% sample of the 1880 US census (sampling done for computational reasons).
+            \item \textbf{Notes:} Column (1) pools Canadian census data (as described in section 3.1.2) from 1901, 1911, 1921, calculating means and standard errors of each variable for all individuals born outside of Canada, weighted based on the coverage of that year's census (5\% for 1901-1911, and 4\% for 1921). The small number of observations for Canada relative to the US is due to this sampling structure.
+            Column (3) repeats this exercise for individuals born in China, and Column (6) repeats this exercise for individuals born in Japan. Column (2) pools American census data (as described in section 3.1.3) from 1900, 1910, 1920 to calculate means and standard errors of each variable for all individuals born outside of the US -- note that since these censuses all have 100\% coverage, there is no population weighting.
+            Column (4) repeats this exercise for individuals born in China, and Column (7) repeats this exercise for individuals born in Japan. Finally, column (5) uses the entire Chinese Register (as described in section 3.1.1) to calculate means and standard errors of each variable for the population of Chinese immigrants to Canada recorded in the Chinese Register.
         \end{tablenotes}
     \end{threeparttable}
     }
@@ -97,12 +97,14 @@ Note that the key difference between the Canadian census and the Register is tha
 
 \begin{figure}
     \centering 
-    \caption{Average non-zero tax paid by Chinese immigrants to Canada, by year of arrival in Canada, as reported in the Chinese Register.}
-    \includegraphics[width=\textwidth]{../../figs/shortpaper_figs/fig1_taxespaid.png}
+    \caption{Average non-zero tax paid by Chinese immigrants to Canada, by year of arrival in Canada, as recorded by the Chinese Register, which tracked all Chinese immigrants who entered Canada and/or paid the Head Tax between 1885 and 1949 \citep{chineseregister}. Note that among Chinese immigrants who arrived in Canada prior to 1885, only those who re-entered Canada at some point following 1885 were forced to pay the Head Tax and therefore recorded in the registry, which is why we observe non-zero payments among immigrants arriving prior to 1885.}
+    \includegraphics[width=\textwidth]{../../figs/fig1_taxespaid.png}
     \label{fig:taxpaid}
 \end{figure}
 
-I begin by documenting the average non-zero tax paid by Chinese immigrants in each year, as recorded in the Chinese Register, in Figure \ref{fig:taxpaid}.\footnote{Note that only 8.7\% of pre-1923 arrivals recorded in the Chinese Register paid \$0 in taxes. Of these non-taxpaying individuals, approximately 89\% were merchants or the family of a merchant, and an additional 4\% were students or working in other professions exempt from the tax.} The figure suggests nearly perfect adherence to the Chinese Head Tax by port officials, with immigrants entering between 1885 and 1900 paying \$50, immigrants entering between 1900 and 1903 paying \$100, and immigrants entering between 1903 and 1923 paying \$500. Small spikes prior to 1885 indicate the existence of some immigrants who arrived prior to 1885 and subsequently registered in or after 1885 who were required to pay more than \$50 (approximately 6\% of all immigrants in the Register data who arrived prior to 1885) -- the reason for this is unclear. 
+I begin by documenting the average non-zero tax paid by Chinese immigrants in each year, as recorded in the Chinese Register, in Figure \ref{fig:taxpaid}.\footnote{Note that only 8.7\% of pre-1923 arrivals recorded in the Chinese Register paid \$0 in taxes. 
+Of these non-taxpaying individuals, approximately 89\% were merchants or the family of a merchant, and an additional 4\% were students or working in other professions exempt from the tax.} The figure suggests nearly perfect adherence to the Chinese Head Tax by port officials, with immigrants entering between 1885 and 1900 paying \$50, immigrants entering between 1900 and 1903 paying \$100, and immigrants entering between 1903 and 1923 paying \$500. 
+While not all Chinese immigrants who arrived in Canada prior to 1885 were required to pay the tax, Figure \ref{fig:taxpaid} indicates that some pre-1885 arrivals did pay, likely in order to be able to freely exit and re-enter Canada. While these pre-1885 arrivals largely paid the \$50 head tax (suggesting re-entry to Canada between 1885 and 1900), small spikes prior to 1885 indicate that some were required to pay more than \$50 (approximately 6\% of all immigrants in the Register data who arrived prior to 1885), suggesting re-entry in later years. 
 
 While the Register does not account for immigrants who entered without registration, there is reason to believe that this was a rare occurence. At the time, the only way for Chinese immigrants to arrive in Canada was by ship, since the US at the time had even stricter restrictions on Chinese immigration.\footnote{There are even some accounts of Chinese immigrants arriving by ship in Canada and attempting to cross the border \textit{into the US }by land, to circumvent the Chinese Exclusion Act in the US.} Since shipping ports were much better surveilled than land borders, it is unlikely that many would have been able to enter without registering. 
 
@@ -112,11 +114,11 @@ While the Register does not account for immigrants who entered without registrat
 \begin{figure}
     \centering 
     \caption{Inflow of Chinese immigrants to Canada, as measured by the Chinese Register and the Canadian census.}
-    \includegraphics[width=\textwidth]{../../figs/shortpaper_figs/fig2_flow.png}
+    \includegraphics[width=\textwidth]{../../figs/fig2_flow.png}
     \label{fig:inflow}
 \end{figure}
 
-Figure \ref{fig:inflow} shows the flow of immigrants into Canada between 1880 and 1930, as documented longitudinally in the Chinese Register, and as documented by repeated cross-section in the Canadian census (see table notes on calculation details). In the Chinese Register data, there are very clear drops in immigration in the years in which the head tax is increased, admist an overall upwards trend in immigration from China. The census data shows a similar overall shape of immigration inflow, although magnitudes are attenuated (likely by outmigration, as discussed in section 3.2), and the drops in head tax increase years are not clear.  
+Figure \ref{fig:inflow} shows the flow of immigrants into Canada between 1880 and 1930, as documented longitudinally in the Chinese Register, and as documented by repeated cross-section in the Canadian census (see table notes on calculation details). In the Chinese Register data, there are very clear drops in immigration in the years in which the head tax is increased, amidst an overall upwards trend in immigration from China. The census data shows a similar overall shape of immigration inflow, although magnitudes are attenuated (likely by outmigration, as discussed in section 3.2), and the drops in head tax increase years are not clear.  
 
 \begin{table}[!h]
     \centering 

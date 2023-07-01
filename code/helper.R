@@ -15,7 +15,7 @@ summstats <- function(rawdata, vars = c("MALE", "MAR", "AGE", "CANREAD", "LABOR"
   outdata <- rawdata %>% select(c(source, group, WEIGHT, all_of(vars))) %>%
     group_by(source, group) %>% 
     summarize(across(-c(WEIGHT), 
-                     .fns = c(~mean(.x, na.rm=TRUE), #mean
+                     .fns = c(~weighted.mean(.x, WEIGHT, na.rm=TRUE), #mean
                               ~wtd_se(.x, WEIGHT))), #SE
               OBS = n()) #n obs
   return(outdata)

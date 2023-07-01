@@ -21,7 +21,8 @@ if (Sys.getenv("USER") == "amykim"){
   git = "/Users/amykim/Documents/GitHub/headtax"
 }
 
-ca <- "#F8766D"
+ca_chi_census <- "#F8766D"
+ca_jap_census <- 
 us <- "#00BFC4"
 ht <- "#808080"
 
@@ -58,14 +59,14 @@ chipop_grp <- chipop_reg %>% mutate(CENSUSDIFF = diff(chipop_census$pop),
 ########################################################################
 ### TABLE 1: SUMMARY STATS BY DATA SOURCE & GROUP (1900-1920)
 ########################################################################
-# us -- entire population
-us_summ <- read_csv(glue("{dbox}/cleaned/us_all_summ.csv"))
-
-# canada -- entire population
-can_summ <- read_csv(glue("{dbox}/cleaned/can_all_summ.csv"))
+# # us -- entire population
+# us_summ <- read_csv(glue("{dbox}/cleaned/us_all_summ.csv"))
+# 
+# # canada -- entire population
+# can_summ <- read_csv(glue("{dbox}/cleaned/can_all_summ.csv"))
 
 # computing and binding all summary stats for other groups
-summ_stats_df <- bind_rows(us_summ, can_summ, 
+summ_stats_df <- bind_rows(#us_summ, #can_summ, 
                            summstats(us_imm),
                            summstats(us_chi),
                            summstats(us_jap),
@@ -81,20 +82,20 @@ summ_stats_out <- t(summ_stats_df) %>% as.data.frame()
 # writing
 summ_cats <- c("\\% Male", "\\% Married*", "Age", "\\% Literate*", "\\% Laborers*", "Earnings","Year of Imm.")
 summtex <- file(glue("{git}/figs/summstats.tex"), open = "w")
-writeLines(c("\\begin{tabular}{lcccccccccccc}", 
-             "\\hhline{=============}", 
-             "& \\multicolumn{2}{c}{Entire Population} & & \\multicolumn{2}{c}{All Immigrants} & & \\multicolumn{3}{c}{Chinese Immigrants} & & \\multicolumn{2}{c}{Japanese Immigrants} \\\\ ", 
-             "\\hhline{~--~--~---~--}", "& (1) & (2) & & (3) & (4) & & (5) & (6) & (7) & & (8) & (9) \\\\ ",
-              "& CA Census & US Census & & CA Census & US Census & & CA Census & US Census & Chinese Reg. & & CA Census & US Census \\\\ ", " \\hhline{-------------}"), summtex)
+writeLines(c("\\begin{tabular}{lccccccccc}", 
+             "\\hhline{==========}", 
+             "& \\multicolumn{2}{c}{All Foreign-Born} & & \\multicolumn{3}{c}{Chinese Immigrants} & & \\multicolumn{2}{c}{Japanese Immigrants} \\\\ ", 
+             "\\hhline{~--~---~--}", "& (1) & (2) & & (3) & (4) & (5) & & (6) & (7) \\\\ ",
+              "& CA Census & US Census & & CA Census & US Census & Chinese Reg. & & CA Census & US Census \\\\ ", " \\hhline{----------}"), summtex)
 for (i in 1:length(summ_cats)){
   means <- ifelse(is.na(summ_stats_out[2*i+1,]), "-", summ_stats_out[2*i+1,])
   sds <- ifelse(is.na(summ_stats_out[2*i+2,]), "", paste0("(",round(as.numeric(summ_stats_out[2*i+2,]),4),")"))
-  writeLines(c(paste(summ_cats[i], "&", glue_collapse(c(means[1:2],"",means[3:4],"",means[5:7], "", means[8:9]), sep = "&", last = ""), "\\\\ "), 
-               paste("&", glue_collapse(c(sds[1:2],"",sds[3:4],"",sds[5:7], "", sds[8:9]), sep = "&", last = ""), "\\\\ ")), summtex)
+  writeLines(c(paste(summ_cats[i], "&", glue_collapse(c(means[1:2],"",means[3:5],"",means[6:7]), sep = "&", last = ""), "\\\\ "), 
+               paste("&", glue_collapse(c(sds[1:2],"",sds[3:5],"",sds[6:7]), sep = "&", last = ""), "\\\\ ")), summtex)
 }
-obs <- ifelse(is.na(summ_stats_out[2*(length(summ_cats)+1)+1,]), "-", round(as.numeric(summ_stats_out[2*(length(summ_cats)+1)+1,])/1000, 0))
-writeLines(c("Obs. (Thousands)", "&", glue_collapse(c(obs[1:2],"",obs[3:4],"",obs[5:7],"", obs[8:9]), sep = "&", last = ""), "\\\\ "), summtex)
-writeLines(c("\\hhline{-------------}","\\end{tabular}"), summtex)
+obs <- ifelse(is.na(summ_stats_out[2*(length(summ_cats)+1)+1,]), "-", round(as.numeric(summ_stats_out[2*(length(summ_cats)+1)+1,]), 0))
+writeLines(c("Obs. (Thousands)", "&", glue_collapse(c(obs[1:2],"",obs[3:5],"",obs[6:7]), sep = "&", last = ""), "\\\\ "), summtex)
+writeLines(c("\\hhline{----------}","\\end{tabular}"), summtex)
 close(summtex)
 
 
@@ -133,27 +134,25 @@ yrimm_reg <- reg_chi %>% mutate(YRIMM = YEAR_ARRIV) %>% group_by(YRIMM) %>% summ
                                                                                                                                YRIMM <= 1903 ~ 100,
                                                                                                                                YRIMM < 1924 ~ 500)) %>%
   arrange(YRIMM) %>% filter(YRIMM >= 1880 & YRIMM <= 1930)
-
-yrimm_census_allim <- can_imm %>% group_by(YEAR, YRIMM) %>% summarize(IMMPOP = sum(WEIGHT), 
-                                                                      MATCHPOP = sum(ifelse(matched == 1, WEIGHT, 0)),
-                                                                      JAPPOP = sum(ifelse(BORNJAP == 1, WEIGHT, 0)), 
-                                                                      CHIPOP = sum(ifelse(BORNCHI == 1, WEIGHT, 0)),
-                                                                      AUSPOP = sum(ifelse(BORNAUS == 1, WEIGHT, 0))) %>% 
-  mutate(source = "CA Census", tax = case_when(YRIMM <= 1885 ~ 0,
-                                                                                                                                             YRIMM <= 1900 ~ 50,
-                                                                                                                                             YRIMM <= 1903 ~ 100,
-                                                                                                                                             YRIMM < 1924 ~ 500)) %>% filter(YRIMM >= 1880) %>%
-  arrange(YRIMM) %>%
-  filter((YEAR == 1901 & YRIMM < 1901) | (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) %>% # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
-  mutate(CHIFRAC = CHIPOP/IMMPOP, JAPFRAC = JAPPOP/IMMPOP, AUSFRAC = AUSPOP/IMMPOP, CHIJAP = CHIPOP/JAPPOP) 
+# 
+# yrimm_census_allim <- can_imm %>% group_by(YEAR, YRIMM) %>% summarize(IMMPOP = sum(WEIGHT), 
+#                                                                       JAPPOP = sum(ifelse(BORNJAP == 1, WEIGHT, 0)), 
+#                                                                       CHIPOP = sum(ifelse(BORNCHI == 1, WEIGHT, 0))) %>% 
+#   mutate(source = "CA Census", tax = case_when(YRIMM <= 1885 ~ 0,
+#                                                                                                                                              YRIMM <= 1900 ~ 50,
+#                                                                                                                                              YRIMM <= 1903 ~ 100,
+#                                                                                                                                              YRIMM < 1924 ~ 500)) %>% filter(YRIMM >= 1880) %>%
+#   arrange(YRIMM) %>%
+#   filter((YEAR == 1901 & YRIMM < 1901) | (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) %>% # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
+#   mutate(CHIFRAC = CHIPOP/IMMPOP, JAPFRAC = JAPPOP/IMMPOP, CHIJAP = CHIPOP/JAPPOP) 
 
 yrimm_all <- rbind(filter(yrimm_census, YRIMM >= 1880), yrimm_reg)
 
-fig2_flow <- ggplot(data = yrimm_all, aes(x = YRIMM, y = CHIPOP, linetype = source)) + geom_line() +
+fig2_flow <- ggplot(data = yrimm_all, aes(x = YRIMM, y = CHIPOP, linetype = source, color = source)) + geom_line() +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE) +
   geom_text(aes(x = yrs, y = 7000, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 4) +
-  scale_linetype_manual(breaks=c("Chinese Register","CA Census"), values=c(1,2)) +
-  labs(x = "Year of Immigration", y = "Inflow of Chinese Immigrants", linetype = "Data Source") + theme_minimal() + theme(legend.position='bottom')
+  #scale_linetype_manual(breaks=c("Chinese Register","CA Census"), values=c(1,2)) +
+  labs(x = "Year of Immigration", y = "Inflow of Chinese Immigrants", linetype = "Data Source", color = "Data Source") + theme_minimal() + theme(legend.position='bottom')
 
 ggsave(glue("{git}/figs/fig2_flow.png"), fig2_flow, height = 5, width = 9)
 
@@ -298,7 +297,7 @@ fig3_us_can <- ggplot(data = yrimm_us_can %>% filter(YRIMM >= 1870), aes(x = YRI
   geom_text(aes(x = yrs, y = 7000, label = labs), data = headtaxcuts[1:3,], inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 4) +
   geom_vline(aes(xintercept = x), data = data.frame(x = c(1882)), show.legend = FALSE, color = "dark blue") +
   geom_text(aes(x = x, y = 7000, label = labs), data = data.frame(x = c(1882), labs = c("US Chi. Excl. Act")), inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 4) +
-  scale_color_manual(breaks=c("CA Census", "US Census"), values=c("black","blue")) +
+  #scale_color_manual(breaks=c("CA Census", "US Census"), values=c("black","blue")) +
   scale_linetype_manual(breaks=c("Chinese", "Japanese"), values=c(1,3)) +
   labs(x = "Year of Immigration", y = "Inflow of Chinese Immigrants", linetype = "Data Source", color = "Immigrant Group") + theme_minimal() + theme(legend.position='bottom')
 
