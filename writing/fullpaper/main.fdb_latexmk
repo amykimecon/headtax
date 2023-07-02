@@ -1,22 +1,22 @@
 # Fdb version 3
-["bibtex main"] 1688246118 "main.aux" "main.bbl" "main" 1688246118
-  "../headtax.bib" 1688246117 21326 99346c89019b1e2285ab7aa78631ca83 ""
+["bibtex main"] 1688269204 "main.aux" "main.bbl" "main" 1688269244
+  "../headtax.bib" 1688258961 21560 1311b3eb5703bffe58b5655efd3de696 ""
   "/usr/local/texlive/2022/texmf-dist/bibtex/bst/natbib/abbrvnat.bst" 1233624470 26532 66bed5cc59495faaa3f9ae9af9fa5e42 ""
-  "main.aux" 1685633885 8398 21b357c40b0aeeb9d150936a45b29ab3 "pdflatex"
+  "main.aux" 1688269244 8398 38591b2c4700dc8657bca4d5cca70a64 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
-["pdflatex"] 1685633882 "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" "main.pdf" "main" 1688246118
+["pdflatex"] 1688269241 "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" "main.pdf" "main" 1688269244
   "../../figs/fig1_taxespaid.png" 1685631569 164500 dfc4fdd2681f7e17d8f62c47bb908f1e ""
   "../../figs/fig2_flow.png" 1685900843 280982 ec38d617d02d2992c744d405ff7f7e58 ""
   "../../figs/fig3_us_can.png" 1680458041 245190 e481208cd6092f7373d95007e57d4d14 ""
-  "../../figs/immflow_regs.tex" 1681318162 1584 2e94533ef79e746e07954b96cebebb0e ""
+  "../../figs/immflow_regs.tex" 1688269241 1192 603db094b6a35e4c3952eb66f2ae1228 ""
   "../../figs/outcome_regs.tex" 1681320192 1679 87818f273a338bc1d01a8bf7aa2c895c ""
   "../../figs/outcome_regs_match.tex" 1681320193 1689 3b4b34599ba3c814e5b92d2adf65580b ""
   "../../figs/shortpaper_figs/uscan_regs.tex" 1680458190 1407 4c391809646ca7519abee9150d040c0b ""
   "../../figs/summstats.tex" 1688246117 1367 0889e4658eb070c7c09019a5a00bfba7 ""
   "../preamble.sty" 1679969539 520 5451d55aaaea4c9f2cc9ebbd8b94cbb1 ""
-  "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" 1685900849 34914 7017a2fde06d798ff10c0c0051137646 ""
+  "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" 1688269241 34917 c6f2f4bd26b76b72cdf66aa6a19124ab ""
   "/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -131,10 +131,10 @@
   "/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1649608881 4410336 7d30a02e9fa9a16d7d1f8d037ba69641 ""
   "/usr/local/texlive/2022/texmf-var/web2c/pdftex/pdflatex.fmt" 1649608384 2826445 11fb308a3b72202293059f9400dba38f ""
   "/usr/local/texlive/2022/texmf.cnf" 1647878952 577 209b46be99c9075fd74d4c0369380e8c ""
-  "main.aux" 1685633885 8398 21b357c40b0aeeb9d150936a45b29ab3 "pdflatex"
-  "main.bbl" 1688246118 2964 471f0e4b7f6a645cfdcce1dc99a12cfb "bibtex main"
-  "main.out" 1685633885 2435 e8525fed155b44f5261d11eacea687b1 "pdflatex"
-  "main.tex" 1685900849 34914 7017a2fde06d798ff10c0c0051137646 ""
+  "main.aux" 1688269244 8398 38591b2c4700dc8657bca4d5cca70a64 "pdflatex"
+  "main.bbl" 1688269204 2964 471f0e4b7f6a645cfdcce1dc99a12cfb "bibtex main"
+  "main.out" 1688269244 2435 e8525fed155b44f5261d11eacea687b1 "pdflatex"
+  "main.tex" 1688269241 34917 c6f2f4bd26b76b72cdf66aa6a19124ab ""
   (generated)
   "main.aux"
   "main.log"

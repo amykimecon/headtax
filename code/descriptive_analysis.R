@@ -45,6 +45,11 @@ us_jap <- us_imm %>% filter(BORNJAP == 1) %>% mutate(group = "Japanese Immigrant
 ## key head tax years for graphing & labeling vertical lines
 headtaxcuts <- data.frame(yrs = c(1885, 1900, 1903, 1923), labs = c("Initial Head Tax", "Incr. to $100", "Incr. to $500", "Total Imm. Ban"))
 
+## historical macro data (canada)
+canhistmacro <- read_xls(glue("{dbox}/raw/CANMACRO_data.xls")) %>% rename(RGNP = RGDP)
+
+## official immigration inflow counts (canada)
+immflow <- read_csv(glue("{dbox}/raw/imm_nums.csv"))
 ########################################################################
 ### QUICK ACCOUNTING EXERICSE: OUTMIGRATION IN CANADA
 ########################################################################
@@ -121,30 +126,25 @@ ggsave(glue("{git}/figs/fig1_taxespaid.png"), fig1_taxespaid, height = 5, width 
 ########################################################################
 ### FIGURE 2: NUMBER OF CHINESE IMMIGRANTS: INFLOW BY YEAR AND DATA SOURCE
 ########################################################################
-yrimm_census <- can_chi %>% group_by(YEAR, YRIMM) %>% summarize(CHIPOP = sum(WEIGHT)) %>% mutate(source = "CA Census", tax = case_when(YRIMM <= 1885 ~ 0,
-                                                                                                                                       YRIMM <= 1900 ~ 50,
-                                                                                                                                       YRIMM <= 1903 ~ 100,
-                                                                                                                                        YRIMM < 1924 ~ 500)) %>% 
-  arrange(YRIMM) %>%
-  filter((YEAR == 1901 & YRIMM < 1901) | (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
-  
 yrimm_reg <- reg_chi %>% mutate(YRIMM = YEAR_ARRIV) %>% group_by(YRIMM) %>% summarize(CHIPOP = n()) %>% mutate(source = "Chinese Register",
                                                                                                                tax = case_when(YRIMM <= 1885 ~ 0,
                                                                                                                                YRIMM <= 1900 ~ 50,
                                                                                                                                YRIMM <= 1903 ~ 100,
                                                                                                                                YRIMM < 1924 ~ 500)) %>%
   arrange(YRIMM) %>% filter(YRIMM >= 1880 & YRIMM <= 1930)
-# 
-# yrimm_census_allim <- can_imm %>% group_by(YEAR, YRIMM) %>% summarize(IMMPOP = sum(WEIGHT), 
-#                                                                       JAPPOP = sum(ifelse(BORNJAP == 1, WEIGHT, 0)), 
-#                                                                       CHIPOP = sum(ifelse(BORNCHI == 1, WEIGHT, 0))) %>% 
-#   mutate(source = "CA Census", tax = case_when(YRIMM <= 1885 ~ 0,
-#                                                                                                                                              YRIMM <= 1900 ~ 50,
-#                                                                                                                                              YRIMM <= 1903 ~ 100,
-#                                                                                                                                              YRIMM < 1924 ~ 500)) %>% filter(YRIMM >= 1880) %>%
-#   arrange(YRIMM) %>%
-#   filter((YEAR == 1901 & YRIMM < 1901) | (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) %>% # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
-#   mutate(CHIFRAC = CHIPOP/IMMPOP, JAPFRAC = JAPPOP/IMMPOP, CHIJAP = CHIPOP/JAPPOP) 
+  
+
+
+yrimm_census_allim <- can_imm %>% group_by(YEAR, YRIMM) %>% summarize(IMMPOP = sum(WEIGHT),
+                                                                      JAPPOP = sum(ifelse(BORNJAP == 1, WEIGHT, 0)),
+                                                                      CHIPOP = sum(ifelse(BORNCHI == 1, WEIGHT, 0))) %>%
+  mutate(source = "CA Census", tax = case_when(YRIMM <= 1885 ~ 0,
+                                                                                                                                             YRIMM <= 1900 ~ 50,
+                                                                                                                                             YRIMM <= 1903 ~ 100,
+                                                                                                                                             YRIMM < 1924 ~ 500)) %>% filter(YRIMM >= 1880) %>%
+  arrange(YRIMM) %>%
+  filter((YEAR == 1901 & YRIMM < 1901) | (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) %>% # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
+  mutate(CHIFRAC = CHIPOP/IMMPOP, JAPFRAC = JAPPOP/IMMPOP, CHIJAP = CHIPOP/JAPPOP)
 
 yrimm_all <- rbind(filter(yrimm_census, YRIMM >= 1880), yrimm_reg)
 
@@ -159,40 +159,34 @@ ggsave(glue("{git}/figs/fig2_flow.png"), fig2_flow, height = 5, width = 9)
 ########################################################################
 ### TABLE 2: REGRESSION OF IMM INFLOWS ON TAX RAISES
 ########################################################################
+yrimm_flow_data <- yrimm_reg %>% rename(CHIPOP_REG = CHIPOP) %>%
+  left_join(canhistmacro %>% select(c(Year, RGNP)), by = c("YRIMM" = "Year")) %>%
+  left_join(immflow, by = c("YRIMM" = "Year")) %>% left_join(yrimm_census_allim, by = c("YRIMM", "tax")) %>%
+  arrange(YRIMM) %>% mutate(lagRGNP = lag(RGNP),
+                            t = YRIMM - 1885) %>%
+  filter(YRIMM <= 1923 & YRIMM >= 1880)
+
 ## checking if flows change with year -- register
-yrimm_flow1 <- lm(data = yrimm_reg, CHIPOP ~ tax)
-yrimm_flow2 <- lm(data = yrimm_reg %>% mutate(startyear_minus1880 = YRIMM - 1880), CHIPOP ~ tax + startyear_minus1880 + I(startyear_minus1880^2))
-yrimm_flow3 <- lm(data = yrimm_reg %>% mutate(startyear_minus1880 = YRIMM - 1880), CHIPOP ~ factor(tax) + startyear_minus1880 + I(startyear_minus1880^2))
+yrimm_flow1 <- lm(data = yrimm_flow_data %>% filter(YRIMM > 1885), CHIPOP_REG ~ factor(tax) + t + lagRGNP + number_immigrants)
 
 ## checking if flows change with year -- census
-yrimm_flow4 <- lm(data = yrimm_census, CHIPOP ~ tax)
-yrimm_flow5 <- lm(data = yrimm_census %>% mutate(startyear_minus1880 = YRIMM - 1880), CHIPOP ~ tax + startyear_minus1880 + I(startyear_minus1880^2))
-yrimm_flow6 <- lm(data = yrimm_census_allim %>% mutate(startyear_minus1880 = YRIMM - 1880), CHIPOP ~ tax + startyear_minus1880 + I(startyear_minus1880^2) + IMMPOP)
-yrimm_flow7 <- lm(data = yrimm_census %>% mutate(startyear_minus1880 = YRIMM - 1880), CHIPOP ~ factor(tax) + startyear_minus1880 + I(startyear_minus1880^2))
-yrimm_flow8 <- lm(data = yrimm_census_allim %>% mutate(startyear_minus1880 = YRIMM - 1880), CHIPOP ~ factor(tax) + startyear_minus1880 + I(startyear_minus1880^2) + IMMPOP)
+yrimm_flow2 <- lm(data = yrimm_flow_data, CHIPOP ~ factor(tax) + t + lagRGNP + number_immigrants)
 
-yrimm_flowextra <- lm(data = yrimm_census_allim %>% mutate(startyear_minus1880 = YRIMM - 1880), JAPPOP ~ tax + startyear_minus1880 + I(startyear_minus1880^2 + IMMPOP))
-yrimm_flowextra2 <- lm(data = yrimm_census_allim %>% mutate(startyear_minus1880 = YRIMM - 1880), JAPPOP ~ factor(tax) + startyear_minus1880 + I(startyear_minus1880^2 + IMMPOP))
+## checking if flows change with year -- japanese (census)
+yrimm_flow3 <- lm(data = yrimm_flow_data, JAPPOP ~ factor(tax) + t + lagRGNP + number_immigrants)
 
-#yrimm_flowextra2 <- lm(data = yrimm_census_allim %>% mutate(startyear_minus1880 = YRIMM - 1880), JAPPOP ~ factor(tax) + startyear_minus1880 + I(startyear_minus1880^2 + IMMPOP))
-
-# ## checking if chi pct of flows change with year -- census (chi)
-# yrimm_flow7 <- lm(data = yrimm_census_allim %>% mutate(CHIFRAC = CHIFRAC*10000), CHIFRAC ~ tax)
-# yrimm_flow8 <- lm(data = yrimm_census_allim %>% mutate(startyear_minus1880 = YRIMM - 1880, CHIFRAC = CHIFRAC*10000), CHIFRAC ~ tax + startyear_minus1880 + I(startyear_minus1880^2))
-# yrimm_flow9 <- lm(data = yrimm_census_allim %>% mutate(startyear_minus1880 = YRIMM - 1880, CHIFRAC = CHIFRAC*10000), CHIFRAC ~ factor(tax) + startyear_minus1880 + I(startyear_minus1880^2))
-
-stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3, yrimm_flow4, yrimm_flow5, yrimm_flow7, yrimm_flow6, yrimm_flow8, yrimm_flowextra, yrimm_flowextra2,
+## output
+stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3,
           out = glue("{git}/figs/immflow_regs.tex"), 
           float = FALSE, 
           intercept.bottom = FALSE,
           keep.stat=c("n","adj.rsq"),
-          column.labels = c("Chinese Register", "Canadian Census"),
-          column.separate = c(3,7),
-          dep.var.labels = c("Chinese Immigrant Inflow (Thousands)"),
-          keep = c(2:5),
-          covariate.labels = c("$TAX$", "\\$50 Tax", "\\$100 Tax", "\\$500 Tax"),
-          add.lines = list(c("Time Trends", c(rep(c("No", "Yes", "Yes"), 2)), "Yes", "Yes",  "Yes", "Yes"), c("Ctrl. for Total Immigration", c(rep("No", 6), rep("Yes", 4)))),
-          table.layout = "=c#-ta-s-")
+          column.labels = c("Chinese Register", "Canadian Census", "Canadian Census"),
+          column.separate = c(1,1,1),
+          dep.var.labels = c("Chinese Imm. Inflow", "Chinese Imm. Inflow", "Japanese Imm. Inflow"),
+          keep = c(2:4),
+          covariate.labels = c("\\$50 Tax", "\\$100 Tax", "\\$500 Tax"),
+          add.lines = list(c("Time Trends", "Yes", "Yes", "Yes"), c("Ctrl. for Tot. Imm.", "Yes", "Yes", "Yes"), c("Ctrl. for Lagged Real GNP", "Yes", "Yes", "Yes")))
 
 
 ########################################################################
