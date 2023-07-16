@@ -1,14 +1,14 @@
 # Fdb version 3
-["bibtex main"] 1688269204 "main.aux" "main.bbl" "main" 1689438201
+["bibtex main"] 1689443676 "main.aux" "main.bbl" "main" 1689443726
   "../headtax.bib" 1688258961 21560 1311b3eb5703bffe58b5655efd3de696 ""
   "/usr/local/texlive/2022/texmf-dist/bibtex/bst/natbib/abbrvnat.bst" 1233624470 26532 66bed5cc59495faaa3f9ae9af9fa5e42 ""
-  "main.aux" 1689438201 8398 38591b2c4700dc8657bca4d5cca70a64 "pdflatex"
+  "main.aux" 1689443726 8398 7ce9472499b16e721513fbff0a9fb989 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
-["pdflatex"] 1689438198 "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" "main.pdf" "main" 1689438201
+["pdflatex"] 1689443723 "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" "main.pdf" "main" 1689443726
   "../../figs/fig1_taxespaid.png" 1685631569 164500 dfc4fdd2681f7e17d8f62c47bb908f1e ""
-  "../../figs/fig2_flow.png" 1689438193 350798 548f0618592fe51a31b5d7bf39d4ae22 ""
+  "../../figs/fig2_flow.png" 1689443723 265337 daf8b37f000e437aabf0db5674bf812b ""
   "../../figs/fig3_us_can.png" 1680458041 245190 e481208cd6092f7373d95007e57d4d14 ""
   "../../figs/immflow_regs.tex" 1688269241 1192 603db094b6a35e4c3952eb66f2ae1228 ""
   "../../figs/outcome_regs.tex" 1681320192 1679 87818f273a338bc1d01a8bf7aa2c895c ""
@@ -131,9 +131,9 @@
   "/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1649608881 4410336 7d30a02e9fa9a16d7d1f8d037ba69641 ""
   "/usr/local/texlive/2022/texmf-var/web2c/pdftex/pdflatex.fmt" 1649608384 2826445 11fb308a3b72202293059f9400dba38f ""
   "/usr/local/texlive/2022/texmf.cnf" 1647878952 577 209b46be99c9075fd74d4c0369380e8c ""
-  "main.aux" 1689438201 8398 38591b2c4700dc8657bca4d5cca70a64 "pdflatex"
-  "main.bbl" 1688269204 2964 471f0e4b7f6a645cfdcce1dc99a12cfb "bibtex main"
-  "main.out" 1689438201 2435 e8525fed155b44f5261d11eacea687b1 "pdflatex"
+  "main.aux" 1689443726 8398 7ce9472499b16e721513fbff0a9fb989 "pdflatex"
+  "main.bbl" 1689443676 2964 471f0e4b7f6a645cfdcce1dc99a12cfb "bibtex main"
+  "main.out" 1689443726 2435 e8525fed155b44f5261d11eacea687b1 "pdflatex"
   "main.tex" 1689438197 34917 c6f2f4bd26b76b72cdf66aa6a19124ab ""
   (generated)
   "main.aux"

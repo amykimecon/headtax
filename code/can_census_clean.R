@@ -42,6 +42,7 @@ clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr
                                 CANREAD = canread, LASTNAME = indlnm, FIRSTNAME = indfnm, PROVINCE = province) %>%
   mutate(BORNCHI = ifelse(bpl2 == 50000, 1, 0),
          BORNJAP = ifelse(str_detect(BPL, "JAP"), 1, 0),
+         BORNAUS = ifelse(str_detect(BPL, "AUS") & !str_detect(BPL, "AUSTRALIA"), 1, 0),
          OCCSTR = ifelse(occ1 == "99999", NA, as.numeric(as.character(str_extract(occ1,"^[0-9]{3}")))), #extracts first three digits of occupation code (IPUMS)
          MALE = case_when(SEX == "Male" ~ 1,
                           SEX == "Female" ~ 0,
@@ -69,7 +70,7 @@ clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr
                               TRUE ~ PROVINCE),
          RURAL = ifelse(urbplace == 999, 1, 0),
          EARN = ifelse(AGE >= 18, earnings, NA)) %>%
-  select(c(MALE, AGE, BORNCHI, BORNJAP, MAR, YRIMM, OCCGRP, EARN, CANREAD, IMM, PROVINCE, HOUSEOWN, LABOR)) %>%
+  select(c(MALE, AGE, BORNCHI, BORNJAP, BORNAUS, MAR, YRIMM, OCCGRP, EARN, CANREAD, IMM, PROVINCE, HOUSEOWN, LABOR)) %>%
   mutate(YEAR = 1901, WEIGHT = 20)
 
 bplcanadastrings <- "(Ontario)|(Quebec)|(Nova Scotia)|(New Brunswick)|(Manitoba)|(Saskatchewan)|(Prince Edward Island)|(British Columbia)|(Alberta)|(Canada)|(Newfoundland)|(Northwest Territories)|(Yukon)|(Cape Breton)|(Labrador)"
@@ -109,7 +110,8 @@ clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM 
          HOUSEOWN = ifelse(AGE >= 18, ifelse(RELATIONSHIP == "Head", 1, 0), NA)) %>%
   select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, LABOR, RURAL, PROVINCE, HOUSEOWN)) %>% 
   mutate(YEAR = 1911, BORNCHI = ifelse(BPL == "China", 1, 0), 
-         BORNJAP = ifelse(BPL == "Japan", 1, 0))
+         BORNJAP = ifelse(BPL == "Japan", 1, 0),
+         BORNAUS = ifelse(BPL == "Austria", 1, 0))
 
 clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STATUS, YRIMM = YEAR_OF_IMMIGRATION, BPL = INDIVIDUAL_BIRTH_COUNTRY, NATL = NATIONALITY,
                                 CANREAD = CAN_READ_INDICATOR, OCC = CHIEFOCCUP, FIRSTNAME = FIRST_NAME, LASTNAME = LAST_NAME, PROVINCE = Province) %>%
@@ -142,7 +144,8 @@ clean1921 <- raw1921 %>% rename(AGE = Derived_Age_In_Years, MARST = MARITAL_STAT
          RURAL = ifelse(str_detect(CCRI_URBAN_RURAL_1921,"Rural"), 1, 0),) %>%
   select(c(MALE, AGE, MAR, CANREAD, BPL, NATL, OCC, OCCGRP, EARN, YRIMM, WEIGHT, IMM, LABOR, PROVINCE, RURAL, HOUSEOWN)) %>% 
   mutate(YEAR = 1921, BORNCHI = ifelse(BPL == "China", 1, 0), 
-         BORNJAP = ifelse(BPL == "Japan", 1, 0))
+         BORNJAP = ifelse(BPL == "Japan", 1, 0),
+         AUS = ifelse(BPL == "Austria", 1, 0))
 
 clean_all <- bind_rows(clean1901, clean1911) %>%
   bind_rows(clean1921) %>%

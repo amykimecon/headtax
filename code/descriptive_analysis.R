@@ -148,15 +148,14 @@ ggsave(glue("{git}/figs/fig1_taxespaid.png"), fig1_taxespaid, height = 5, width 
 # number of chinese immigrants by year from chinese register data
 yrimm_reg <- reg_chi %>% mutate(YRIMM = YEAR_ARRIV) %>% 
   group_by(YRIMM, tax) %>% 
-  summarize(CHIFLOW_REGISTER = n()) %>%
-  arrange(YRIMM)
+  summarize(CHIFLOW_REGISTER = n())
 
 # number of chinese/japanese/all immigrants by year from ca census data
 yrimm_census <- can_imm %>% group_by(YEAR, YRIMM, tax) %>% 
   summarize(IMMFLOW_CENSUS = sum(WEIGHT),
             JAPFLOW_CENSUS = sum(ifelse(BORNJAP == 1, WEIGHT, 0)),
-            CHIFLOW_CENSUS = sum(ifelse(BORNCHI == 1, WEIGHT, 0))) %>%
-  arrange(YRIMM) %>%
+            CHIFLOW_CENSUS = sum(ifelse(BORNCHI == 1, WEIGHT, 0)),
+            AUSFLOW_CENSUS = sum(ifelse(BORNAUS == 1, WEIGHT, 0))) %>%
   filter((YEAR == 1901 & YRIMM < 1901) | 
            (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | 
            (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
@@ -179,28 +178,34 @@ ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = flow, color = variable, linet
   scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c2,c4)) +
   scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(2, 1)) +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = yrs, y = 7, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 4, color = "#808080") +
+  geom_text(aes(x = yrs, y = 7, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
   scale_y_continuous("Chinese Immigrant Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
   labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
 
-ggsave(glue("{git}/figs/fig2_flow.png"), height = 5, width = 9)
+ggsave(glue("{git}/figs/fig2_flow.png"), height = 4, width = 7)
 
 ########################################################################
 ### TABLE 2: REGRESSION OF IMM INFLOWS ON TAX RAISES
 ########################################################################
 yrimm_flow_regress <- yrimm_flow_data %>%
-  arrange(YRIMM) %>% mutate(lagRGNP = dplyr::lag(RGNP),
-                            t = YRIMM - 1885) %>%
+  ungroup() %>%
+  arrange(YRIMM) %>% mutate(lagRGNP = lag(RGNP),
+                            GNP_GROWTH = (RGNP - lagRGNP)/lagRGNP,
+                            lagGNP_GROWTH = lag(GNP_GROWTH),
+                            t = YRIMM - 1885,
+                            yrs_since_imm = YEAR - YRIMM) %>%
   filter(YRIMM <= 1923 & YRIMM >= 1880)
 
 ## checking if flows change with year -- register
-yrimm_flow1 <- lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ tax + t + lagRGNP + RGNP + IMMFLOW_NATL)
+yrimm_flow1 <- lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + t + IMMFLOW_NATL + GNP_GROWTH + lagGNP_GROWTH)
 
 ## checking if flows change with year -- census
-yrimm_flow2 <- lm(data = yrimm_flow_regress, CHIFLOW_CENSUS ~ factor(tax) + t + lagRGNP + IMMFLOW_NATL + factor(YEAR))
+yrimm_flow2 <- lm(data = yrimm_flow_regress%>% filter(YRIMM < 1908), CHIFLOW_CENSUS ~ factor(tax) + IMMFLOW_CENSUS + GNP_GROWTH)
 
 ## checking if flows change with year -- japanese (census)
-yrimm_flow3 <- lm(data = yrimm_flow_regress, JAPFLOW_CENSUS ~ factor(tax) + t + lagRGNP + IMMFLOW_NATL + factor(YEAR))
+yrimm_flow3 <- lm(data = yrimm_flow_regress %>% filter(YRIMM < 1908), JAPFLOW_CENSUS ~ factor(tax) + IMMFLOW_CENSUS + GNP_GROWTH)
+
+yrimm_flow_aus <- lm(data = yrimm_flow_regress %>% filter(YRIMM < 1908), AUSFLOW_CENSUS ~ factor(tax) + IMMFLOW_CENSUS + GNP_GROWTH)
 
 ## output
 stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3,
@@ -219,19 +224,10 @@ stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3,
 ########################################################################
 ### TABLE 3: DIFF IN DIFF REGRESSION OF CHI IMM VS OTHER IMM AT EACH 'EVENT'
 ########################################################################
-# test which countries immigrants have similar characteristics to chinese immigrants
-compare_imms <- can_imm %>% 
- mutate(nationality = case_when(BORNCHI == 1 ~ "China",
-                                 BORNRUS == 1 ~ "Russia",
-                                 BORNFRA == 1 ~ "France",
-                                 BORNGER == 1 ~ "Germany",
-                                 BORNJAP == 1 ~ "Japan",
-                                 BORNIND == 1 ~ "India",
-                                 BORNIRE == 1 ~ "Ireland",
-                                 BORNAUS == 1 ~ "Austria",
-                                 TRUE ~ NA_character_)) %>%
-  filter(!is.na(nationality)) %>%
-  group_by(nationality) %>% summarize(pop = sum(WEIGHT), across(summ_vars, ~weighted.mean(.x, WEIGHT, na.rm=TRUE)))
+x <- can_imm %>% group_by(YEAR, YRIMM, tax) %>%
+  mutate()
+
+
 
 # subset/clean data for regressions
 did_data <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1890) %>% #only keeping years with earnings/yrimm data
@@ -389,6 +385,35 @@ stargazer(did_reg_uscan_labor, did_reg_uscan_canread, did_reg_uscan_houseown,
           keep.stat=c("n","adj.rsq"),
           add.lines = list(c("Includes Year $\\times$ Country FE", rep("Yes", 3))),
           table.layout = "=cld#-ta-s-")
+
+
+
+#### HEIGHT REGRESSIONS ####
+yrimm_reg_height <- reg_chi %>% mutate(YRIMM = YEAR_ARRIV) %>%
+  group_by(YRIMM, tax) %>%
+  summarize(CHIFLOW_REGISTER = n(),
+            HEIGHT_MEN = mean(ifelse(SEX == "Male" & AGE >= 18, HEIGHT, NA_real_), na.rm=TRUE),
+            HEIGHT_BOYS = mean(ifelse(SEX == "Male" & AGE < 18, HEIGHT, NA_real_), na.rm=TRUE))
+
+ggplot(yrimm_reg_height %>% filter(YRIMM >= 1880 & YRIMM <= 1924), aes(x = YRIMM, y = HEIGHT_BOYS)) + geom_line() +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts[1:3,], show.legend = FALSE)
+
+
+baseyr = 1899
+startyr = 1890
+endyr = 1910
+x <- lm(data = reg_chi %>% filter(YRIMM >= startyr & YRIMM <= endyr & AGE >= 18 & SEX == "Male" & HEIGHT > 48) %>%
+             mutate(YRIMM = relevel(factor(YRIMM), ref = as.character(baseyr))),
+           HEIGHT ~ AGE + YRIMM + OCCGRP + COUNTYGRP)
+
+coefinds <- which(str_detect(names(x$coefficients), "YRIMM") & !str_detect(names(x$coefficients), ":"))
+coefs <- x$coefficients[coefinds]
+ses <- summary(x)$coefficients[coefinds, 2]
+ggplot(data.frame(YR = startyr:endyr,
+                  coef = c(coefs[1:(baseyr - startyr)], 0, coefs[(baseyr - startyr + 1):length(coefs)]),
+                  se = c(ses[1:(baseyr - startyr)], 0, ses[(baseyr - startyr + 1):length(ses)])) %>%
+         mutate(lb = coef - 1.96*se, ub = coef + 1.96*se),
+       aes(x = YR, y = coef)) + geom_point() + geom_errorbar(aes(min = lb, max = ub), width = 0.5)
 
 
 
