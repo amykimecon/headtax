@@ -188,7 +188,7 @@ ggsave(glue("{git}/figs/fig2_flow.png"), height = 5, width = 9)
 ########################################################################
 ### TABLE 2: REGRESSION OF IMM INFLOWS ON TAX RAISES
 ########################################################################
-yrimm_flow_regress <- yrimm_flow_data %>%
+yrimm_flow_regress <- yrimm_flow_data %>% ungroup() %>%
   arrange(YRIMM) %>% mutate(lagRGNP = dplyr::lag(RGNP),
                             t = YRIMM - 1885) %>%
   filter(YRIMM <= 1923 & YRIMM >= 1880)
@@ -200,7 +200,7 @@ yrimm_flow1 <- lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_RE
 yrimm_flow2 <- lm(data = yrimm_flow_regress, CHIFLOW_CENSUS ~ factor(tax) + t + lagRGNP + IMMFLOW_NATL + factor(YEAR))
 
 ## checking if flows change with year -- japanese (census)
-yrimm_flow3 <- lm(data = yrimm_flow_regress, JAPFLOW_CENSUS ~ factor(tax) + t + lagRGNP + IMMFLOW_NATL + factor(YEAR))
+yrimm_flow3 <- lm(data = yrimm_flow_regress, JAPFLOW_CENSUS ~ factor(tax) + t + IMMFLOW_NATL + lagRGNP)
 
 ## output
 stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3,
@@ -219,27 +219,13 @@ stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3,
 ########################################################################
 ### TABLE 3: DIFF IN DIFF REGRESSION OF CHI IMM VS OTHER IMM AT EACH 'EVENT'
 ########################################################################
-# test which countries immigrants have similar characteristics to chinese immigrants
-compare_imms <- can_imm %>% 
- mutate(nationality = case_when(BORNCHI == 1 ~ "China",
-                                 BORNRUS == 1 ~ "Russia",
-                                 BORNFRA == 1 ~ "France",
-                                 BORNGER == 1 ~ "Germany",
-                                 BORNJAP == 1 ~ "Japan",
-                                 BORNIND == 1 ~ "India",
-                                 BORNIRE == 1 ~ "Ireland",
-                                 BORNAUS == 1 ~ "Austria",
-                                 TRUE ~ NA_character_)) %>%
-  filter(!is.na(nationality)) %>%
-  group_by(nationality) %>% summarize(pop = sum(WEIGHT), across(summ_vars, ~weighted.mean(.x, WEIGHT, na.rm=TRUE)))
-
 # subset/clean data for regressions
-did_data <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1890) %>% #only keeping years with earnings/yrimm data
+did_data_old <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1890) %>% #only keeping years with earnings/yrimm data
   mutate(tax = case_when(YRIMM < 1885 ~ 0,
                          YRIMM < 1900 ~ 50,
                          YRIMM < 1903 ~ 100,
                          YRIMM <= 1924 ~ 500),
-         YEARSAFTER1890 = YRIMM - 1890,
+        YEARSAFTER1890 = YRIMM - 1890,
          BORNCHI_tax50 = BORNCHI*ifelse(tax == 50, 1, 0),
          BORNCHI_tax100 = BORNCHI*ifelse(tax == 100, 1, 0),
          BORNCHI_tax500 = BORNCHI*ifelse(tax == 500, 1, 0),
@@ -247,25 +233,55 @@ did_data <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1890) %>% #only keeping ye
   filter(AGE >= 18 & MALE == 1) %>% #only looking at men over 18
   filter((YEAR == 1901 & YRIMM < 1901) | (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
 
+did_data_new1 <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1890) %>% #only keeping years with earnings/yrimm data
+  mutate(YEARSAFTER1890 = YRIMM - 1890,
+         BORNCHI_tax50 = BORNCHI*ifelse(tax == 50, 1, 0),
+         BORNCHI_tax100 = BORNCHI*ifelse(tax == 100, 1, 0),
+         BORNCHI_tax500 = BORNCHI*ifelse(tax == 500, 1, 0),
+         YEARSSINCEIMM = YEAR - YRIMM) %>%
+  filter(AGE >= 18 & MALE == 1) %>% #only looking at men over 18
+  filter((YEAR == 1901 & YRIMM < 1901) | (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
+
+did_data <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1890) %>% #only keeping years with earnings/yrimm data
+  mutate(YEARSAFTER1890 = YRIMM - 1890,
+         BORNCHI_tax50 = BORNCHI*ifelse(tax == 50, 1, 0),
+         BORNCHI_tax100 = BORNCHI*ifelse(tax == 100, 1, 0),
+         BORNCHI_tax500 = BORNCHI*ifelse(tax == 500, 1, 0),
+         YEARSSINCEIMM = YEAR - YRIMM) %>%
+  filter(AGE >= 18 & MALE == 1)
+
 did_data_jap <- did_data %>% filter(BORNCHI == 1 | BORNJAP == 1) 
 
-did_data_match <- did_data %>% filter(BORNCHI == 1 | !is.na(MATCHWT)) %>% mutate(WEIGHT = ifelse(!is.na(MATCHWT), MATCHWT*WEIGHT, WEIGHT)) 
+
+### CHECKING FOR LONG-TERM TRENDS B/W CENSUS YEARS
+compare_census <- did_data %>% group_by(YRIMM,YEAR) %>%
+  summarize(across(c(LABOR, CANREAD, EARN, HOUSEOWN), 
+                   list(function(.x) weighted.mean(.x, WEIGHT, na.rm=TRUE), 
+                        function(.x) weighted.mean(ifelse(BORNCHI == 1, .x, NA), WEIGHT, na.rm=TRUE))))
+
+ggplot(compare_census, aes(x = YRIMM, y = HOUSEOWN_1, color = factor(YEAR))) + geom_line()
 
 
 # run regressions
-did_reg_labor <- lm(LABOR ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
-did_reg_labor_jap <- lm(LABOR ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
-did_reg_labor_match <- lm(LABOR ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_match, weights = WEIGHT)
-did_reg_canread <- lm(CANREAD ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
-did_reg_canread_jap <- lm(CANREAD ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
-did_reg_canread_match <- lm(CANREAD ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_match, weights = WEIGHT)
-did_reg_earn <- lm(EARN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
-did_reg_earn_jap <- lm(EARN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
-did_reg_earn_match <- lm(EARN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_match, weights = WEIGHT)
+did_reg_labor <- lm(LABOR ~ AGE + factor(YEAR) + factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500 - 1, data = did_data, weights = WEIGHT)
+did_reg_labor_jap <- lm(LABOR ~ AGE + factor(YEAR) + factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
+
+did_reg_canread <- lm(CANREAD ~ AGE + factor(YEAR) + factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
+did_reg_canread_jap <- lm(CANREAD ~ AGE + factor(YEAR) + factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
+
+summary(lm(CANREAD ~ AGE + factor(YEAR) + factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT))
+
+
+
+
+
+
+
+did_reg_earn <- lm(EARN ~ AGE + factor(YEAR) + factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
+did_reg_earn_jap <- lm(EARN ~ AGE + factor(YEAR) + factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
 
 did_reg_houseown <- lm(HOUSEOWN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
 did_reg_houseown_jap <- lm(HOUSEOWN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
-did_reg_houseown_match <- lm(HOUSEOWN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_match, weights = WEIGHT)
 
 stargazer(did_reg_labor, did_reg_canread, did_reg_earn, did_reg_houseown, did_reg_labor_jap, did_reg_canread_jap, did_reg_earn_jap, did_reg_houseown_jap,
           out = glue("{git}/figs/outcome_regs.tex"), float = FALSE, 
