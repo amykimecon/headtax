@@ -61,7 +61,7 @@ us_chi <- us_imm %>% filter(BORNCHI == 1) %>% mutate(group = "Chinese Immigrants
 us_jap <- us_imm %>% filter(BORNJAP == 1) %>% mutate(group = "Japanese Immigrants")
 
 ## key head tax years for graphing & labeling vertical lines
-headtaxcuts <- data.frame(yrs = c(1885, 1900, 1903, 1923), labs = c("Initial Head Tax", "Incr. to $100", "Incr. to $500", "Total Imm. Ban"))
+headtaxcuts <- data.frame(yrs = c(1885, 1900, 1903, 1923), labs = c("Initial $50 Head Tax", "Increase to $100", "Increase to $500", "Total Imm. Ban"))
 
 ## historical macro data (canada)
 canhistmacro <- read_xls(glue("{dbox}/raw/CANMACRO_data.xls")) %>% rename(RGNP = RGDP)
@@ -176,31 +176,61 @@ yrimm_flow_graph <- yrimm_flow_data %>% select(-c(tax, RGNP, YEAR, tax, IMMFLOW_
                               variable == "CHIFLOW_REGISTER" ~ "Chinese Immigrants"))
 
 ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = flow, color = variable, linetype = variable)) + geom_line() +
-  scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c2,c4)) +
+  scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c1,c4)) +
   scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(2, 1)) +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = yrs, y = 7, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 4, color = "#808080") +
+  geom_text(aes(x = yrs, y = 7, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
   scale_y_continuous("Chinese Immigrant Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
   labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
 
-ggsave(glue("{git}/figs/fig2_flow.png"), height = 5, width = 9)
+ggsave(glue("{git}/figs/fig2_flow.png"), height = 4, width = 7)
+
+## july 21 2023 slides
+ggplot(data = yrimm_flow_data %>% filter(YRIMM >= 1880 & YRIMM <= 1930) %>% 
+         mutate(pct = CHIFLOW_REGISTER/IMMFLOW_NATL), aes(x = YRIMM, y = pct)) + 
+  geom_line() + geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = yrs, y = 0.1, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+  labs(x = "Year of Immigration", y = "Chinese Imm. Inflow/Total Imm. Inflow")
+ggsave(glue("{git}/figs/21jul23/flowpct.png"), height = 4, width = 7)
+
+yrimm_flow_graph_jap <- yrimm_flow_data %>% select(-c(tax, RGNP, YEAR, tax, IMMFLOW_NATL, CHIFLOW_REGISTER)) %>%
+  mutate(IMMFLOW_CENSUS = IMMFLOW_CENSUS/50000, CHIFLOW_CENSUS = CHIFLOW_CENSUS/1000, 
+         JAPFLOW_CENSUS = JAPFLOW_CENSUS/1000) %>%
+  pivot_longer(cols = -YRIMM, names_to = "variable", values_to = "flow") %>%
+  filter(YRIMM >= 1880 & YRIMM <= 1920) %>%
+  mutate(variable = case_when(variable == "IMMFLOW_CENSUS" ~ "All Immigrants",
+                              variable == "CHIFLOW_CENSUS" ~ "Chinese Immigrants",
+                              variable == "JAPFLOW_CENSUS" ~ "Japanese Immigrants"))
+
+ggplot(data = yrimm_flow_graph_jap, aes(x = YRIMM, y = flow, color = variable, linetype = variable)) + geom_line() +
+  scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants", "Japanese Immigrants"), values = c(c1,c4,c3)) +
+  scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants", "Japanese Immigrants"), values = c(2, 1, 4)) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = yrs, y = 3, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+  scale_y_continuous("Chinese/Japanese Imm. Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
+  labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
+
+ggsave(glue("{git}/figs/21jul23/fig2_flow_jap.png"), height = 4, width = 7)
 
 ########################################################################
 ### TABLE 2: REGRESSION OF IMM INFLOWS ON TAX RAISES
 ########################################################################
 yrimm_flow_regress <- yrimm_flow_data %>% ungroup() %>%
   arrange(YRIMM) %>% mutate(lagRGNP = dplyr::lag(RGNP),
-                            t = YRIMM - 1885) %>%
+                            t = YRIMM - 1885,
+                            GNP_GROWTH = (RGNP - lagRGNP)/lagRGNP) %>%
   filter(YRIMM <= 1923 & YRIMM >= 1880)
 
+## base model: includes quadratic time trend, gnp growth, census imm reg uses total census imm
+
 ## checking if flows change with year -- register
-yrimm_flow1 <- lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ tax + t + lagRGNP + RGNP + IMMFLOW_NATL)
+yrimm_flow1 <- lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + t + I(t^2) + GNP_GROWTH + IMMFLOW_NATL)
 
 ## checking if flows change with year -- census
-yrimm_flow2 <- lm(data = yrimm_flow_regress, CHIFLOW_CENSUS ~ factor(tax) + t + lagRGNP + IMMFLOW_NATL + factor(YEAR))
+yrimm_flow2 <- lm(data = yrimm_flow_regress, CHIFLOW_CENSUS ~ factor(tax) + t + I(t^2) + GNP_GROWTH + IMMFLOW_CENSUS)
 
 ## checking if flows change with year -- japanese (census)
-yrimm_flow3 <- lm(data = yrimm_flow_regress, JAPFLOW_CENSUS ~ factor(tax) + t + IMMFLOW_NATL + lagRGNP)
+yrimm_flow3 <- lm(data = yrimm_flow_regress, JAPFLOW_CENSUS ~ factor(tax) + t + I(t^2) +  GNP_GROWTH + IMMFLOW_CENSUS)
 
 ## output
 stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3,
@@ -215,6 +245,20 @@ stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3,
           covariate.labels = c("\\$50 Tax", "\\$100 Tax", "\\$500 Tax"),
           add.lines = list(c("Time Trends", "Yes", "Yes", "Yes"), c("Ctrl. for Tot. Imm.", "Yes", "Yes", "Yes"), c("Ctrl. for Lagged Real GNP", "Yes", "Yes", "Yes")))
 
+## checking if flows change with year -- census [pre 1908]
+yrimm_flow4 <- lm(data = yrimm_flow_regress %>% filter(YRIMM < 1908), CHIFLOW_CENSUS ~ factor(tax) + t + I(t^2) + GNP_GROWTH + IMMFLOW_CENSUS)
+
+## checking if flows change with year -- japanese (census)
+yrimm_flow5 <- lm(data = yrimm_flow_regress %>% filter(YRIMM < 1908), JAPFLOW_CENSUS ~ factor(tax) + t + I(t^2) +  GNP_GROWTH + IMMFLOW_CENSUS)
+
+stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3, yrimm_flow4, yrimm_flow5,
+          out = glue("{git}/figs/21jul23/immflow_regs.tex"), 
+          float = FALSE, 
+          intercept.bottom = FALSE,
+          keep.stat=c("n","adj.rsq"),
+          dep.var.labels = c("$CHIFLOW^R$ (Register)", "$CHIFLOW^C$ (Census)", "$JAPANFLOW^C$ (Census)","$CHIFLOW^C$ (Pre-1908)", "$JAPANFLOW^C$ (Pre-1908)"),
+          keep = c(2:4),
+          covariate.labels = c("\\$50 Tax", "\\$100 Tax", "\\$500 Tax"))
 
 ########################################################################
 ### TABLE 3: DIFF IN DIFF REGRESSION OF CHI IMM VS OTHER IMM AT EACH 'EVENT'
