@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  17 JUL 2023 15:10
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  20 JUL 2023 16:59
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -703,7 +703,7 @@ Dictionary: translator-theorem-dictionary, Language: English
 {/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2
 
 ]
-<../../figs/fig2_flow.png, id=46, 2107.875pt x 1204.5pt>
+<../../figs/fig2_flow.png, id=76, 2107.875pt x 1204.5pt>
 File: ../../figs/fig2_flow.png Graphic file (type png)
 <use ../../figs/fig2_flow.png>
 Package pdftex.def Info: ../../figs/fig2_flow.png  used on input line 36.
@@ -736,35 +736,57 @@ File: ts1cmss.fd 2019/12/16 v2.5j Standard LaTeX font definitions
 
 ] (../../figs/21jul23/immflow_regs.tex) [5
 
+] [6
+
+] [7
+
+] (../../figs/21jul23/outcome_regs_labor.tex) [8
+
+] (../../figs/21jul23/outcome_regs_canread.tex) [9
+
+] (../../figs/21jul23/outcome_regs_earn.tex) [10
+
+] (../../figs/21jul23/outcome_regs_houseown.tex) [11
+
+] [12
+
+] [13
+
 ]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\translate ' on input line 67.
+(hyperref)                removing `\translate ' on input line 161.
 
-<../../figs/shortpaper_figs/fig2_flow.png, id=95, 2710.125pt x 1505.625pt>
+<../../figs/shortpaper_figs/fig2_flow.png, id=306, 2710.125pt x 1505.625pt>
 File: ../../figs/shortpaper_figs/fig2_flow.png Graphic file (type png)
 <use ../../figs/shortpaper_figs/fig2_flow.png>
-Package pdftex.def Info: ../../figs/shortpaper_figs/fig2_flow.png  used on input line 82.
+Package pdftex.def Info: ../../figs/shortpaper_figs/fig2_flow.png  used on input line 176.
 (pdftex.def)             Requested size: 307.28987pt x 170.6965pt.
-[6
+[14
 
  <../../figs/shortpaper_figs/fig2_flow.png>]
-<../../figs/21jul23/flowpct.png, id=109, 2107.875pt x 1204.5pt>
+<../../figs/21jul23/flowpct.png, id=322, 2107.875pt x 1204.5pt>
 File: ../../figs/21jul23/flowpct.png Graphic file (type png)
 <use ../../figs/21jul23/flowpct.png>
-Package pdftex.def Info: ../../figs/21jul23/flowpct.png  used on input line 97.
+Package pdftex.def Info: ../../figs/21jul23/flowpct.png  used on input line 191.
 (pdftex.def)             Requested size: 307.28987pt x 175.59456pt.
- [7
+ [15
 
  <../../figs/21jul23/flowpct.png>]
-<../../figs/21jul23/fig2_flow_jap.png, id=121, 2107.875pt x 1204.5pt>
+<../../figs/21jul23/fig2_flow_jap.png, id=334, 2107.875pt x 1204.5pt>
 File: ../../figs/21jul23/fig2_flow_jap.png Graphic file (type png)
 <use ../../figs/21jul23/fig2_flow_jap.png>
-Package pdftex.def Info: ../../figs/21jul23/fig2_flow_jap.png  used on input line 112.
+Package pdftex.def Info: ../../figs/21jul23/fig2_flow_jap.png  used on input line 206.
 (pdftex.def)             Requested size: 307.28987pt x 175.59456pt.
- [8
+ [16
 
- <../../figs/21jul23/fig2_flow_jap.png>]
+ <../../figs/21jul23/fig2_flow_jap.png>] (../../figs/21jul23/outcome_regs_old.tex)
+Overfull \vbox (10.00743pt too high) detected at line 222
+ []
+
+[17
+
+]
 \tf@nav=\write6
 \openout6 = `slides_21jul23.nav'.
 
@@ -776,21 +798,21 @@ Package pdftex.def Info: ../../figs/21jul23/fig2_flow_jap.png  used on input lin
 
  (./slides_21jul23.aux)
 Package rerunfilecheck Info: File `slides_21jul23.out' has not changed.
-(rerunfilecheck)             Checksum: 2C454E8E339D364A3B464E387595580D;217.
+(rerunfilecheck)             Checksum: 19E7E7EE57DAD116046316FD163D4BCC;368.
  ) 
 Here is how much of TeX's memory you used:
- 22379 strings out of 478268
- 440974 string characters out of 5846347
- 698317 words of memory out of 5000000
- 40064 multiletter control sequences out of 15000+600000
+ 22536 strings out of 478268
+ 444752 string characters out of 5846347
+ 707971 words of memory out of 5000000
+ 40173 multiletter control sequences out of 15000+600000
  477592 words of font info for 57 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  128i,19n,122p,510b,770s stack positions out of 10000i,1000n,20000p,200000b,200000s
 {/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfss1095.pfb>
-Output written on slides_21jul23.pdf (8 pages, 824506 bytes).
+Output written on slides_21jul23.pdf (17 pages, 852804 bytes).
 PDF statistics:
- 196 PDF objects out of 1000 (max. 8388607)
- 141 compressed objects within 2 object streams
- 31 named destinations out of 1000 (max. 500000)
- 79 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 427 PDF objects out of 1000 (max. 8388607)
+ 352 compressed objects within 4 object streams
+ 64 named destinations out of 1000 (max. 500000)
+ 87 words of extra memory for PDF output out of 10000 (max. 10000000)
 

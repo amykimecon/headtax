@@ -264,29 +264,53 @@ stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3, yrimm_flow4, yrimm_flow5,
 ### TABLE 3: DIFF IN DIFF REGRESSION OF CHI IMM VS OTHER IMM AT EACH 'EVENT'
 ########################################################################
 # subset/clean data for regressions
-did_data_old <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1890) %>% #only keeping years with earnings/yrimm data
-  mutate(tax = case_when(YRIMM < 1885 ~ 0,
-                         YRIMM < 1900 ~ 50,
-                         YRIMM < 1903 ~ 100,
-                         YRIMM <= 1924 ~ 500),
-        YEARSAFTER1890 = YRIMM - 1890,
-         BORNCHI_tax50 = BORNCHI*ifelse(tax == 50, 1, 0),
-         BORNCHI_tax100 = BORNCHI*ifelse(tax == 100, 1, 0),
-         BORNCHI_tax500 = BORNCHI*ifelse(tax == 500, 1, 0),
-         YEARSSINCEIMM = YEAR - YRIMM) %>%
-  filter(AGE >= 18 & MALE == 1) %>% #only looking at men over 18
-  filter((YEAR == 1901 & YRIMM < 1901) | (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
-
-did_data_new1 <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1890) %>% #only keeping years with earnings/yrimm data
+did_data_old <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1870) %>% #only keeping years with earnings/yrimm data
   mutate(YEARSAFTER1890 = YRIMM - 1890,
          BORNCHI_tax50 = BORNCHI*ifelse(tax == 50, 1, 0),
          BORNCHI_tax100 = BORNCHI*ifelse(tax == 100, 1, 0),
          BORNCHI_tax500 = BORNCHI*ifelse(tax == 500, 1, 0),
-         YEARSSINCEIMM = YEAR - YRIMM) %>%
+         AGEATIMM = AGE - (YEAR - YRIMM)) %>%
   filter(AGE >= 18 & MALE == 1) %>% #only looking at men over 18
   filter((YEAR == 1901 & YRIMM < 1901) | (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
 
-did_data <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1890) %>% #only keeping years with earnings/yrimm data
+did_jap_old <- did_data_old %>% filter(BORNCHI == 1 | BORNJAP == 1)
+
+# old regressions
+did_reg_labor <- lm(LABOR ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old %>% filter(YRIMM > 1890), weights = WEIGHT)
+did_reg_canread <- lm(CANREAD ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old %>% filter(YRIMM > 1890), weights = WEIGHT)
+did_reg_earn <- lm(EARN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old %>% filter(YRIMM > 1890), weights = WEIGHT)
+did_reg_houseown <- lm(HOUSEOWN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old %>% filter(YRIMM > 1890), weights = WEIGHT)
+
+did_reg_labor_jap <- lm(LABOR ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap_old %>% filter(YRIMM > 1890 & YRIMM < 1908), weights = WEIGHT)
+did_reg_canread_jap <- lm(CANREAD ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap_old %>% filter(YRIMM > 1890 & YRIMM < 1908), weights = WEIGHT)
+did_reg_earn_jap <- lm(EARN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap_old %>% filter(YRIMM > 1890 & YRIMM < 1908), weights = WEIGHT)
+did_reg_houseown_jap <- lm(HOUSEOWN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap_old %>% filter(YRIMM > 1890 & YRIMM < 1908), weights = WEIGHT)
+
+stargazer(did_reg_labor, did_reg_canread, did_reg_earn, did_reg_houseown, did_reg_labor_jap, did_reg_canread_jap, did_reg_earn_jap, did_reg_houseown_jap,
+          out = glue("{git}/figs/21jul23/outcome_regs_old.tex"), float = FALSE, 
+          intercept.bottom =FALSE,
+          column.labels = c("All Immigrants (1890-1920)", "Chinese/Japanese Immigrants (1890-1908)"),
+          column.separate = c(4,4),
+          dep.var.labels = c("$LABORER$", "$LITERATE$", "$EARNINGS$", "$HOMEOWN$","$LABORER$", "$LITERATE$", "$EARNINGS$", "$HOMEOWN$"),
+          keep = c(31,32,33),
+          covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
+          keep.stat=c("n","adj.rsq"),
+          add.lines = list(c("Includes Year FE", rep("Yes", 8))),
+          table.layout = "=cld#-ta-s-")
+
+# change 1
+did_reg_labor1 <- lm(LABOR ~ factor(YRIMM) + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old, weights = WEIGHT)
+did_reg_canread1 <- lm(CANREAD ~ factor(YRIMM) + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old, weights = WEIGHT)
+did_reg_earn1 <- lm(EARN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old, weights = WEIGHT)
+did_reg_houseown1 <- lm(HOUSEOWN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old, weights = WEIGHT)
+
+did_reg_labor_jap1 <- lm(LABOR ~ factor(YRIMM) + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap_old %>% filter(YRIMM < 1908), weights = WEIGHT)
+did_reg_canread_jap1 <- lm(CANREAD ~ factor(YRIMM) + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap_old %>% filter(YRIMM < 1908), weights = WEIGHT)
+did_reg_earn_jap1 <- lm(EARN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap_old %>% filter(YRIMM < 1908), weights = WEIGHT)
+did_reg_houseown_jap1 <- lm(HOUSEOWN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap_old %>% filter(YRIMM < 1908), weights = WEIGHT)
+
+# changing data setup item by item, new reg comparisons
+did_data <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1870) %>% #only keeping years with earnings/yrimm data
   mutate(YEARSAFTER1890 = YRIMM - 1890,
          BORNCHI_tax50 = BORNCHI*ifelse(tax == 50, 1, 0),
          BORNCHI_tax100 = BORNCHI*ifelse(tax == 100, 1, 0),
@@ -294,8 +318,67 @@ did_data <- can_imm %>% filter(YEAR >= 1901 & YRIMM > 1890) %>% #only keeping ye
          YEARSSINCEIMM = YEAR - YRIMM) %>%
   filter(AGE >= 18 & MALE == 1)
 
-did_data_jap <- did_data %>% filter(BORNCHI == 1 | BORNJAP == 1) 
+did_jap <- did_data %>% filter(BORNCHI == 1 | BORNJAP == 1)
 
+# change 2
+did_reg_labor2 <- lm(LABOR ~ factor(YRIMM) + factor(YEAR) + AGE + + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
+did_reg_canread2 <- lm(CANREAD ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
+did_reg_earn2 <- lm(EARN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
+did_reg_houseown2 <- lm(HOUSEOWN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
+
+did_reg_labor_jap2 <- lm(LABOR ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap %>% filter(YRIMM < 1908), weights = WEIGHT)
+did_reg_canread_jap2 <- lm(CANREAD ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap %>% filter(YRIMM < 1908), weights = WEIGHT)
+did_reg_earn_jap2 <- lm(EARN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap %>% filter(YRIMM < 1908), weights = WEIGHT)
+did_reg_houseown_jap2 <- lm(HOUSEOWN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_jap %>% filter(YRIMM < 1908), weights = WEIGHT)
+
+
+stargazer(did_reg_labor, did_reg_labor1, did_reg_labor2, did_reg_labor_jap, did_reg_labor_jap1, did_reg_labor_jap2,
+          out = glue("{git}/figs/21jul23/outcome_regs_labor.tex"), float = FALSE, 
+          intercept.bottom =FALSE,
+          column.labels = c("All (1890-1920)", "All (1870-1920)", "All (All Census Yrs)", "Japan. (1890-1908)", "Japan. (1870-1908)", "Japan. (All Census Yrs)"),
+          column.separate = c(1,1,1,1,1,1), keep = c("BORNCHI*"),
+          covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$50 Tax", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
+          keep.stat=c("n","adj.rsq"),
+          table.layout = "=c#-ta-s-")
+
+
+stargazer(did_reg_canread, did_reg_canread1, did_reg_canread2, did_reg_canread_jap, did_reg_canread_jap1, did_reg_canread_jap2,
+          out = glue("{git}/figs/21jul23/outcome_regs_canread.tex"), float = FALSE, 
+          intercept.bottom =FALSE,
+          column.labels = c("All (1890-1920)", "All (1870-1920)", "All (All Census Yrs)", "Japan. (1890-1908)", "Japan. (1870-1908)", "Japan. (All Census Yrs)"),
+          column.separate = c(1,1,1,1,1,1), keep = c("BORNCHI*"),
+          covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$50 Tax", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
+          keep.stat=c("n","adj.rsq"),
+          table.layout = "=c#-ta-s-")
+
+
+stargazer(did_reg_earn, did_reg_earn1, did_reg_earn2, did_reg_earn_jap, did_reg_earn_jap1, did_reg_earn_jap2,
+          out = glue("{git}/figs/21jul23/outcome_regs_earn.tex"), float = FALSE, 
+          intercept.bottom =FALSE,
+          column.labels = c("All (1890-1920)", "All (1870-1920)", "All (All Census Yrs)", "Japan. (1890-1908)", "Japan. (1870-1908)", "Japan. (All Census Yrs)"),
+          column.separate = c(1,1,1,1,1,1), keep = c("BORNCHI*"),
+          covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$50 Tax", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
+          keep.stat=c("n","adj.rsq"),
+          table.layout = "=c#-ta-s-")
+
+
+stargazer(did_reg_houseown, did_reg_houseown1, did_reg_houseown2, did_reg_houseown_jap, did_reg_houseown_jap1, did_reg_houseown_jap2,
+          out = glue("{git}/figs/21jul23/outcome_regs_houseown.tex"), float = FALSE, 
+          intercept.bottom =FALSE,
+          column.labels = c("All (1890-1920)", "All (1870-1920)", "All (All Census Yrs)", "Japan. (1890-1908)", "Japan. (1870-1908)", "Japan. (All Census Yrs)"),
+          column.separate = c(1,1,1,1,1,1), keep = c("BORNCHI*"),
+          covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$50 Tax", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
+          keep.stat=c("n","adj.rsq"),
+          table.layout = "=c#-ta-s-")
+
+
+summary(lm(LABOR ~ factor(YRIMM) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old, weights = WEIGHT))
+
+summary(lm(CANREAD ~ factor(YRIMM) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old, weights = WEIGHT))
+
+summary(lm(EARN ~ factor(YRIMM) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old, weights = WEIGHT))
+
+summary(lm(HOUSEOWN ~ factor(YRIMM) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_old, weights = WEIGHT))
 
 ### CHECKING FOR LONG-TERM TRENDS B/W CENSUS YEARS
 compare_census <- did_data %>% group_by(YRIMM,YEAR) %>%
@@ -303,7 +386,10 @@ compare_census <- did_data %>% group_by(YRIMM,YEAR) %>%
                    list(function(.x) weighted.mean(.x, WEIGHT, na.rm=TRUE), 
                         function(.x) weighted.mean(ifelse(BORNCHI == 1, .x, NA), WEIGHT, na.rm=TRUE))))
 
-ggplot(compare_census, aes(x = YRIMM, y = HOUSEOWN_1, color = factor(YEAR))) + geom_line()
+ggplot(compare_census %>% filter(YRIMM > 1880), aes(x = YRIMM, y = LABOR_2, color = factor(YEAR))) + geom_smooth()
+ggplot(compare_census %>% filter(YRIMM > 1880), aes(x = YRIMM, y = CANREAD_2, color = factor(YEAR))) + geom_smooth()
+ggplot(compare_census %>% filter(YRIMM > 1880), aes(x = YRIMM, y = EARN_2, color = factor(YEAR))) + geom_smooth()
+ggplot(compare_census %>% filter(YRIMM > 1880), aes(x = YRIMM, y = HOUSEOWN_2, color = factor(YEAR))) + geom_smooth()
 
 
 # run regressions

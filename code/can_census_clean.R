@@ -68,7 +68,7 @@ clean1901 <- raw1901 %>% rename(BPL = bpl, SEX = sex, MARST = marst, AGE = ageyr
                               PROVINCE == "QU" ~ "QC",
                               TRUE ~ PROVINCE),
          RURAL = ifelse(urbplace == 999, 1, 0),
-         EARN = ifelse(AGE >= 18, earnings, NA)) %>%
+         EARN = ifelse(AGE >= 18 & !is.na(earnings), earnings + ifelse(is.na(exearn), 0, exearn), NA)) %>%
   select(c(MALE, AGE, BORNCHI, BORNJAP, MAR, YRIMM, OCCGRP, EARN, CANREAD, IMM, PROVINCE, HOUSEOWN, LABOR)) %>%
   mutate(YEAR = 1901, WEIGHT = 20)
 
@@ -76,10 +76,10 @@ bplcanadastrings <- "(Ontario)|(Quebec)|(Nova Scotia)|(New Brunswick)|(Manitoba)
 
 clean1911 <- raw1911 %>% rename(AGE = AGE_AMOUNT, MARST = MARITAL_STATUS, YRIMM = YEAR_OF_IMMIGRATION, BPL = INDIVIDUAL_BIRTH_COUNTRY, NATL = NATIONALITY,
                                 CANREAD = CAN_READ_INDICATOR, OCC = OCCUPATION_CHIEF_OCC_IND, FIRSTNAME = FIRST_NAME, LASTNAME = LAST_NAME) %>%
-  mutate(EARN = ifelse(AGE >= 18, 
-                       ifelse(!grepl("[0-9]+", EARNINGS_AT_CHIEF_OCC), 
-                              NA_real_, 
-                              suppressWarnings(as.numeric(as.character(EARNINGS_AT_CHIEF_OCC)))), NA),
+  mutate(EARN = ifelse(AGE >= 18 & grepl("[0-9]+", EARNINGS_AT_CHIEF_OCC),
+                       suppressWarnings(as.numeric(as.character(EARNINGS_AT_CHIEF_OCC))) + 
+                         ifelse(grepl("[0-9]+", EARNINGS_AT_OTHER_OCC), suppressWarnings(as.numeric(as.character(EARNINGS_AT_OTHER_OCC))), 0),
+                       NA),
          MALE = case_when(SEX == "Male" ~ 1,
                           SEX == "Female" ~ 0,
                           TRUE ~ NA_real_),
