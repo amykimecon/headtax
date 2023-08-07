@@ -3,7 +3,7 @@
 ### PRIMARY OBJECTIVE: Graphing Trends, etc.
 ### CREATED BY: Amy Kim
 ### CREATED ON: Sep 29 2022
-### LAST MODIFIED: Oct 10 2022
+### LAST MODIFIED: July 2023
 ########################################################################
 library(Hmisc)
 library(tidyverse)
@@ -12,6 +12,7 @@ library(foreign)
 library(ggpubr)
 library(readxl)
 library(gtools)
+library(lubridate)
 
 ########################################################################
 ### DEFINING PATHS
@@ -42,6 +43,7 @@ chireg <- chiregraw %>% mutate(COUNTYGRP = case_when(COUNTY_ID == 1 ~ "Taishan",
                                DATE = case_when(DAY == "00" & MONTH != "00" ~ as.Date(glue("{YEAR}-{MONTH}-15"), format = "%Y-%m-%d"),
                                                 MONTH == "00" & YEAR != 0 ~ as.Date(glue("{YEAR}-07-01"), format = "%Y-%m-%d"),
                                                 TRUE ~ as.Date(glue("{YEAR}-{MONTH}-{DAY}"), format = "%Y-%m-%d")),
+                               FISCALYEAR = ifelse(month(DATE) < 7, YEAR, YEAR + 1),
                                PORT = case_when(ARR_PORT == "Victoria" ~ "Victoria",
                                                 ARR_PORT == "Vancouver" ~ "Vancouver",
                                                 TRUE ~ "Other"),

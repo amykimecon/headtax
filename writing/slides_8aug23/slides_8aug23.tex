@@ -1,0 +1,246 @@
+\documentclass[pdf]{beamer}
+\input{../preamble_slides.sty}
+
+\title{Chinese Head Tax Project: Updates}
+\author{Amy Kim}
+\date{August 8, 2023}
+
+\begin{document}
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+\begin{frame}{Research Question}
+    How does an increase in fixed migration costs (in the form of a nationality-specific flat `head tax' at the time of entry) affect selection into immigration?
+\end{frame}
+
+% PART 1: IMMIGRATION INFLOW EFFECTS
+\section{Immigration Inflow}
+\begin{frame}[label = data1]
+    \frametitle{Data Issues}
+    \textbf{Ferenczi and Willcox (1929)}
+    \begin{itemize}
+        \item Immigration by country and year only starts in 1900 (no pre-period data for Head Tax)
+        \item Census data is mostly similar in shape, but differs significantly at times \hyperlink{flow_compar_all}{\beamerbutton{All Countries}} \hyperlink{flow_compar_belgium}{\beamerbutton{Belgium}}  \hyperlink{flow_compar_japan}{\beamerbutton{Japan}}
+    \end{itemize}
+    \textbf{Time Series Emigration Regressions à la Hatton and Williamson (1994)}
+    \begin{itemize}
+        \item Essentially missing any origin country data for China (wages, population, industrialization)
+        \item Don't have annual Chinese population in Canada -- okay to impute between decennial censuses?
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[label = flow_reg]
+    \frametitle{Immigration Inflow: Regression Specification}
+    \begin{multline}
+        \text{FLOW}_t = \alpha + \beta_1\text{TOTALIMM}_t + \beta_2\text{GNPGROWTH}_t +  \\ \delta_1 t + \delta_2 t^2 + \sum_{\tau \in \mathcal{T}} \gamma_\tau \mathbf{1}[TAX_t = \tau] 
+    \end{multline}
+    \begin{itemize}
+        \item Same as regression from last time, 1880-1910 to cut out WWI
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[label = country_regs]
+    \frametitle{Graphing $\gamma_\tau$'s for Various Countries [Eq (1)]}
+    \begin{figure}
+        \includegraphics[width = \textwidth]{../../figs/8aug23/reg_coefs.png}
+    \end{figure}
+    \scriptsize
+    Countries (L to R): India, Belgium, Australia/NZ, France, Poland, Russia, Italy, Denmark, Norway, Germany, Switzerland, Sweden, West Indies, Austria/Hungary, Finland, China, Japan
+\end{frame}
+
+\begin{frame}[label = tab2_flow]
+    \frametitle{Immigration Inflow: Sig. Effects on Japanese Immigration?}
+    \centering
+    \begin{table}[H]
+		\resizebox{\textwidth}{!}{
+            \input{../../figs/21jul23/immflow_regs.tex}
+		}
+	\end{table}  
+    \hyperlink{census_flow}{\beamerbutton{Census Inflow w/ Japanese Imm.}}
+\end{frame}
+
+% % PART 2: IMMIGRANT COMPOSITION EFFECTS
+% \section{Immigrant Composition}
+% \begin{frame}[label = tab3_old_spec]
+%     \frametitle{Immigrant Composition: Initial Specification}
+%     \centering
+%     \begin{itemize}
+%         \item \textbf{Full Sample Info:} 4-5\% samples from 1901, 1911, 1921 censuses which include year of arrival to Canada
+%         \item \textbf{Initial Specification:} for arrival year $t$, only keep observations from closest census year (e.g. only keep 1901 census observations for 1900 arrivals; only keep 1911 census observations for 1901 \& 1902 arrivals, etc.)
+%         \begin{equation*}
+%             y_{it} = \delta_t + \alpha CHI_i + \sum_{\tau \in \{100,500\}} \gamma_{\tau} CHI_i \times \mathbf{1}[TAX_t = \tau] + \varepsilon_{it}
+%         \end{equation*}
+%         \item $\delta_t$ absorbs both arrival year and census year fixed effects 
+%         \item No controls for age (but just age ctrl doesn't change much)
+%         \item Limit sample to adult men; arrival year 1890 and after
+%     \end{itemize}
+%     \hyperlink{tab3_old}{\beamerbutton{Results}}
+% \end{frame}
+
+% \begin{frame}[label = tab3_new_spec1]
+%     \frametitle{Immigrant Composition: Modifications}
+%     \centering
+%     \begin{itemize}
+%         \item Col (1) is original regression for labor [(4) Japanese Only]
+%         \item Col (2) expands sample to all years of arrival [(5) Japanese Only]
+%         \item \textbf{New Specification:} col (3) [(6) Japanese Only] keeps all census year $c$ x arrival year $t$ observations (e.g. for 1900 arrivals, have observations from 1901, 1911, and 1921 censuses)
+%         \begin{equation*}
+%             y_{itc} = \beta_c + \delta_t + \alpha CHI_i + \sum_{\tau \in \{100,500\}} \gamma_{\tau} CHI_i \times \mathbf{1}[TAX_t = \tau] + \varepsilon_{it}
+%         \end{equation*}
+%         \item Now $\beta_c$ absorbs census year FE separately from arrival year FE $\delta_t$ 
+%         \item Col (3) also controls for age \textbf{and} age at arrival [(6) Japanese Only]
+%     \end{itemize}
+% \end{frame}
+
+% \begin{frame}[label = tab3_new_labor]
+% 	\frametitle{Outcome Regressions: LABORER}
+%     \centering
+%     \begin{table}[H]
+% 		\resizebox{\textwidth}{!}{
+%             \input{../../figs/21jul23/outcome_regs_labor.tex}
+% 		}
+% 	\end{table}  
+% \end{frame}
+
+% \begin{frame}[label = tab3_new_canread]
+% 	\frametitle{Outcome Regressions: CANREAD}
+%     \centering
+%     \begin{table}[H]
+% 		\resizebox{\textwidth}{!}{
+%             \input{../../figs/21jul23/outcome_regs_canread.tex}
+% 		}
+% 	\end{table}  
+% \end{frame}
+
+% \begin{frame}[label = tab3_new_earn]
+% 	\frametitle{Outcome Regressions: EARN}
+%     \centering
+%     \begin{table}[H]
+% 		\resizebox{\textwidth}{!}{
+%             \input{../../figs/21jul23/outcome_regs_earn.tex}
+% 		}
+% 	\end{table}  
+% \end{frame}
+
+% \begin{frame}[label = tab3_new_houseown]
+% 	\frametitle{Outcome Regressions: HOUSEOWN}
+%     \centering
+%     \begin{table}[H]
+% 		\resizebox{\textwidth}{!}{
+%             \input{../../figs/21jul23/outcome_regs_houseown.tex}
+% 		}
+% 	\end{table}  
+% \end{frame}
+
+% \begin{frame}
+%     \frametitle{Outcome Regressions: Key Takeaways}
+%     \centering
+%     \begin{itemize}
+%         \item Not sure if Japanese are good comparison group (very small sample, also had some immigration restrictions)
+%         \item Changing the year of arrival span (col 2) doesn't change much for all immigrant sample -- likely because pre-1890 Chinese immigrant pop is relatively small anyways
+%         \item For all immigrant comparison sample -- mostly results are the same (suggestive of some positive selection on literacy/likelihood of being a laborer) although there is no longer evidence of effects on earnings 
+%         \item $BORNCHI \times$ \$500 Tax coefficient for HOUSEOWN flips with new specification -- now \textbf{positive}, suggesting positive selection outweighs wealth effects of the tax 
+%     \end{itemize}
+% \end{frame}
+
+% \begin{frame}
+%     \frametitle{Next Steps}
+%     \centering
+%     \begin{itemize}
+%         \item Figuring out correct comparison group (matched sample?)
+%         \item Finalizing regression specifications
+%         \item Visualization of outcome regressions -- maybe plotting DiD coeffs?
+%         \item Repeating for US data 
+%     \end{itemize}
+% \end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%      A  P  P  E  N  D  I  X      %%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+
+%---------------------------
+%  Census/NBER Immflow Comparisons
+%---------------------------
+\begin{frame}[label = flow_compar_all]
+	\frametitle{NBER vs. Census Immigration Data}
+    \centering
+	\begin{figure}[H]
+		\begin{center}
+			\includegraphics[width=\textwidth]{../../figs/8aug23/nber_census_compare_all.png}
+		\end{center}
+	\end{figure}
+    \hyperlink{data1}{\beamerbutton{Back to Slides}}
+\end{frame}
+
+\begin{frame}[label = flow_compar_belgium]
+	\frametitle{NBER vs. Census Immigration Data: Belgium}
+    \centering
+	\begin{figure}[H]
+		\begin{center}
+			\includegraphics[width=\textwidth]{../../figs/8aug23/nber_census_compare_belgium.png}
+		\end{center}
+	\end{figure}
+    \hyperlink{data1}{\beamerbutton{Back to Slides}}
+\end{frame}
+
+
+\begin{frame}[label = flow_compar_japan]
+	\frametitle{NBER vs. Census Immigration Data: Japan}
+    \centering
+	\begin{figure}[H]
+		\begin{center}
+			\includegraphics[width=\textwidth]{../../figs/8aug23/nber_census_compare_japan.png}
+		\end{center}
+	\end{figure}
+    \hyperlink{data1}{\beamerbutton{Back to Slides}}
+\end{frame}
+
+% %---------------------------
+% %  Normalized Chinese Inflow (Inflow Diff)
+% %---------------------------
+
+% \begin{frame}[label = flow_diff]
+% 	\frametitle{Chinese Immigration Inflow as Fraction of Total}
+%     \centering
+% 	\begin{figure}[H]
+% 		\begin{center}
+% 			\includegraphics[width=\textwidth]{../../figs/21jul23/flowpct.png}
+% 		\end{center}
+% 	\end{figure}
+%     \hyperlink{flow_reg}{\beamerbutton{Back to Slides}}
+% \end{frame}
+
+% %---------------------------
+% %  Census Inflow w/ Japanese
+% %---------------------------
+
+% \begin{frame}[label = census_flow]
+% 	\frametitle{Immigration Inflow with Census Data}
+%     \centering
+% 	\begin{figure}[H]
+% 		\begin{center}
+% 			\includegraphics[width=\textwidth]{../../figs/21jul23/fig2_flow_jap.png}
+% 		\end{center}
+% 	\end{figure}
+%     \hyperlink{tab2_flow}{\beamerbutton{Back to Slides}}
+% \end{frame}
+
+
+% %---------------------------
+% %  Old outcome regs (all imm. only)
+% %---------------------------
+
+% \begin{frame}[label = tab3_old]
+% 	\frametitle{Outcome Regressions w/ Old Specification}
+%     \centering
+%     \begin{table}[H]
+% 		\resizebox{\textwidth}{!}{
+%             \input{../../figs/21jul23/outcome_regs_old.tex}
+% 		}
+% 	\end{table}  
+%     \hyperlink{tab3_old_spec}{\beamerbutton{Back to Slides}}
+% \end{frame}
+
+
+\end{document}

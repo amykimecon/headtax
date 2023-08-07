@@ -396,6 +396,8 @@ bpl1921 <- raw1921 %>% mutate(WEIGHT = case_when(str_starts(Dwelling_Unit_Type, 
 
 ## combining all years
 bplall <- list(bpl1871, bpl1881, bpl1891, bpl1901, bpl1911, bpl1921) %>% bind_rows()
+write_csv(bplall, glue("{dbox}/cleaned/popstock_can.csv"))
+
 bplwide <- bplall %>% pivot_wider(id_cols = BPL, names_from = YEAR, values_from = POP)
 
 bplfrac <- bplall %>% group_by(BPL) %>% mutate(basepop = ifelse(YEAR == 1881, POP, NA)) %>%
