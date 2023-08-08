@@ -56,7 +56,12 @@ can_imm <- read_csv(glue("{dbox}/cleaned/can_clean_imm.csv")) %>%
 #can_jap <- can_imm %>% filter(BORNJAP == 1) %>% mutate(group = "Japanese Immigrants")
 
 ## us census data
-us_imm <- read_csv(glue("{dbox}/cleaned/us_clean_imm.csv")) %>% mutate(source = "US Census", group = "All Immigrants", WEIGHT = 1)
+us_imm <- read_csv(glue("{dbox}/cleaned/us_clean_imm.csv")) %>% 
+  mutate(source = "US Census", group = "All Immigrants", WEIGHT = 1,
+         tax = case_when(YRIMM <= 1885 ~ 0,
+                         YRIMM <= 1900 ~ 50,
+                         YRIMM <= 1903 ~ 100,
+                         YRIMM < 1924 ~ 500))
 us_chi <- us_imm %>% filter(BORNCHI == 1) %>% mutate(group = "Chinese Immigrants")
 us_jap <- us_imm %>% filter(BORNJAP == 1) %>% mutate(group = "Japanese Immigrants")
 
@@ -340,178 +345,138 @@ did_reg_earn <- lm(EARN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI
 did_reg_houseown <- lm(HOUSEOWN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
 
 
-stargazer(did_reg_labor, did_reg_labor1, did_reg_labor2, did_reg_labor_jap, did_reg_labor_jap1, did_reg_labor_jap2,
-          out = glue("{git}/figs/21jul23/outcome_regs_labor.tex"), float = FALSE, 
+stargazer(did_reg_labor, did_reg_canread, did_reg_earn, did_reg_houseown,
+          out = glue("{git}/figs/8aug23/outcome_regs_can.tex"), float = FALSE, 
           intercept.bottom =FALSE,
-          column.labels = c("All (1890-1920)", "All (1870-1920)", "All (All Census Yrs)", "Japan. (1890-1908)", "Japan. (1870-1908)", "Japan. (All Census Yrs)"),
-          column.separate = c(1,1,1,1,1,1), keep = c("BORNCHI*"),
+          keep = c("BORNCHI*"),
+          single.row = TRUE,
           covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$50 Tax", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
           keep.stat=c("n","adj.rsq"),
-          table.layout = "=c#-ta-s-")
+          table.layout = "=cd#-ta-s-",
+          add.lines = list(c("Dep. Var. Mean (SE)", "0.207 (0.002)", "0.923 (0.001)", "800.5 (6.515)", "0.473 (0.002)")))
 
 
 
 ## register data
-did_data_reg <- reg_chi %>% filter(YRIMM >= 1880 & YRIMM <= 1910) %>%
-  mutate(LABOR = ifelse(PROFESSION == "Labourer", 1, 0)) %>%
-           filter(AGE >= 18 & MALE == 1)
+did_data_reg <- reg_chi %>% filter(YRIMM >= 1886 & YRIMM <= 1910) %>%
+  mutate(LABOR = ifelse(PROFESSION == "Labourer", 1, 0),
+         t = YRIMM - 1880) %>%
+           filter(AGE >= 18 & MALE == 1 & FEES > 0)
+
 
 ggplot(did_data_reg %>% group_by(YRIMM) %>% summarize(LABORPCT = mean(LABOR, na.rm=TRUE)), 
-       aes(x = YRIMM, y = LABORPCT)) + geom_line()
+       aes(x = YRIMM, y = LABORPCT)) + geom_line() +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts[1:3,], show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = yrs, y = 0.8, label = labs), data = headtaxcuts[1:3,], inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+  labs(x = "Year of Arrival", y = "Fraction Laborers [Register]")
+  
+ggsave(glue("{git}/figs/8aug23/register_labor.png"), height = 4, width = 7)
 
-ggplot(did_data %>%   filter((YEAR == 1901 & YRIMM < 1901) | 
-                               (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | 
-                               (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) %>% # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
-       group_by(YRIMM) %>% summarize(LABORPCT = mean(LABOR, na.rm=TRUE)), 
-       aes(x = YRIMM, y = LABORPCT)) + geom_line()
+ggplot(did_data_reg %>% filter(HEIGHT > 48) %>% group_by(YRIMM) %>% summarize(HEIGHT = mean(HEIGHT, na.rm=TRUE)), 
+       aes(x = YRIMM, y = HEIGHT)) + geom_line() +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts[1:3,], show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = yrs, y = 63.8, label = labs), data = headtaxcuts[1:3,], inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+  labs(x = "Year of Arrival", y = "Average Height (in.) [Register]")
+  
+ggsave(glue("{git}/figs/8aug23/register_height.png"), height = 4, width = 7)
 
-did_reg_labor <- lm(LABOR ~ factor(YRIMM) + factor(YEAR) + AGE + + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
-did_reg_canread <- lm(CANREAD ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
-did_reg_earn <- lm(EARN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
-did_reg_houseown <- lm(HOUSEOWN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
+# ggplot(did_data %>% filter(BPL == "China")  %>% filter((YEAR == 1901 & YRIMM < 1901) | 
+#                                (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | 
+#                                (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) %>% # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
+#        group_by(YRIMM) %>% summarize(LABORPCT = mean(LABOR, na.rm=TRUE)), 
+#        aes(x = YRIMM, y = LABORPCT)) + geom_line() + geom_vline(aes(xintercept = 1903))
 
-
-
-
-
-
-
-
-### CHECKING FOR LONG-TERM TRENDS B/W CENSUS YEARS
-compare_census <- did_data %>% group_by(YRIMM,YEAR) %>%
-  summarize(across(c(LABOR, CANREAD, EARN, HOUSEOWN), 
-                   list(function(.x) weighted.mean(.x, WEIGHT, na.rm=TRUE), 
-                        function(.x) weighted.mean(ifelse(BORNCHI == 1, .x, NA), WEIGHT, na.rm=TRUE))))
-
-ggplot(compare_census %>% filter(YRIMM > 1880), aes(x = YRIMM, y = LABOR_2, color = factor(YEAR))) + geom_smooth()
-ggplot(compare_census %>% filter(YRIMM > 1880), aes(x = YRIMM, y = CANREAD_2, color = factor(YEAR))) + geom_smooth()
-ggplot(compare_census %>% filter(YRIMM > 1880), aes(x = YRIMM, y = EARN_2, color = factor(YEAR))) + geom_smooth()
-ggplot(compare_census %>% filter(YRIMM > 1880), aes(x = YRIMM, y = HOUSEOWN_2, color = factor(YEAR))) + geom_smooth()
+did_reg_labor_reg <- lm(LABOR ~ AGE + factor(tax) + t , data = did_data_reg)
+did_reg_height_reg <- lm(HEIGHT ~ AGE + factor(tax) + t , data = did_data_reg)
 
 
-# run regressions
-did_reg_labor <- lm(LABOR ~ AGE + factor(YEAR) + factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500 - 1, data = did_data, weights = WEIGHT)
-did_reg_labor_jap <- lm(LABOR ~ AGE + factor(YEAR) + factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
-
-did_reg_canread <- lm(CANREAD ~ AGE + factor(YEAR) + factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
-did_reg_canread_jap <- lm(CANREAD ~ AGE + factor(YEAR) + factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
-
-summary(lm(CANREAD ~ AGE + factor(YEAR) + factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT))
-
-
-
-
-
-
-
-did_reg_earn <- lm(EARN ~ AGE + factor(YEAR) + factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
-did_reg_earn_jap <- lm(EARN ~ AGE + factor(YEAR) + factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
-
-did_reg_houseown <- lm(HOUSEOWN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data, weights = WEIGHT)
-did_reg_houseown_jap <- lm(HOUSEOWN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_jap, weights = WEIGHT)
-
-stargazer(did_reg_labor, did_reg_canread, did_reg_earn, did_reg_houseown, did_reg_labor_jap, did_reg_canread_jap, did_reg_earn_jap, did_reg_houseown_jap,
-          out = glue("{git}/figs/outcome_regs.tex"), float = FALSE, 
-          intercept.bottom =FALSE,
-          column.labels = c("Sample: All Immigrants", "Sample: Chinese and Japanese Immigrants"),
-          column.separate = c(4,4),
-          dep.var.labels = c("$LABORER$", "$LITERATE$", "$EARNINGS$", "$HOMEOWN$","$LABORER$","$LITERATE$", "$EARNINGS$", "$HOMEOWN$"),
-          keep = c(31,32,33),
-          covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
+stargazer(did_reg_labor_reg, did_reg_height_reg,
+          out = glue("{git}/figs/8aug23/register_regs.tex"), float = FALSE, 
+          intercept.bottom =FALSE, keep = c("factor(tax)*"),
+          covariate.labels = c("\\$100 Tax", "\\$500 Tax"),
           keep.stat=c("n","adj.rsq"),
-          add.lines = list(c("Includes Year FE", rep("Yes", 8))),
-          table.layout = "=cld#-ta-s-")
-
-stargazer(did_reg_labor, did_reg_canread, did_reg_earn, did_reg_houseown, did_reg_labor_match, did_reg_canread_match, did_reg_earn_match, did_reg_houseown_match,
-          out = glue("{git}/figs/outcome_regs_match.tex"), float = FALSE, 
-          intercept.bottom =FALSE,
-          column.labels = c("Sample: All Immigrants", "Sample: Chinese and Matched Immigrants"),
-          column.separate = c(4,4),
-          dep.var.labels = c("$LABORER$", "$LITERATE$", "$EARNINGS$", "$HOMEOWN$","$LABORER$","$LITERATE$", "$EARNINGS$", "$HOMEOWN$"),
-          keep = c(31,32,33),
-          covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
-          keep.stat=c("n","adj.rsq"),
-          add.lines = list(c("Includes Year FE", rep("Yes", 8))),
-          table.layout = "=cld#-ta-s-")
+          single.row = TRUE,
+          table.layout = "=cd#-ta-s-",
+          add.lines = list(c("Dep. Var. Mean","0.798 (0.002)","64.22 (0.010)")))
 
 
 ########################################################################
 ### FIGURE 3: US VS CANADA
 ########################################################################
-yrimm_us <- us_imm %>% filter(BORNJAP == 1 | BORNCHI == 1) %>% group_by(YEAR, YRIMM) %>% summarize(ChinesePOP = sum(BORNCHI), JapanesePOP = sum(BORNJAP)) %>% mutate(source = "US Census", tax = case_when(YRIMM <= 1885 ~ 0,
-                                                                                                                                  YRIMM <= 1900 ~ 50,
-                                                                                                                                  YRIMM <= 1903 ~ 100,
-                                                                                                                                  YRIMM < 1924 ~ 500)) %>% 
-  arrange(YRIMM) %>%
+yrimm_us <- us_imm %>% 
   filter((YEAR == 1900 & YRIMM < 1900) | (YEAR == 1910 & YRIMM < 1910 & YRIMM >= 1900) | (YEAR == 1920 & YRIMM < 1920 & YRIMM >= 1910)) %>% # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
-  pivot_longer(c(ChinesePOP, JapanesePOP), names_to = "IMM", names_pattern = "(.*)POP", values_to = "POP")
+  group_by(YEAR, YRIMM) %>% 
+  summarize(IMMFLOW = n(), CHIFLOW = sum(BORNCHI)) 
 
-yrimm_census_jap <- can_imm %>% filter(BORNJAP == 1) %>% group_by(YEAR, YRIMM) %>% summarize(POP = sum(WEIGHT)) %>% mutate(source = "CA Census", tax = case_when(YRIMM <= 1885 ~ 0,
-                                                                                                                                                           YRIMM <= 1900 ~ 50,
-                                                                                                                                                           YRIMM <= 1903 ~ 100,
-                                                                                                                                                           YRIMM < 1924 ~ 500),
-                                                                                                                              IMM = "Japanese") %>% 
-  arrange(YRIMM) %>%
-  filter((YEAR == 1901 & YRIMM < 1901) | (YEAR == 1911 & YRIMM < 1911 & YRIMM >= 1901) | (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
+yrimm_flow_graph_all <- rbind(yrimm_reg %>% mutate(FLOW = CHIFLOW_REGISTER/1000, variable = "Chinese Immigrants") %>%
+                                               select(c(YRIMM, FLOW, variable)),
+                                             immflow %>% mutate(YRIMM = Year, FLOW = IMMFLOW_NATL/50000, variable = "All Immigrants") %>%
+                                               select(c(YRIMM, FLOW, variable))) %>%
+  mutate(source = "Canada") %>%
+  rbind(yrimm_us %>% mutate(FLOW = IMMFLOW/50000, variable = "All Immigrants", source = "US") %>% select(c(YRIMM, FLOW, variable, source)),
+        yrimm_us %>% mutate(FLOW = CHIFLOW/1000, variable = "Chinese Immigrants", source = "US") %>% select(c(YRIMM, FLOW, variable, source))) %>%
+  filter(YRIMM >= 1870 & YRIMM <= 1930)
 
-yrimm_us_can <- bind_rows(yrimm_us, yrimm_census %>% mutate(IMM = "Chinese", POP = CHIPOP)) %>% bind_rows(yrimm_census_jap)
+ggplot(data = yrimm_flow_graph_all, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
+  scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c1,c4)) +
+  scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(2, 1)) +
+  geom_vline(aes(xintercept = yrs), data = rbind(headtaxcuts,data.frame(yrs = 1882,labs="US Chinese Excl. Act")), show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = yrs, y = 11, label = labs), data = rbind(headtaxcuts,data.frame(yrs = 1882,labs="US Chinese Excl. Act")), inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+  scale_y_continuous("Chinese Immigrant Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
+  labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom') +
+  facet_wrap(~source, ncol = 1)
 
-fig3_us_can <- ggplot(data = yrimm_us_can %>% filter(YRIMM >= 1870), aes(x = YRIMM, y = POP, color = source, linetype = IMM)) + geom_line() +
-  geom_vline(aes(xintercept = yrs), data = headtaxcuts[1:3,], show.legend = FALSE) +
-  geom_text(aes(x = yrs, y = 7000, label = labs), data = headtaxcuts[1:3,], inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 4) +
-  geom_vline(aes(xintercept = x), data = data.frame(x = c(1882)), show.legend = FALSE, color = "dark blue") +
-  geom_text(aes(x = x, y = 7000, label = labs), data = data.frame(x = c(1882), labs = c("US Chi. Excl. Act")), inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 4) +
-  #scale_color_manual(breaks=c("CA Census", "US Census"), values=c("black","blue")) +
-  scale_linetype_manual(breaks=c("Chinese", "Japanese"), values=c(1,3)) +
-  labs(x = "Year of Immigration", y = "Inflow of Chinese Immigrants", linetype = "Data Source", color = "Immigrant Group") + theme_minimal() + theme(legend.position='bottom')
-
-
-ggsave(glue("{git}/figs/fig3_us_can.png"), fig3_us_can, height = 5, width = 9)
-
+ggsave(glue("{git}/figs/fig3_us_can.png"), height = 5, width = 7)
+# 
+# fig3_us_can <- ggplot(data = yrimm_us_can %>% filter(YRIMM >= 1870), aes(x = YRIMM, y = POP, color = source, linetype = IMM)) + geom_line() +
+#   geom_vline(aes(xintercept = yrs), data = headtaxcuts[1:3,], show.legend = FALSE) +
+#   geom_text(aes(x = yrs, y = 7000, label = labs), data = headtaxcuts[1:3,], inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 4) +
+#   geom_vline(aes(xintercept = x), data = data.frame(x = c(1882)), show.legend = FALSE, color = "dark blue") +
+#   geom_text(aes(x = x, y = 7000, label = labs), data = data.frame(x = c(1882), labs = c("US Chi. Excl. Act")), inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 4) +
+#   #scale_color_manual(breaks=c("CA Census", "US Census"), values=c("black","blue")) +
+#   scale_linetype_manual(breaks=c("Chinese", "Japanese"), values=c(1,3)) +
+#   labs(x = "Year of Immigration", y = "Inflow of Chinese Immigrants", linetype = "Data Source", color = "Immigrant Group") + theme_minimal() + theme(legend.position='bottom')
+# 
+# 
+# ggsave(glue("{git}/figs/fig3_us_can.png"), fig3_us_can, height = 5, width = 9)
+# 
 
 ########################################################################
 ### TABLE 4: US VS CAN REGRESSIONS
 ########################################################################
-did_data_us <- us_imm %>% filter(BORNCHI == 1 | BORNJAP == 1) %>% filter(YEAR >= 1900 & YRIMM > 1890) %>% #only keeping years with earnings/yrimm data
-  mutate(tax = case_when(YRIMM < 1885 ~ 0,
-                         YRIMM < 1900 ~ 50,
-                         YRIMM < 1903 ~ 100,
-                         YRIMM <= 1924 ~ 500),
-         YEARSAFTER1890 = YRIMM - 1890,
-         BORNCHI_tax50 = BORNCHI*ifelse(tax == 50, 1, 0),
+did_data_us <- us_imm %>% filter(YEAR >= 1900 & YRIMM >= 1880 & YRIMM <= 1910) %>% #only keeping years with earnings/yrimm data
+  mutate(BORNCHI_tax50 = BORNCHI*ifelse(tax == 50, 1, 0),
          BORNCHI_tax100 = BORNCHI*ifelse(tax == 100, 1, 0),
          BORNCHI_tax500 = BORNCHI*ifelse(tax == 500, 1, 0),
-         YEARSSINCEIMM = YEAR - YRIMM) %>%
-  filter(AGE >= 18 & MALE == 1) %>% #only looking at men over 18
-  filter((YEAR == 1900 & YRIMM < 1900) | (YEAR == 1910 & YRIMM < 1910 & YRIMM >= 1900) | (YEAR == 1920 & YRIMM < 1920 & YRIMM >= 1910)) %>% # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
-  mutate(CAN = 0, WEIGHT = 1) 
+         ERSCORE = ifelse(EARN > 100, NA, EARN)) %>%
+  filter(AGE >= 18 & MALE == 1)
 
-did_data_us_jap <- did_data_us %>% filter(BORNCHI == 1 | BORNJAP == 1) 
+did_reg_labor_us <- lm(LABOR ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us)
+did_reg_canread_us <- lm(CANREAD ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us)
+did_reg_earn_us <- lm(ERSCORE ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us)
+did_reg_houseown_us <- lm(HOUSEOWN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us)
 
-did_data_us_can <- did_data_us %>% bind_rows(did_data %>% filter(YRIMM < 1920 & (BORNCHI == 1 | BORNJAP == 1)) %>% mutate(CAN = 1))
-
-# run regressions -- did with just us data
-did_reg_labor_us <- lm(LABOR ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us, weights = WEIGHT)
-did_reg_labor_us_jap <- lm(LABOR ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us_jap, weights = WEIGHT)
-did_reg_canread_us <- lm(CANREAD ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us, weights = WEIGHT)
-did_reg_canread_us_jap <- lm(CANREAD ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us_jap, weights = WEIGHT)
-did_reg_earn_us <- lm(EARN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us, weights = WEIGHT)
-did_reg_earn_us_jap <- lm(EARN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us_jap, weights = WEIGHT)
-did_reg_houseown_us <- lm(HOUSEOWN ~ factor(YRIMM) +  BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us, weights = WEIGHT)
-did_reg_houseown_us_jap <- lm(HOUSEOWN ~ factor(YRIMM) + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us_jap, weights = WEIGHT)
-
-stargazer(did_reg_labor_us, did_reg_canread_us, did_reg_earn_us, did_reg_houseown_us, did_reg_labor_us_jap, did_reg_canread_us_jap, did_reg_earn_us_jap, did_reg_houseown_us_jap,
-          out = glue("{git}/figs/outcome_regs_us.tex"), float = FALSE, 
+stargazer(did_reg_labor_us, did_reg_canread_us, did_reg_earn_us, did_reg_houseown_us, 
+          out = glue("{git}/figs/8aug23/outcome_regs_us.tex"), float = FALSE, 
           intercept.bottom =FALSE,
-          column.labels = c("Sample: All Immigrants", "Sample: Chinese and Japanese Immigrants"),
-          column.separate = c(4,4),
-          dep.var.labels = c("$LABORER$", "$LITERATE$", "$EARNINGS$", "$HOMEOWN$","$LABORER$","$LITERATE$", "$EARNINGS$", "$HOMEOWN$"),
-          keep = c(31,32,33),
-          covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
+          keep = c("BORNCHI*"),
+          single.row = TRUE,
+          covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$50 Tax", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
           keep.stat=c("n","adj.rsq"),
-          add.lines = list(c("Includes Year FE", rep("Yes", 8))),
-          table.layout = "=cld#-ta-s-")
+          table.layout = "=cd#-ta-s-",
+          add.lines = list(c("Dep. Var. Mean (SE)", "0.219 (0.000)", "0.884 (0.000)", "48.3 (0.007)", "0.332 (0.000)")))
 
+mean(filter(did_data_us, !is.na(LABOR))$LABOR)
+sd(filter(did_data_us, !is.na(LABOR))$LABOR)/sqrt(nrow(filter(did_data_us, !is.na(LABOR))))
+
+mean(filter(did_data_us, !is.na(CANREAD))$CANREAD)
+sd(filter(did_data_us, !is.na(CANREAD))$CANREAD)/sqrt(nrow(filter(did_data_us, !is.na(CANREAD))))
+
+mean(filter(did_data_us, !is.na(ERSCORE))$ERSCORE)
+sd(filter(did_data_us, !is.na(ERSCORE))$ERSCORE)/sqrt(nrow(filter(did_data_us, !is.na(ERSCORE))))
+
+mean(filter(did_data_us, !is.na(HOUSEOWN))$HOUSEOWN)
+sd(filter(did_data_us, !is.na(HOUSEOWN))$HOUSEOWN)/sqrt(nrow(filter(did_data_us, !is.na(HOUSEOWN))))
 
 # run regressions -- triple diff with us and canada
 did_reg_uscan_labor <- lm(LABOR ~ factor(YRIMM)*CAN + BORNCHI*CAN*factor(tax), data = did_data_us_can, weights = WEIGHT)
