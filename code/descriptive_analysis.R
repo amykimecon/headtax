@@ -78,6 +78,9 @@ immflow <- read_csv(glue("{dbox}/raw/imm_nums.csv"))
 immflow_nber <- read_csv(glue("{dbox}/raw/immflow_nber.csv")) %>% 
   mutate(YRIMM = ifelse(YEAR <= 1907, YEAR - 0.5, YEAR - 0.75)) # fiscal year
 
+## interpolated population stock (canada)
+popstock <- read_csv(glue("{dbox}/cleaned/popstock_can.csv"))
+
 ########################################################################
 ### QUICK ACCOUNTING EXERICSE: OUTMIGRATION IN CANADA
 ########################################################################
@@ -222,9 +225,9 @@ ggsave(glue("{git}/figs/8aug23/nber_census_compare_germany.png"), height = 4, wi
 yrimm_flow_regress <- yrimm_reg %>%
   left_join(canhistmacro %>% select(c(Year, RGNP)), by = c("YRIMM" = "Year")) %>%
   left_join(immflow, by = c("YRIMM" = "Year")) %>% 
-  left_join(yrimm_census %>% 
-              pivot_wider(id_cols = c(YRIMM, tax), names_from = BPL, names_prefix = "FLOW_",
-                          values_from = FLOW), by = c("YRIMM", "tax")) %>%
+  left_join(yrimm_census %>% left_join(popstock %>% filter(INTERP == "spline"), by = c("YRIMM"="YEAR", "BPL")) %>%
+              pivot_wider(id_cols = c(YRIMM, tax), names_from = BPL,
+                          values_from = c(FLOW, POP)), by = c("YRIMM", "tax")) %>%
   left_join(can_imm %>% group_by(YRIMM) %>% summarize(FLOW_All = sum(WEIGHT))) %>% ungroup() %>%
   arrange(YRIMM) %>% mutate(lagRGNP = dplyr::lag(RGNP),
                             t = YRIMM - 1885,
@@ -285,7 +288,8 @@ graph_country_regs <- list()
 i = 1
 for (country in reg_countries){
   shiftcoef = -0.3 + (i-1)*(0.6/length(reg_countries))
-  reg <- lm(data = yrimm_flow_regress, glue("FLOW_{country} ~ factor(tax) + t + I(t^2) + GNP_GROWTH + FLOW_All"))
+  #reg <- lm(data = yrimm_flow_regress, glue("FLOW_{country} ~ factor(tax) + t + I(t^2) + GNP_GROWTH + FLOW_All"))
+  reg <- lm(data = yrimm_flow_regress, glue("FLOW_{country} ~ factor(tax) + POP_{country} + GNP_GROWTH + FLOW_All"))
   print(country)
   print(summary(reg))
   regcoef <- summary(reg)$coefficients
@@ -299,10 +303,14 @@ for (country in reg_countries){
 minyear = min(filter(yrimm_flow_regress, !is.na(FLOW_China))$YRIMM)
 maxyear = max(filter(yrimm_flow_regress, !is.na(FLOW_China))$YRIMM)
 graph_countries <- bind_rows(graph_country_regs) %>%
-  mutate(est_scale = Estimate/meanimm,
-         stderr_scale = `Std. Error`/meanimm,
+  mutate(est_scale = asinh(Estimate/meanimm),
+         stderr_scale = asinh(`Std. Error`/meanimm),
          est_lb = est_scale - 1.96*stderr_scale,
-         est_ub = est_scale + 1.96*stderr_scale,
+         est_ub = est_scale + 1.96*stderr_scale) %>%
+  group_by(tax) %>% 
+  arrange(desc(est_scale), .by_group = TRUE) %>%
+  mutate(row = row_number(),
+         shift = -0.3 + (row-1)*(0.6/max(row)),
          taxyear = case_when(tax == "factor(tax)50" ~ 1 + shift,
                              tax == "factor(tax)100" ~ 2 + shift,
                              tax == "factor(tax)500" ~ 3 + shift))

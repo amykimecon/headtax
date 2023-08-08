@@ -396,7 +396,6 @@ bpl1921 <- raw1921 %>% mutate(WEIGHT = case_when(str_starts(Dwelling_Unit_Type, 
 
 ## combining all years
 bplall <- list(bpl1871, bpl1881, bpl1891, bpl1901, bpl1911, bpl1921) %>% bind_rows()
-write_csv(bplall, glue("{dbox}/cleaned/popstock_can.csv"))
 
 bplwide <- bplall %>% pivot_wider(id_cols = BPL, names_from = YEAR, values_from = POP)
 
@@ -432,5 +431,19 @@ ggplot(bplfrac %>% filter((BPL %in% c("Australia and NZ", "China", "East Indies"
 ggplot(bplfrac %>% filter(!(BPL %in% c("Canada"))), aes(x = YEAR, y = POPFRAC, color = BPL)) + geom_line()
 
 
+########################
+#### interpolation
+bpl_interp <- data.frame(YEAR = 1871:1921) %>% left_join(bplall %>% pivot_wider(id_cols = YEAR, names_from = BPL, values_from = POP)) %>%
+  mutate(across(-YEAR, function(.x) spline(YEAR, .x, method = "natural", xout = YEAR)$y, .names = "{.col}_spline"),
+         across(-c(YEAR, ends_with("spline")), function(.x) approx(YEAR, .x, xout = YEAR)$y, .names = "{.col}_linear")) %>%
+  select(c(ends_with("spline"), ends_with("linear"), "YEAR")) %>%
+  pivot_longer(cols = -YEAR, names_to = c("BPL", "INTERP"), names_pattern = "(.*)_(.*)", values_to = "POP")
+  #rbind(bplall %>% mutate(INTERP = "none"))
 
+bpllist_small = c("Belgium", "Denmark", "France", "Germany", "Greece", "India",
+                  "Japan", "Netherlands", "Norway","China", "Sweden", "Finland")
 
+ggplot(bpl_interp %>% filter(INTERP != "none" & BPL %in% bpllist_small), aes(x = YEAR, y = POP, color = INTERP)) + geom_line() +
+  geom_point(data = bplall %>% filter(BPL %in% bpllist_small), aes(x = YEAR, y = POP), inherit.aes = FALSE) + facet_wrap(~BPL)
+
+write_csv(bpl_interp, glue("{dbox}/cleaned/popstock_can.csv"))
