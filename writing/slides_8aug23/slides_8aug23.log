@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  7 AUG 2023 16:44
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  8 AUG 2023 14:58
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -545,7 +545,14 @@ LaTeX Info: Redefining \cite on input line 694.
 File: l3backend-pdftex.def 2022-02-07 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count335
 \l__pdf_internal_box=\box75
-) (./slides_8aug23.aux)
+) (./slides_8aug23.aux
+
+LaTeX Warning: Label `occ_n<1>' multiply defined.
+
+
+LaTeX Warning: Label `occ_n' multiply defined.
+
+)
 \openout1 = `slides_8aug23.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 8.
@@ -726,7 +733,7 @@ LaTeX Font Info:    Font shape `OT1/cmss/b/n' in size <6> not available
  [4
 
 ]
-<../../figs/8aug23/reg_coefs.png, id=84, 2107.875pt x 1204.5pt>
+<../../figs/8aug23/reg_coefs.png, id=117, 2107.875pt x 1204.5pt>
 File: ../../figs/8aug23/reg_coefs.png Graphic file (type png)
 <use ../../figs/8aug23/reg_coefs.png>
 Package pdftex.def Info: ../../figs/8aug23/reg_coefs.png  used on input line 50.
@@ -743,41 +750,103 @@ Overfull \vbox (9.70125pt too high) detected at line 50
 
 [5
 
- <../../figs/8aug23/reg_coefs.png>] (../../figs/21jul23/immflow_regs.tex
-LaTeX Font Info:    Trying to load font information for TS1+cmss on input line 12.
+ <../../figs/8aug23/reg_coefs.png>]
+<../../figs/8aug23/occgrp_n.png, id=138, 2107.875pt x 1204.5pt>
+File: ../../figs/8aug23/occgrp_n.png Graphic file (type png)
+<use ../../figs/8aug23/occgrp_n.png>
+Package pdftex.def Info: ../../figs/8aug23/occgrp_n.png  used on input line 71.
+(pdftex.def)             Requested size: 307.28987pt x 175.59456pt.
+ [6
+
+ <../../figs/8aug23/occgrp_n.png>]
+pdfTeX warning (ext4): destination with the same identifier (name{occ_n<1>}) has been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.81 \end{frame}
+                
+pdfTeX warning (ext4): destination with the same identifier (name{occ_n}) has been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.81 \end{frame}
+                 [7
+
+] (../../figs/8aug23/register_regs.tex
+LaTeX Font Info:    Trying to load font information for TS1+cmss on input line 10.
  (/usr/local/texlive/2022/texmf-dist/tex/latex/base/ts1cmss.fd
 File: ts1cmss.fd 2019/12/16 v2.5j Standard LaTeX font definitions
-)) [6
+)) [8
+
+] [9
+
+] (../../figs/8aug23/outcome_regs_can.tex) [10
+
+] (../../figs/8aug23/outcome_regs_us.tex) [11
 
 ]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\translate ' on input line 160.
+(hyperref)                removing `\translate ' on input line 185.
 
-<../../figs/8aug23/nber_census_compare_all.png, id=115, 2107.875pt x 1204.5pt>
+<../../figs/8aug23/nber_census_compare_all.png, id=252, 2107.875pt x 1204.5pt>
 File: ../../figs/8aug23/nber_census_compare_all.png Graphic file (type png)
 <use ../../figs/8aug23/nber_census_compare_all.png>
-Package pdftex.def Info: ../../figs/8aug23/nber_census_compare_all.png  used on input line 174.
+Package pdftex.def Info: ../../figs/8aug23/nber_census_compare_all.png  used on input line 199.
 (pdftex.def)             Requested size: 307.28987pt x 175.59456pt.
-[7
+[12
 
  <../../figs/8aug23/nber_census_compare_all.png>]
-<../../figs/8aug23/nber_census_compare_belgium.png, id=130, 2107.875pt x 1204.5pt>
+<../../figs/8aug23/nber_census_compare_belgium.png, id=275, 2107.875pt x 1204.5pt>
 File: ../../figs/8aug23/nber_census_compare_belgium.png Graphic file (type png)
 <use ../../figs/8aug23/nber_census_compare_belgium.png>
-Package pdftex.def Info: ../../figs/8aug23/nber_census_compare_belgium.png  used on input line 185.
+Package pdftex.def Info: ../../figs/8aug23/nber_census_compare_belgium.png  used on input line 210.
 (pdftex.def)             Requested size: 307.28987pt x 175.59456pt.
- [8
+ [13
 
  <../../figs/8aug23/nber_census_compare_belgium.png>]
-<../../figs/8aug23/nber_census_compare_japan.png, id=141, 2107.875pt x 1204.5pt>
+<../../figs/8aug23/nber_census_compare_japan.png, id=291, 2107.875pt x 1204.5pt>
 File: ../../figs/8aug23/nber_census_compare_japan.png Graphic file (type png)
 <use ../../figs/8aug23/nber_census_compare_japan.png>
-Package pdftex.def Info: ../../figs/8aug23/nber_census_compare_japan.png  used on input line 197.
+Package pdftex.def Info: ../../figs/8aug23/nber_census_compare_japan.png  used on input line 222.
 (pdftex.def)             Requested size: 307.28987pt x 175.59456pt.
- [9
+ [14
 
  <../../figs/8aug23/nber_census_compare_japan.png>]
+<../../figs/8aug23/occgrp_pct.png, id=306, 2107.875pt x 1204.5pt>
+File: ../../figs/8aug23/occgrp_pct.png Graphic file (type png)
+<use ../../figs/8aug23/occgrp_pct.png>
+Package pdftex.def Info: ../../figs/8aug23/occgrp_pct.png  used on input line 233.
+(pdftex.def)             Requested size: 307.28987pt x 175.59456pt.
+ [15
+
+ <../../figs/8aug23/occgrp_pct.png>]
+<../../figs/8aug23/register_labor.png, id=321, 2107.875pt x 1204.5pt>
+File: ../../figs/8aug23/register_labor.png Graphic file (type png)
+<use ../../figs/8aug23/register_labor.png>
+Package pdftex.def Info: ../../figs/8aug23/register_labor.png  used on input line 244.
+(pdftex.def)             Requested size: 307.28987pt x 175.59456pt.
+ [16
+
+ <../../figs/8aug23/register_labor.png>]
+<../../figs/8aug23/register_height.png, id=336, 2107.875pt x 1204.5pt>
+File: ../../figs/8aug23/register_height.png Graphic file (type png)
+<use ../../figs/8aug23/register_height.png>
+Package pdftex.def Info: ../../figs/8aug23/register_height.png  used on input line 256.
+(pdftex.def)             Requested size: 307.28987pt x 175.59456pt.
+ [17
+
+ <../../figs/8aug23/register_height.png>]
+<../../figs/fig3_us_can.png, id=351, 2107.875pt x 1505.625pt>
+File: ../../figs/fig3_us_can.png Graphic file (type png)
+<use ../../figs/fig3_us_can.png>
+Package pdftex.def Info: ../../figs/fig3_us_can.png  used on input line 267.
+(pdftex.def)             Requested size: 307.28987pt x 219.4932pt.
+
+Overfull \vbox (37.14433pt too high) detected at line 267
+ []
+
+[18
+
+ <../../figs/fig3_us_can.png>]
 \tf@nav=\write6
 \openout6 = `slides_8aug23.nav'.
 
@@ -788,25 +857,25 @@ Package pdftex.def Info: ../../figs/8aug23/nber_census_compare_japan.png  used o
 \openout8 = `slides_8aug23.snm'.
 
  (./slides_8aug23.aux)
+
+LaTeX Warning: There were multiply-defined labels.
+
 Package rerunfilecheck Info: File `slides_8aug23.out' has not changed.
-(rerunfilecheck)             Checksum: 2C454E8E339D364A3B464E387595580D;217.
+(rerunfilecheck)             Checksum: 19E7E7EE57DAD116046316FD163D4BCC;368.
  ) 
 Here is how much of TeX's memory you used:
- 22421 strings out of 478268
- 442156 string characters out of 5846347
- 698395 words of memory out of 5000000
- 40099 multiletter control sequences out of 15000+600000
- 482578 words of font info for 75 fonts, out of 8000000 for 9000
+ 22608 strings out of 478268
+ 446427 string characters out of 5846347
+ 698188 words of memory out of 5000000
+ 40244 multiletter control sequences out of 15000+600000
+ 482222 words of font info for 74 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  128i,19n,122p,508b,770s stack positions out of 10000i,1000n,20000p,200000b,200000s
-
-pdfTeX warning (dest): name{census_flow} has been referenced but does not exist, replaced by a fixed one
-
 {/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfss1095.pfb>
-Output written on slides_8aug23.pdf (9 pages, 635930 bytes).
+Output written on slides_8aug23.pdf (18 pages, 1447430 bytes).
 PDF statistics:
- 220 PDF objects out of 1000 (max. 8388607)
- 161 compressed objects within 2 object streams
- 36 named destinations out of 1000 (max. 500000)
- 79 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 440 PDF objects out of 1000 (max. 8388607)
+ 355 compressed objects within 4 object streams
+ 70 named destinations out of 1000 (max. 500000)
+ 112 words of extra memory for PDF output out of 10000 (max. 10000000)
 

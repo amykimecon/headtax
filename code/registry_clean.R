@@ -172,9 +172,16 @@ ggplot(chireg %>% group_by(PORT, YEAR) %>% summarize(n=n()) %>% group_by(YEAR) %
   geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923)
 
 # entry by year by occupation group (for adults)
-ggplot(chireg %>% filter(AGE >= 18 & SEX == "Male") %>% group_by(OCCGRP, YEAR) %>% summarize(n=n()) %>% group_by(YEAR) %>% mutate(pct = n/sum(n)), 
-       aes(x = YEAR, y = n, fill = OCCGRP)) + geom_area() + 
-  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923) + geom_vline(xintercept = 1912)
+ggplot(chireg %>% filter(AGE >= 18 & SEX == "Male" & YEAR < 1923 & YEAR >= 1880) %>% group_by(OCCGRP, YEAR) %>% summarize(n=n()) %>% group_by(YEAR) %>% mutate(pct = n/sum(n)), 
+       aes(x = YEAR, y = pct, fill = OCCGRP)) + geom_area() + labs(x = "Year", fill = "Profession at Arrival", y = "Fraction of Arrivals") +
+  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923)
+ggsave(glue("{git}/figs/8aug23/occgrp_pct.png"), height = 4, width = 7)
+
+
+ggplot(chireg %>% filter(AGE >= 18 & SEX == "Male" & YEAR < 1923 & YEAR >= 1880) %>% group_by(OCCGRP, YEAR) %>% summarize(n=n()) %>% group_by(YEAR) %>% mutate(pct = n/sum(n)), 
+       aes(x = YEAR, y = n, fill = OCCGRP)) + geom_area() + labs(x = "Year", fill = "Profession at Arrival", y = "Number of Arrivals") +
+  geom_vline(xintercept = 1885) + geom_vline(xintercept = 1900) + geom_vline(xintercept = 1903) + geom_vline(xintercept = 1923)
+ggsave(glue("{git}/figs/8aug23/occgrp_n.png"), height = 4, width = 7)
 
 # entry in levels -- comparing registration year to arrival year
 ggplot(rbind(select(chinums, c(YEAR, n)) %>% mutate(cat = "Registration"), 
