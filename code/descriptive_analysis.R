@@ -187,36 +187,33 @@ ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linet
 
 ggsave(glue("{git}/figs/fig2_flow.png"), height = 4, width = 7)
 
-## aug 8 slides
-yrimm_compare <- rbind(yrimm_census %>% ungroup() %>% select(-c(YEAR, tax)) %>% mutate(source = "Census"),
+## sep 6 slides
+## japanese emigration (fw)
+jap_emig <- read_csv(glue("{dbox}/raw/japanese_emig.csv")) 
+jap_emig_clean <- jap_emig %>% 
+  pivot_longer(-YRIMM, names_to = "cat", values_to = "EMIG")
+ggplot(jap_emig_clean %>% filter(YRIMM < 1910), aes(x = YRIMM, y = EMIG, color = cat)) + geom_line() +
+  geom_vline(aes(xintercept = 1908), show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = 1908, y = 45000, label = "Gentlemen's Agreement"),inherit.aes = FALSE, angle = 90, nudge_x = 0.5, size = 3, color = "#808080") +
+  geom_vline(aes(xintercept = 1898), show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = 1898, y = 45000, label = "US Annexes Hawaii"),inherit.aes = FALSE, angle = 90, nudge_x = 0.5, size = 3, color = "#808080") 
+
+ggsave(glue("{git}/figs/6sep23/japan_emig.png"), height = 4, width = 7)
+
+yrimm_compare <- rbind(yrimm_census %>% ungroup() %>% select(-c(YEAR, tax)) %>% mutate(source = "In-Migration (CA Census)"),
                        immflow_nber %>% select(-YEAR) %>% rename(`Austria and Hungary` = Austria) %>%
                          pivot_longer(-YRIMM, names_to = "BPL", values_to = "FLOW") %>% 
-                         mutate(source = "NBER"))
+                         mutate(source = "In-Migration (NBER)")) %>%
+  rbind(select(jap_emig %>% mutate(EMIG_CA = ifelse(is.na(EMIG_CA), 0, EMIG_CA)), c(YRIMM, EMIG_CA)) %>% rename(FLOW = EMIG_CA) %>% mutate(BPL = "Japan", source = "Emigration (NBER)")) 
 
-bpllist = c("Austria and Hungary", "Belgium", "Denmark", "Finland", "France", "Germany", "Greece", "Iceland", "India",
-            "Italy", "Japan", "Netherlands", "Norway", "Poland", "Romania", "Russia", "Sweden", "Switzerland", "China")
-bpllist_small = c("Belgium", "Denmark", "Finland", "France", "Germany", "Greece", "India",
-            "Japan", "Netherlands", "Norway", "Romania", "Sweden")
+ggplot(data = yrimm_compare %>% filter(YRIMM > 1890 & YRIMM < 1912) %>% filter(BPL == "Japan"),
+       aes(x = YRIMM, y = FLOW, color = source)) + geom_line() +
+  geom_vline(aes(xintercept = 1908), show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = 1908, y = 6000, label = "Gentlemen's Agreement"),inherit.aes = FALSE, angle = 90, nudge_x = 0.5, size = 3, color = "#808080") +
+  geom_vline(aes(xintercept = 1898), show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = 1898, y = 6000, label = "US Annexes Hawaii"),inherit.aes = FALSE, angle = 90, nudge_x = 0.5, size = 3, color = "#808080") 
 
-ggplot(data = yrimm_compare %>% filter(YRIMM > 1890) %>% filter(BPL %in% bpllist_small),
-       aes(x = YRIMM, y = FLOW, color = source)) + geom_line() + facet_wrap(~BPL)
-
-ggsave(glue("{git}/figs/8aug23/nber_census_compare_all.png"), height = 4, width = 7)
-
-ggplot(data = yrimm_compare %>% filter(YRIMM > 1890) %>% filter(BPL == "Belgium"),
-       aes(x = YRIMM, y = FLOW, color = source)) + geom_line() + facet_wrap(~BPL)
-
-ggsave(glue("{git}/figs/8aug23/nber_census_compare_belgium.png"), height = 4, width = 7)
-
-ggplot(data = yrimm_compare %>% filter(YRIMM > 1890) %>% filter(BPL == "Japan"),
-       aes(x = YRIMM, y = FLOW, color = source)) + geom_line() + facet_wrap(~BPL)
-
-ggsave(glue("{git}/figs/8aug23/nber_census_compare_japan.png"), height = 4, width = 7)
-
-ggplot(data = yrimm_compare %>% filter(YRIMM > 1890) %>% filter(BPL == "Germany"),
-       aes(x = YRIMM, y = FLOW, color = source)) + geom_line() + facet_wrap(~BPL)
-
-ggsave(glue("{git}/figs/8aug23/nber_census_compare_germany.png"), height = 4, width = 7)
+ggsave(glue("{git}/figs/6sep23/japan_flow.png"), height = 4, width = 7)
 
 ########################################################################
 ### TABLE 2: REGRESSION OF IMM INFLOWS ON TAX RAISES
@@ -333,7 +330,8 @@ ggplot(graph_countries %>% filter(country != "China" & country != "Japan" & coun
                      values = c('other' = 'grey', 'china'='red','japan'='orange','india'='green')) +
   ggtitle("Inflow Regression Coefficients by Country (1880-1910)")
 
-ggsave(glue("{git}/figs/8aug23/reg_coefs.png"), height = 4, width = 7)
+#ggsave(glue("{git}/figs/8aug23/reg_coefs.png"), height = 4, width = 7)
+ggsave(glue("{git}/figs/6sep23/reg_coefs.png"), height = 4, width = 7)
 
 ########################################################################
 ### TABLE 3: DIFF IN DIFF REGRESSION OF CHI IMM VS OTHER IMM AT EACH 'EVENT'
@@ -435,6 +433,21 @@ ggplot(data = yrimm_flow_graph_all, aes(x = YRIMM, y = FLOW, color = variable, l
   facet_wrap(~source, ncol = 1)
 
 ggsave(glue("{git}/figs/fig3_us_can.png"), height = 5, width = 7)
+
+# sep 6
+ggplot(data = yrimm_flow_graph_all %>% filter(variable == "All Immigrants"), aes(x = YRIMM, y = FLOW, color = source)) + geom_line() +
+  scale_y_continuous("Chinese Immigrant Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
+  labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom') +
+  annotate("rect", xmin = 1893, xmax = 1897, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.3) +
+  annotate("rect", xmin = 1899.5, xmax = 1901, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) +
+  annotate("rect", xmin = 1902.75, xmax = 1904.75, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) + 
+  annotate("rect", xmin = 1907.5, xmax = 1908.5, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) + 
+  annotate("rect", xmin = 1910, xmax = 1912, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) +
+  annotate("rect", xmin = 1913, xmax = 1915, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.3)
+
+ggsave(glue("{git}/figs/6sep23/immflow.png"), height = 4, width = 7)
+
+
 # 
 # fig3_us_can <- ggplot(data = yrimm_us_can %>% filter(YRIMM >= 1870), aes(x = YRIMM, y = POP, color = source, linetype = IMM)) + geom_line() +
 #   geom_vline(aes(xintercept = yrs), data = headtaxcuts[1:3,], show.legend = FALSE) +
