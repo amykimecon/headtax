@@ -33,6 +33,12 @@ c4 <- "#59C1BD"
 c5 <- "#94DBD2"
 c6 <- "#CFF5E7"
 
+hk1 <- "#3C1518"
+hk2 <- "#69140E"
+hk3 <- "#A84007"
+hk4 <- "#E66B00"
+hk5 <- "#FFB370"
+
 ########################################################################
 ### IMPORTING DATA
 ########################################################################
@@ -81,6 +87,46 @@ immflow_nber <- read_csv(glue("{dbox}/raw/immflow_nber.csv")) %>%
 ## interpolated population stock (canada)
 popstock <- read_csv(glue("{dbox}/cleaned/popstock_can.csv"))
 
+## chinese emigration from HK (canada and total)
+hk_departure <- read_csv(glue("{dbox}/raw/hk_harbor_departures.csv"))
+ggplot(hk_departure %>% filter(YEAR > 1880) %>%
+         #mutate(EMIG_TOT = EMIG_TOT/10) %>%
+         #select(-EMIG_US) %>%
+         pivot_longer(cols = starts_with("EMIG"), names_to = "Group",
+                                      names_prefix = "EMIG_", values_to = "EMIG") %>%
+         filter(YEAR < 1914),
+       aes(x = YEAR, y = EMIG, color = Group)) + geom_line()
+
+## chinese population (+ guangdong interp)
+chinapop <- read_csv(glue("{dbox}/raw/CHINAPOP.csv")) %>%
+  mutate(Guangdong_POP_interp = spline(Year, Guangdong_POP, method = "natural", xout = Year)$y) %>%
+  filter(Year < 1930 & Year > 1870)
+
+## maddison population and gdp per capita data
+maddison_data <- read_csv(glue("{dbox}/raw/maddison_population.csv")) %>%
+  pivot_longer(-Country, names_to = "Year", values_to = "POP") %>%
+  left_join(read_csv(glue("{dbox}/raw/maddison_gdppercapita.csv")) %>%
+              pivot_longer(-Country, names_to = "Year", values_to = "GDPPERCAP")) %>%
+  pivot_wider(id_cols = Year, names_from = "Country", names_sep = "_", values_from = c(POP, GDPPERCAP)) %>%
+  purrr::discard(~length(.x)-sum(is.na(.x)) < 2) %>%
+  mutate(across(-Year, function(.x) spline(Year, .x, method = "natural", xout = Year)$y, .names = "{.col}_INTERP"))
+
+## wid.world inequality data
+wid_data_raw <- read_delim(glue("{dbox}/raw/WID/wid_inequality_raw.csv"), delim = ";", skip = 1)
+newnames <- str_extract(names(wid_data_raw), "^.+[A-Z]{2}")[3:length(names(wid_data_raw))] %>%
+  str_replace("CN","China") %>% str_replace("BE", "Belgium") %>% str_replace("DK", "Denmark") %>%
+  str_replace("FR", "France") %>% str_replace("DE", "Germany") %>% str_replace("GR", "Greece") %>%
+  str_replace("IN", "India") %>% str_replace("JP", "Japan") %>% str_replace("NL", "Netherlands") %>%
+  str_replace("NO", "Norway") %>% str_replace("SE", "Sweden") %>% str_replace('FI', "Finland") %>%
+  str_replace("IT", "Italy") %>% str_replace("CL", "Chile") %>% str_replace("BR", "Brazil") %>% 
+  str_replace("MX", "Mexico") %>% str_replace("TR", "Turkey") %>% str_replace("AU", "Australia") %>% 
+  str_replace("AT", "Austria") %>% str_replace("sptinc_z","INCSHARE50PCT")
+names(wid_data_raw) <- c("Percentile", "Year", newnames)
+wid_data <- wid_data_raw %>% filter(Percentile == "p0p50") %>% #taking bottom 50 percent only 
+  select(c("Year", starts_with("INCSHARE50PCT"))) %>%
+  purrr::discard(~length(.x)-sum(is.na(.x)) < 2) %>%
+  mutate(across(-Year, function(.x) spline(Year, .x, method = "natural", xout = Year)$y, .names = "{.col}_INTERP"))
+  
 ########################################################################
 ### QUICK ACCOUNTING EXERICSE: OUTMIGRATION IN CANADA
 ########################################################################
@@ -178,42 +224,52 @@ yrimm_flow_graph <- rbind(yrimm_reg %>% mutate(FLOW = CHIFLOW_REGISTER/1000, var
   filter(YRIMM >= 1880 & YRIMM <= 1930)
 
 ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
-  scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c1,c4)) +
+  scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c2,c4)) +
   scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(2, 1)) +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
   geom_text(aes(x = yrs, y = 7, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
   scale_y_continuous("Chinese Immigrant Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
   labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
+  # annotate("rect", xmin = 1893, xmax = 1897, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.3) +
+  # annotate("rect", xmin = 1899.5, xmax = 1901, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) +
+  # annotate("rect", xmin = 1902.75, xmax = 1904.75, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) + 
+  # annotate("rect", xmin = 1907.5, xmax = 1908.5, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) + 
+  # annotate("rect", xmin = 1910, xmax = 1912, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) +
+  # annotate("rect", xmin = 1913, xmax = 1915, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.3)
+
 
 ggsave(glue("{git}/figs/fig2_flow.png"), height = 4, width = 7)
 
-## sep 6 slides
-## japanese emigration (fw)
-jap_emig <- read_csv(glue("{dbox}/raw/japanese_emig.csv")) 
-jap_emig_clean <- jap_emig %>% 
-  pivot_longer(-YRIMM, names_to = "cat", values_to = "EMIG")
-ggplot(jap_emig_clean %>% filter(YRIMM < 1910), aes(x = YRIMM, y = EMIG, color = cat)) + geom_line() +
-  geom_vline(aes(xintercept = 1908), show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = 1908, y = 45000, label = "Gentlemen's Agreement"),inherit.aes = FALSE, angle = 90, nudge_x = 0.5, size = 3, color = "#808080") +
-  geom_vline(aes(xintercept = 1898), show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = 1898, y = 45000, label = "US Annexes Hawaii"),inherit.aes = FALSE, angle = 90, nudge_x = 0.5, size = 3, color = "#808080") 
+## chinese emigration to canada and total
+yrem_flow_graph <- hk_departure %>% filter(YEAR > 1880) %>% mutate(EMIG_CA = EMIG_CA/1000, EMIG_TOT = EMIG_TOT/10000) %>%
+  select(-EMIG_US) %>% pivot_longer(cols = starts_with("EMIG"), names_to = "variable",
+               names_prefix = "EMIG_", values_to = "EMIG") %>%
+  mutate(YRIMM = YEAR, FLOW = EMIG, variable = ifelse(variable == "CA", "Emigration from Hong Kong to Canada", "Total Emigration from Hong Kong"))
 
-ggsave(glue("{git}/figs/6sep23/japan_emig.png"), height = 4, width = 7)
+ggplot(data = yrem_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
+  scale_color_manual(breaks = c("Total Emigration from Hong Kong", "Emigration from Hong Kong to Canada"), values = c(hk2,hk4)) +
+  scale_linetype_manual(breaks = c("Total Emigration from Hong Kong", "Emigration from Hong Kong to Canada"), values = c(2, 1)) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = yrs, y = 13, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+  scale_y_continuous("HK Emigration Outflow to Canada (Thous.)", sec.axis = sec_axis(~ . *10, name = "Total HK Emigration Outflow (Thous.)")) + 
+  labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
 
-yrimm_compare <- rbind(yrimm_census %>% ungroup() %>% select(-c(YEAR, tax)) %>% mutate(source = "In-Migration (CA Census)"),
-                       immflow_nber %>% select(-YEAR) %>% rename(`Austria and Hungary` = Austria) %>%
-                         pivot_longer(-YRIMM, names_to = "BPL", values_to = "FLOW") %>% 
-                         mutate(source = "In-Migration (NBER)")) %>%
-  rbind(select(jap_emig %>% mutate(EMIG_CA = ifelse(is.na(EMIG_CA), 0, EMIG_CA)), c(YRIMM, EMIG_CA)) %>% rename(FLOW = EMIG_CA) %>% mutate(BPL = "Japan", source = "Emigration (NBER)")) 
+ggsave(glue("{git}/figs/fig2_flow_hkemig.png"), height = 4, width = 7)
 
-ggplot(data = yrimm_compare %>% filter(YRIMM > 1890 & YRIMM < 1912) %>% filter(BPL == "Japan"),
-       aes(x = YRIMM, y = FLOW, color = source)) + geom_line() +
-  geom_vline(aes(xintercept = 1908), show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = 1908, y = 6000, label = "Gentlemen's Agreement"),inherit.aes = FALSE, angle = 90, nudge_x = 0.5, size = 3, color = "#808080") +
-  geom_vline(aes(xintercept = 1898), show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = 1898, y = 6000, label = "US Annexes Hawaii"),inherit.aes = FALSE, angle = 90, nudge_x = 0.5, size = 3, color = "#808080") 
+yrimmandem_flow_graph <- rbind(yrimm_reg %>% mutate(FLOW = CHIFLOW_REGISTER/1000, variable = "Chinese Immigration to Canada") %>%
+                                 select(c(YRIMM, FLOW, variable)),
+                               hk_departure %>% mutate(variable = "Canadian Emigration from Hong Kong", FLOW = EMIG_CA/1000, YRIMM = YEAR) %>%
+                                 select(c(FLOW, YRIMM, variable))) %>%
+  filter(YRIMM >= 1880 & YRIMM <= 1930)
 
-ggsave(glue("{git}/figs/6sep23/japan_flow.png"), height = 4, width = 7)
+ggplot(data = yrimmandem_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
+  scale_color_manual(breaks = c("Canadian Emigration from Hong Kong", "Chinese Immigration to Canada"), values = c(hk4,c4)) +
+  scale_linetype_manual(breaks = c("Canadian Emigration from Hong Kong", "Chinese Immigration to Canada"), values = c(4, 1)) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = yrs, y = 7, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+  labs(x = "Year of Immigration", y = "Number of Migrants", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
+
+ggsave(glue("{git}/figs/fig2_flow_immandem.png"), height = 4, width = 7)
 
 ########################################################################
 ### TABLE 2: REGRESSION OF IMM INFLOWS ON TAX RAISES
@@ -229,7 +285,10 @@ yrimm_flow_regress <- yrimm_reg %>%
   arrange(YRIMM) %>% mutate(lagRGNP = dplyr::lag(RGNP),
                             t = YRIMM - 1885,
                             GNP_GROWTH = (RGNP - lagRGNP)/lagRGNP) %>%
-  filter(YRIMM <= 1910 & YRIMM >= 1880)
+  left_join(hk_departure, by = c("YRIMM" = "YEAR")) %>%
+  left_join(chinapop, by = c("YRIMM" = "Year")) %>%
+  filter(YRIMM <= 1923 & YRIMM >= 1880) %>%
+  mutate(taxchange = (tax - lag(tax))/lag(tax))
 
 names(yrimm_flow_regress) <- make.names(names(yrimm_flow_regress))
 
@@ -237,6 +296,27 @@ names(yrimm_flow_regress) <- make.names(names(yrimm_flow_regress))
 
 ## checking if flows change with year -- register
 yrimm_flow1 <- lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + t + I(t^2) + GNP_GROWTH + IMMFLOW_NATL)
+
+# original
+summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + t + I(t^2) + GNP_GROWTH + IMMFLOW_NATL))
+
+# without tax controls
+summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ POP_China + GNP_GROWTH + IMMFLOW_NATL))
+summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + factor(tax)))
+summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ POP_China + I(POP_China^2) + EMIG_TOT + IMMFLOW_NATL + factor(tax)))
+
+# with population stock instead of time and time squared
+summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + POP_China + GNP_GROWTH + IMMFLOW_NATL))
+
+# with control for total HK emigration
+summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + POP_China + IMMFLOW_NATL+ EMIG_TOT))
+
+# with linear term on tax instead of tax indicators
+summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ tax + POP_China + GNP_GROWTH + IMMFLOW_NATL+ EMIG_TOT))
+
+# with tax and tax change indicators
+summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + factor(taxchange) + POP_China + GNP_GROWTH + IMMFLOW_NATL+ EMIG_TOT))
+
 
 ## checking if flows change with year -- census
 yrimm_flow2 <- lm(data = yrimm_flow_regress, FLOW_China ~ factor(tax) + t + I(t^2) + GNP_GROWTH + FLOW_All)

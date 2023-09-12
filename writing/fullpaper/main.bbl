@@ -1,4 +1,4 @@
-\begin{thebibliography}{10}
+\begin{thebibliography}{11}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -57,6 +57,12 @@ H.~M. Postel.
 \newblock Record linkage for character-based surnames: Evidence from chinese
   exclusion.
 \newblock \emph{Explorations in Economic History}, 87:\penalty0 101493, 2023.
+
+\bibitem[Roy(1951)]{roy1951}
+A.~D. Roy.
+\newblock {Some Thoughts on the Distribution of Earnings}.
+\newblock \emph{Oxford Economic Papers}, 3\penalty0 (2):\penalty0 135--146, 06
+  1951.
 
 \bibitem[Ruggles et~al.(2021)Ruggles, Fitch, Goeken, Hacker, Nelson, Roberts,
   Schouweiler, and Sobek]{ipums}
