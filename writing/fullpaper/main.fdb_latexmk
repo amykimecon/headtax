@@ -1,12 +1,12 @@
 # Fdb version 3
-["bibtex main"] 1694443090 "main.aux" "main.bbl" "main" 1694443094
+["bibtex main"] 1695145543 "main.aux" "main.bbl" "main" 1695145543
   "../headtax.bib" 1688258961 21560 1311b3eb5703bffe58b5655efd3de696 ""
   "/usr/local/texlive/2022/texmf-dist/bibtex/bst/natbib/abbrvnat.bst" 1233624470 26532 66bed5cc59495faaa3f9ae9af9fa5e42 ""
-  "main.aux" 1694443094 9184 d1b58f2eea4f8ae90d18e283e4254b4b "pdflatex"
+  "main.aux" 1695145542 9184 5bd4b87584b76b8139b9c68a26f82480 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
-["pdflatex"] 1694443090 "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" "main.pdf" "main" 1694443094
+["pdflatex"] 1695145536 "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" "main.pdf" "main" 1695145536
   "../../figs/fig1_taxespaid.png" 1685631569 164500 dfc4fdd2681f7e17d8f62c47bb908f1e ""
   "../../figs/fig2_flow.png" 1694210168 271599 fd26673447f886d827936939584045d8 ""
   "../../figs/fig2_flow_hkemig.png" 1694214136 276132 0df5df498e8228ca3bdcf2cfae35207c ""
@@ -18,7 +18,7 @@
   "../../figs/shortpaper_figs/uscan_regs.tex" 1680458190 1407 4c391809646ca7519abee9150d040c0b ""
   "../../figs/summstats.tex" 1689430665 1366 8f0d7515dc7c36beff2de8b6fdad1166 ""
   "../preamble.sty" 1693580191 993 35c5da98c1a488f2d9296a1f47e54aa1 ""
-  "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" 1694443085 37168 d8dca413743a649fa1aba4e9325a1424 ""
+  "/Users/amykim/Documents/GitHub/headtax/writing/fullpaper/main.tex" 1695145535 37168 8cf8ee9a439f02501c0a9f0100739721 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -136,7 +136,7 @@
   "main.aux" 1694443094 9184 d1b58f2eea4f8ae90d18e283e4254b4b "pdflatex"
   "main.bbl" 1694443090 3151 6b1543974ecceedf05c998707566d498 "bibtex main"
   "main.out" 1694443094 2632 e7143f50ab0c76cbbbb747ead2aab62b "pdflatex"
-  "main.tex" 1694443085 37168 d8dca413743a649fa1aba4e9325a1424 ""
+  "main.tex" 1695145535 37168 8cf8ee9a439f02501c0a9f0100739721 ""
   (generated)
   "main.aux"
   "main.log"
