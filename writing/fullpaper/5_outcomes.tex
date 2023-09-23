@@ -1,0 +1,56 @@
+
+\section{Effects on Outcomes}
+
+\begin{table}[!h]
+    \centering 
+    \renewcommand{\arraystretch}{1.5}
+    \resizebox{\textwidth}{!}{
+    \begin{threeparttable}
+        \caption{Regression results from Equation \ref{eq:did} showing the relationship between the Chinese Head Tax and Chinese immigrant outcomes in Canada.}
+        \label{tab:outcomes}
+        \input{../../figs/outcome_regs.tex}
+        \begin{tablenotes}
+            \item $^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01
+            \item 
+            \item \textbf{Notes:} Analysis in this table uses only Canadian census data from 1901-1921. As in Table \ref{tab:immflow}, immigrants are only counted in the closest subsequent census from their year of arrival. Unlike in Table \ref{tab:immflow}, I further restrict the sample such that only immigrants who arrived after 1890 and prior to 1921 are included, which ensures that there is a maximum of 10 years between arrival and being recorded in the census (allowing for uniformity across census years of attrition bias due to outmigration). Columns (1)-(4) use all immigrants to Canada during this time period, while columns (5)-(8) restrict the sample to only Chinese and Japanese immigrants.
+        \end{tablenotes}
+    \end{threeparttable}
+    }
+\end{table}
+
+\begin{table}[!h]
+    \centering 
+    \renewcommand{\arraystretch}{1.5}
+    \resizebox{\textwidth}{!}{
+    \begin{threeparttable}
+        \caption{Regression results from Equation \ref{eq:did} showing the relationship between the Chinese Head Tax and Chinese immigrant outcomes in Canada.}
+        \label{tab:outcomes_match}
+        \input{../../figs/outcome_regs_match.tex}
+        \begin{tablenotes}
+            \item $^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01
+            \item 
+            \item \textbf{Notes:} Analysis in this table uses only Canadian census data from 1901-1921. As in Table \ref{tab:immflow}, immigrants are only counted in the closest subsequent census from their year of arrival. Unlike in Table \ref{tab:immflow}, I further restrict the sample such that only immigrants who arrived after 1890 and prior to 1921 are included, which ensures that there is a maximum of 10 years between arrival and being recorded in the census (allowing for uniformity across census years of attrition bias due to outmigration). Columns (1)-(4) use all immigrants to Canada during this time period, while columns (5)-(8) restrict the sample to only Chinese and matched immigrants.
+        \end{tablenotes}
+    \end{threeparttable}
+    }
+\end{table}
+
+I now turn to focus on the relationship between the head tax and outcomes for Chinese immigrants after arrival, estimated using the following equation: 
+\begin{equation}
+    \label{eq:did}
+    y_{it} = \delta_t + \alpha BORNCHI_i + \sum_{k \in \{100, 500\}} \gamma_k BORNCHI_i \times \mathbf{1}[TAX_t = k] + \varepsilon_{it}
+\end{equation}
+
+where $i$ indexes individuals, $t$ indexes year of immigration, $BORNCHI_i$ is an indicator for whether an individual was born in China (a proxy for being a Chinese immigrant), $TAX_t$ represents the head tax amount in year $t$, and $y_{it}$ is the outcome of interest. $\alpha$ captures the baseline effect of being a Chinese immigrant, $\delta_t$ captures year fixed effects, and $\gamma_k$ captures the effect of the \$100 and \$500 head tax, with the \$50 head tax as the omitted category.\footnote{I restrict the sample to immigrants who arrived between 1891 and 1921, thus omitting any Chinese immigrants who would have paid \$0 in taxes at the time of entry. This is because there were relatively very few Chinese immigrants who immigrated before 1885 (and paid no tax at the time of entry), especially as reported in the 1901-1921 censuses (the years which include Year of Immigration as a variable).} 
+Note that only one census (the closest census year $c$ such that $c > t$) is used to measure each year of immigration $t$, so $\delta_t$ also captures effects of the census year and the effects of the number of years since immigration. 
+
+The results of estimating Equation \ref{eq:did} for outcome variables $LABORER$ (an indicator for if person $i$'s primary occupation is laborer), $LITERATE$ (an indicator for whether person $i$ is literate), $EARNINGS$ (annual earnings), and $HOMEOWN$ (an indicator for whether person $i$ owns their own home) are displayed in Table \ref{tab:outcomes}. Columns (1)-(4) use all adult male immigrants as the sample (effectively comparing Chinese immigrants to all other immigrants), while columns (5)-(8) use only Chinese and Japanese adult male immigrants as the sample (only comparing Chinese immigrants to Japanese immigrants). 
+As described in Table \ref{tab:summstats}, and as verified in the first row of columns (1)-(4), Chinese immigrants to Canada are more likely to be a laborer and less likely to be literate than other immigrants. Additionally, they make less in annual earnings and are less likely to own their own home than other immigrants. The first row of columns (5)-(8) show, however, that Chinese immigrants are much more comparable with Japanese immigrants. In the period sampled, Chinese and Japanese immigrants to Canada are not statistically significantly different in their likelihood of being a laborer, in their annual earnings, or in their probability of owning a home, although Chinese immigrants are still less likely to be literate than Japanese immigrants. This suggests that narrowing the sample to only Chinese and Japanese immigrants may help control for conditions in Canada after arrival, as well as other underlying differences in the immigrant population.
+
+Column (1) shows that immigrating from China in a year with a higher head tax is associated with a lower likelihood of being a laborer, relative to all other immigrants. In particular, an immigrant from China who pays a \$500 head tax is 6.6 percentage points less likely to be a laborer than an immigrant from China who pays a \$50 head tax. This is suggestive of some selection effect of the head tax -- higher head taxes attract immigrants who are more skilled and can work in non-laborer positions. Another possibility, however, is that there were just fewer laborer jobs available to Chinese immigrants in the years when the head tax was higher. 
+Column (5) provides evidence against this latter explanation -- even when comparing Chinese immigrants with only Japanese immigrants, who presumably faced similar job markets, being a Chinese immigrant in a year with a higher head tax is associated with a lower probability of being a laborer, although the magnitude of the effect is smaller.
+
+Columns (2) and (6) further support the theory that higher head taxes induced more positive selection into immigration, showing that Chinese immigrants who faced higher head taxes were more likely to be able to read English, although the effect is unexpectedly stronger for the \$100 tax than for the \$500 tax. Column (3) shows a similar pattern, where Chinese immigrants who paid the \$100 head tax are likely to be earning more than those who paid the \$50 head tax, although the effect is again smaller for immigrants who paid the \$500 head tax. Once Chinese immigrants are compared with a more similar group, however, in column (7), this positive selection effect disappears and there is actually a negative effect on earnings. This suggests that whatever selection effect contributes to a lower likelihood of being a laborer is dominated by negative effect on wages. 
+One possibility is that a higher head tax reduced new immigrants' savings, potentially even inducing some immigrants to borrow and causing immigrants to be willing to accept lower wages, despite higher skills.
+
+Columns (4) and (8) support this theory, showing that there is also a significantly negative effect on home ownership. A negative effect on home ownership is a strong signal of a negative effect on wealth (especially when compared with Japanese immigrants who likely faced similar housing markets and discrimination), and this suggests that Chinese immigrants facing higher head taxes did in fact experience significant setbacks that made it harder for them to accumulate wealth and purchase homes.

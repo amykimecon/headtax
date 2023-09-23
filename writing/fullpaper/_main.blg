@@ -1,0 +1,49 @@
+This is BibTeX, Version 0.99d (TeX Live 2022)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: _main.aux
+The style file: abbrvnat.bst
+Database file #1: ../headtax.bib
+Warning--empty institution in census1911
+Warning--empty institution in census1921
+You've used 12 entries,
+            2773 wiz_defined-function locations,
+            671 strings with 6699 characters,
+and the built_in function-call counts, 4464 in all, are:
+= -- 404
+> -- 227
+< -- 11
++ -- 81
+- -- 69
+* -- 325
+:= -- 737
+add.period$ -- 40
+call.type$ -- 12
+change.case$ -- 64
+chr.to.int$ -- 12
+cite$ -- 26
+duplicate$ -- 203
+empty$ -- 363
+format.name$ -- 85
+if$ -- 906
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 4
+newline$ -- 72
+num.names$ -- 48
+pop$ -- 104
+preamble$ -- 1
+purify$ -- 47
+quote$ -- 0
+skip$ -- 157
+stack$ -- 0
+substring$ -- 109
+swap$ -- 12
+text.length$ -- 1
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 132
+warning$ -- 2
+while$ -- 41
+width$ -- 0
+write$ -- 167
+(There were 2 warnings)

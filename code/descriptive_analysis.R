@@ -22,11 +22,11 @@ if (Sys.getenv("USER") == "amykim"){
   git = "/Users/amykim/Documents/GitHub/headtax"
 }
 
-country_list <- c("Australia", "China", "France","Germany","India","Italy",
-                  "Japan","Sweden","Turkey")
-country_list_old <- c("Australia","Brazil","Chile","China", 
-                        "France","Germany","India","Italy",
-                        "Japan","Mexico","Sweden","Turkey")
+# country_list <- c("Australia", "China", "France","Germany","India","Italy",
+#                   "Japan","Sweden","Turkey")
+# country_list_old <- c("Australia","Brazil","Chile","China", 
+#                         "France","Germany","India","Italy",
+#                         "Japan","Mexico","Sweden","Turkey")
 us <- "#00BFC4"
 ht <- "#808080"
 
@@ -51,17 +51,17 @@ hk5 <- "#FFB370"
 reg_chi <- read_csv(glue("{dbox}/cleaned/chireg.csv")) %>% 
   mutate(source = "xRegister", group = "Chinese Immigrants", WEIGHT = 1, YRIMM = YEAR, YRIMM_FISCAL = FISCALYEAR,
          tax = case_when(YRIMM <= 1885 ~ 0,
-                                YRIMM <= 1900 ~ 50,
-                                YRIMM <= 1903 ~ 100,
-                                YRIMM < 1924 ~ 500))
+                                YRIMM <= 1900 ~ 1496.19,
+                                YRIMM <= 1903 ~ 2992.61,
+                                YRIMM < 1924 ~ 14115.70))
 
 ## census data
 can_imm <- read_csv(glue("{dbox}/cleaned/can_clean_imm.csv")) %>% 
   mutate(source = "CA Census", group = "All Immigrants",
          tax = case_when(YRIMM <= 1885 ~ 0,
-                         YRIMM <= 1900 ~ 50,
-                         YRIMM <= 1903 ~ 100,
-                         YRIMM < 1924 ~ 500))
+                         YRIMM <= 1900 ~ 1496.19,
+                         YRIMM <= 1903 ~ 2992.61,
+                         YRIMM < 1924 ~ 14115.70))
 #can_chi <- can_imm %>% filter(BORNCHI == 1) %>% mutate(group = "Chinese Immigrants")
 #can_jap <- can_imm %>% filter(BORNJAP == 1) %>% mutate(group = "Japanese Immigrants")
 
@@ -69,9 +69,9 @@ can_imm <- read_csv(glue("{dbox}/cleaned/can_clean_imm.csv")) %>%
 us_imm <- read_csv(glue("{dbox}/cleaned/us_clean_imm.csv")) %>% 
   mutate(source = "US Census", group = "All Immigrants", WEIGHT = 1,
          tax = case_when(YRIMM <= 1885 ~ 0,
-                         YRIMM <= 1900 ~ 50,
-                         YRIMM <= 1903 ~ 100,
-                         YRIMM < 1924 ~ 500))
+                         YRIMM <= 1900 ~ 1496.19,
+                         YRIMM <= 1903 ~ 2992.61,
+                         YRIMM < 1924 ~ 14115.70))
 us_chi <- us_imm %>% filter(BORNCHI == 1) %>% mutate(group = "Chinese Immigrants")
 us_jap <- us_imm %>% filter(BORNJAP == 1) %>% mutate(group = "Japanese Immigrants")
 
@@ -90,7 +90,7 @@ immflow_nber <- read_csv(glue("{dbox}/raw/immflow_nber.csv")) %>%
 
 ## interpolated population stock (canada)
 popstock <- read_csv(glue("{dbox}/cleaned/popstock_can.csv")) %>% 
-  filter(INTERP == "spline" & BPL %in% c(country_list, "ForeignBorn", "Canada")) %>%
+  filter(INTERP == "spline") %>%
   rename(CANPOP = POP, CANPOP_INTERP = INTERP)
 
 ## chinese emigration from HK (canada and total)
@@ -109,24 +109,45 @@ chinapop <- read_csv(glue("{dbox}/raw/CHINAPOP.csv")) %>%
   filter(Year < 1930 & Year > 1870)
 
 ## maddison population and gdp per capita data
-maddison_data <- read_csv(glue("{dbox}/raw/maddison_population.csv")) %>%
-  mutate(Country = case_when(Country == "South Africa" ~ "SAfrica",
-                             str_detect(Country, "Indonesia") ~ "Indonesia",
-                             str_detect(Country, "Russia") ~ "Russia",
-                             Country == "New Zealand" ~ "NZ",
-                             Country == "United States" ~ "US",
-                             Country == "United Kingdom" ~ "UK",
-                             TRUE ~ Country)) %>%
-  filter(Country %in% country_list) %>%
+maddison_pop <- read_csv(glue("{dbox}/raw/maddison_population.csv")) %>%
   pivot_longer(-Country, names_to = "Year", values_to = "POP") %>%
-  mutate(POP = POP*1000) %>%
-  left_join(read_csv(glue("{dbox}/raw/maddison_gdppercapita.csv")) %>%
-              pivot_longer(-Country, names_to = "Year", values_to = "GDPPERCAP")) %>%
-  pivot_wider(id_cols = Year, names_from = "Country", names_sep = "_", values_from = c(POP, GDPPERCAP)) %>%
+  filter(!str_detect(Year, "^\\.")) %>%
+  mutate(POP = ifelse(POP == 0, NA, POP*1000)) %>%
+  pivot_wider(id_cols = Year, names_from = "Country", names_glue = "POP_{Country}", values_from = c(POP)) %>%
   purrr::discard(~length(.x)-sum(is.na(.x)) < 2) %>%
   mutate(across(-Year, function(.x) spline(Year, .x, method = "natural", xout = Year)$y, .names = "INTERP_{.col}")) %>%
-  left_join(chinapop %>% mutate(Year = as.character(Year)) %>% select(c(Year, Guangdong_POP_interp))) %>%
-  mutate(INTERP_POP_Guangdong = Guangdong_POP_interp*1000000) %>% select(-Guangdong_POP_interp)
+  mutate(INTERP_POP_EIndies = `INTERP_POP_Indonesia (including Timor until 1999)` + INTERP_POP_Philippines + INTERP_POP_Malaysia + INTERP_POP_Burma + INTERP_POP_Singapore + `INTERP_POP_Sri Lanka`, 
+         INTERP_POP_UK = `INTERP_POP_United Kingdom` + INTERP_POP_Ireland,
+         INTERP_POP_AustriaHungary = INTERP_POP_Austria + INTERP_POP_Hungary,
+         INTERP_POP_WIndies = INTERP_POP_Haiti + INTERP_POP_Jamaica + `INTERP_POP_Dominican Republic` + INTERP_POP_Cuba + `INTERP_POP_Trinidad and Tobago`,
+         .keep = "unused") %>%
+  rename(INTERP_POP_NZ = `INTERP_POP_New Zealand`,
+         INTERP_POP_SAfrica = `INTERP_POP_South Africa`,
+         INTERP_POP_Russia = INTERP_POP_USSR,
+         INTERP_POP_US = `INTERP_POP_United States`) %>%
+  select(c(Year, starts_with("INTERP_POP")))  
+
+maddison_gdp <- read_csv(glue("{dbox}/raw/maddison_gdp.csv")) %>%
+  pivot_longer(-Country, names_to = "Year", values_to = "GDP") %>%
+  filter(!str_detect(Year, "^\\.")) %>%
+  mutate(GDP = ifelse(GDP == 0, NA, GDP*1000000)) %>%
+  pivot_wider(id_cols = Year, names_from = "Country", names_glue = "GDP_{Country}", values_from = c(GDP)) %>%
+  purrr::discard(~length(.x)-sum(is.na(.x)) < 2) %>%
+  mutate(across(-Year, function(.x) spline(Year, .x, method = "natural", xout = Year)$y, .names = "INTERP_{.col}")) %>%
+  mutate(INTERP_GDP_EIndies = `INTERP_GDP_Indonesia (including Timor until 1999)` + INTERP_GDP_Philippines + INTERP_GDP_Malaysia + INTERP_GDP_Burma + INTERP_GDP_Singapore + `INTERP_GDP_Sri Lanka`, 
+         INTERP_GDP_UK = `INTERP_GDP_United Kingdom` + INTERP_GDP_Ireland,
+         INTERP_GDP_AustriaHungary = INTERP_GDP_Austria + INTERP_GDP_Hungary,
+         INTERP_GDP_WIndies = INTERP_GDP_Haiti + INTERP_GDP_Jamaica + INTERP_GDP_Cuba,
+         .keep = "unused") %>%
+  rename(INTERP_GDP_NZ = `INTERP_GDP_New Zealand`,
+         INTERP_GDP_SAfrica = `INTERP_GDP_South Africa`,
+         INTERP_GDP_Russia = INTERP_GDP_USSR,
+         INTERP_GDP_US = `INTERP_GDP_United States`) %>%
+  select(c(Year, starts_with("INTERP_GDP")))
+
+maddison_data <- maddison_pop %>% full_join(maddison_gdp) %>%
+  left_join(chinapop %>% select(c(Year, Guangdong_POP_interp)) %>% mutate(Year = as.character(Year))) %>%
+  mutate(INTERP_POP_Guangdong = Guangdong_POP_interp*1000000, .keep = "unused")
 
 ## wid.world inequality data
 wid_data_raw <- read_delim(glue("{dbox}/raw/WID/wid_inequality_raw.csv"), delim = ";", skip = 1)
@@ -138,7 +159,7 @@ newnames <- str_extract(names(wid_data_raw), "^.+[A-Z]{2}")[3:length(names(wid_d
   str_replace("IT", "Italy") %>% str_replace("CL", "Chile") %>% str_replace("BR", "Brazil") %>% 
   str_replace("MX", "Mexico") %>% str_replace("TR", "Turkey") %>% str_replace("AU", "Australia") %>% 
   str_replace("AT", "Austria") %>% str_replace("CA", "Canada") %>% str_replace("GB", "UK") %>%
-  str_replace("ID", "Indonesia") %>% str_replace("ES", "Spain") %>% str_replace("ZA", "SAfrica") %>%
+  str_replace("ID", "EIndies") %>% str_replace("ES", "Spain") %>% str_replace("ZA", "SAfrica") %>%
   str_replace("RU", "Russia") %>% str_replace("HU", "Hungary") %>%
   str_replace("CO", "Colombia") %>% str_replace("AR", "Argentina") %>% str_replace("DZ", "Algeria") %>%
   str_replace("EG", "Egypt") %>%
@@ -148,18 +169,7 @@ wid_data <- wid_data_raw %>% filter(Percentile == "p0p50") %>% #taking bottom 50
   select(c("Year", starts_with("INCSHARE50PCT"))) %>%
   purrr::discard(~length(.x)-sum(is.na(.x)) < 2) %>%
   mutate(across(-Year, function(.x) spline(Year, .x, method = "natural", xout = Year)$y, .names = "INTERP_{.col}"))
-  
-########################################################################
-### QUICK ACCOUNTING EXERICSE: OUTMIGRATION IN CANADA
-########################################################################
-chipop_census <- can_chi %>% group_by(YEAR) %>% summarize(pop = sum(WEIGHT))
-chipop_reg <- reg_chi %>% filter(YEAR_ARRIV < 1921 & YEAR_ARRIV >= 1901) %>%
-  mutate(YEAR_GRP = case_when(YEAR_ARRIV < 1911 ~ "1901-1911",
-                                                      YEAR_ARRIV < 1921 ~ "1911-1921")) %>%
-  group_by(YEAR_GRP) %>% summarize(inflow = n())
 
-chipop_grp <- chipop_reg %>% mutate(CENSUSDIFF = diff(chipop_census$pop),
-                                    outflow = inflow - CENSUSDIFF)
 ########################################################################
 ### TABLE 1: SUMMARY STATS BY DATA SOURCE & GROUP (1900-1920)
 ########################################################################
@@ -243,7 +253,7 @@ yrimm_flow_graph <- rbind(yrimm_reg %>% mutate(FLOW = CHIFLOW_REGISTER/1000, var
                             select(c(YRIMM, FLOW, variable)),
                           immflow %>% mutate(YRIMM = Year, FLOW = IMMFLOW_NATL/50000, variable = "All Immigrants") %>%
                             select(c(YRIMM, FLOW, variable))) %>%
-  filter(YRIMM >= 1880 & YRIMM <= 1930)
+  filter(YRIMM >= 1886 & YRIMM <= 1930)
 
 ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
   scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c2,c4)) +
@@ -261,6 +271,25 @@ ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linet
 
 
 ggsave(glue("{git}/figs/fig2_flow.png"), height = 4, width = 7)
+
+# census data
+yrimm_flow_census_graph <- rbind(yrimm_census %>% filter(BPL == "China") %>% 
+                                   mutate(FLOW = FLOW/1000, variable = "Chinese Immigrants") %>%
+                                   select(c(YRIMM, FLOW, variable)),
+                                 yrimm_census %>% ungroup() %>% group_by(YRIMM) %>% summarize(FLOW = sum(FLOW)) %>% 
+                                   mutate(FLOW = FLOW/50000, variable = "All Immigrants") %>%
+                                   select(c(YRIMM, FLOW, variable))) %>%
+  filter(YRIMM >= 1880 & YRIMM <= 1920)
+
+ggplot(data = yrimm_flow_census_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
+  scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c2,c4)) +
+  scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(2, 1)) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = yrs, y = 3, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+  scale_y_continuous("Chinese Immigrant Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
+  labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
+
+ggsave(glue("{git}/figs/fig2_census_flow.png"), height = 4, width = 7)
 
 ## chinese emigration to canada and total
 yrem_flow_graph <- hk_departure %>% filter(YEAR > 1880) %>% mutate(EMIG_CA = EMIG_CA/1000, EMIG_TOT = EMIG_TOT/10000) %>%
@@ -298,20 +327,24 @@ ggsave(glue("{git}/figs/fig2_flow_immandem.png"), height = 4, width = 7)
 ########################################################################
 #first combining all long datasets, then normalizing flow and popstock by source country pop,
 # then pivoting wide and adding single country datasets
-flow_regress <- yrimm_census %>% ungroup() %>% select(-c(YEAR,tax)) %>% #census data (flows)
+flow_regress <- yrimm_census %>% group_by(BPL) %>% mutate(n = n()) %>% filter(n > 5) %>% # at least five years of nonzero imm
+  ungroup() %>% select(-c(YEAR,tax,n)) %>% #census data (flows)
   full_join(popstock, by = c("YRIMM"="YEAR", "BPL")) %>% #population stocks
-  full_join(maddison_data %>% mutate(Year = as.double(Year)) %>% #source country population and gdp per capita data
-              left_join(wid_data) %>% #source country inequality data
+  inner_join(maddison_data %>% mutate(Year = as.double(Year)) %>% #source country population and gdp per capita data
+              inner_join(wid_data) %>% #source country inequality data
             pivot_longer(-Year, names_to = c(".value", "BPL"), names_pattern = "(.*)_([A-z]+)$"),
             by = c("YRIMM" = "Year", "BPL")) %>%
   group_by(BPL) %>% arrange(YRIMM) %>%
-  mutate(FLOW = ifelse(is.na(FLOW) & cumprod(is.na(FLOW)) != 1, min(FLOW, na.rm=TRUE), FLOW),
+  mutate(#FLOW = ifelse(is.na(FLOW) & cumprod(is.na(FLOW)) != 1, min(FLOW, na.rm=TRUE), FLOW),
          logFLOWOVERPOP = log(FLOW/INTERP_POP), #dividing flows and stocks by source country population
-         POPSTOCK = lag(CANPOP)/INTERP_POP) %>%
+         POPSTOCK = lag(CANPOP),
+         POPSTOCKOVERPOP = POPSTOCK/INTERP_POP,
+         INTERP_GDPPERCAP = INTERP_GDP/INTERP_POP) %>%
   pivot_wider(id_cols = c(YRIMM), names_from = BPL,
               values_from = c(FLOW, CANPOP, INTERP_POP, INTERP_GDPPERCAP, INTERP_INCSHARE50PCT, logFLOWOVERPOP, POPSTOCK)) %>%
   left_join(yrimm_reg) %>% #register data
   left_join(immflow, by = c("YRIMM" = "Year")) %>% #total immigration inflow into canada
+  left_join(yrimm_census %>% ungroup() %>% group_by(YRIMM) %>% summarize(IMMFLOW_CENSUS = sum(FLOW))) %>%
   left_join(hk_departure, by = c("YRIMM" = "YEAR")) %>% #total emigration outflow from hong kong
   left_join(popstock %>% filter(BPL == "ForeignBorn") %>% rename(IMMPOP = CANPOP) %>% select(c(YEAR, IMMPOP)), by = c("YRIMM" = "YEAR")) %>%
   mutate(across(starts_with("INTERP_GDPPERCAP"), ~ .x/INTERP_GDPPERCAP_Canada, .names = "REL_{.col}"),
@@ -321,208 +354,132 @@ flow_regress <- yrimm_census %>% ungroup() %>% select(-c(YEAR,tax)) %>% #census 
          REGFLOWOVERPOP_China = CHIFLOW_REGISTER/INTERP_POP_China,
          logREGFLOWOVERPOP_China = log(REGFLOWOVERPOP_China),
          tax = case_when(YRIMM <= 1885 ~ 0,
-                         YRIMM <= 1900 ~ 50,
-                         YRIMM <= 1903 ~ 100,
-                         YRIMM < 1924 ~ 500),
-         twoyearpost = case_when(YRIMM %in% c(1886, 1887) ~ "post50",
+                         YRIMM <= 1900 ~ 1496.19,
+                         YRIMM <= 1903 ~ 2992.61,
+                         YRIMM < 1924 ~ 14115.70),
+         twoyearpost = case_when(YRIMM %in% c(1886, 1887) ~ "_post50",
                                  YRIMM %in% c(1901,1902) ~ "post100",
                                  YRIMM %in% c(1904,1905) ~ "post500",
-                                 TRUE ~ "notpost"))
-ggplot(flow_regress, aes(x = YRIMM, y = logFLOWOVERPOP_China)) + geom_line()
+                                 TRUE ~ "_notpost"),
+         oneyearpost = case_when(YRIMM == 1886 ~ "_post50",
+                                 YRIMM == 1901 ~ "post100",
+                                 YRIMM == 1904 ~ "post500",
+                                 TRUE ~ "_notpost"))
+
+ggplot(flow_regress, aes(x = YRIMM, y = FLOW_China)) + geom_line()
+
 ## REGRESSIONS V1: CHINA ONLY
 toggle = "display"
 #toggle = "output"
 
-# using census flows (maybe don't need here?)
-flowreg1 <- lm(data = flow_regress %>% filter(YRIMM > 1870 & YRIMM < 1921), logFLOWOVERPOP_China ~ factor(tax) + POPSTOCK_China + I(POPSTOCK_China^2) 
-               + REL_INTERP_GDPPERCAP_China + REL_INTERP_INCSHARE50PCT_China + I(REL_INTERP_INCSHARE50PCT_China^2))
-# flowreg1 <- lm(data = flow_regress %>% filter(YRIMM > 1870 & YRIMM < 1923), logFLOWOVERPOP_China ~ EMIGOVERPOP + IMMOVERPOP + factor(tax) + POPSTOCK_China + I(POPSTOCK_China^2) 
-#                + REL_INTERP_GDPPERCAP_China + REL_INTERP_INCSHARE50PCT_China + I(REL_INTERP_INCSHARE50PCT_China^2))
-
-
 # using register flows
-# just imm/em and popstock
-flowreg2 <- lm(data = flow_regress %>% filter(YRIMM > 1885 & YRIMM < 1923), logREGFLOWOVERPOP_China ~ EMIGOVERPOP + IMMOVERPOP + factor(tax) + POPSTOCK_China + I(POPSTOCK_China^2))
-# cont tax instead of factor
-flowreg3 <- lm(data = flow_regress %>% filter(YRIMM > 1885 & YRIMM < 1923), logREGFLOWOVERPOP_China ~ EMIGOVERPOP + IMMOVERPOP + tax + POPSTOCK_China + I(POPSTOCK_China^2))
-# add rel income (maybe exclude this one)
-flowreg4 <- lm(data = flow_regress %>% filter(YRIMM > 1885 & YRIMM < 1923), logREGFLOWOVERPOP_China ~ EMIGOVERPOP + IMMOVERPOP + factor(tax) + POPSTOCK_China + I(POPSTOCK_China^2) + REL_INTERP_GDPPERCAP_China)
-# add rel ineq and rel ineq sq.
-flowreg5 <- lm(data = flow_regress %>% filter(YRIMM > 1885 & YRIMM < 1923), logREGFLOWOVERPOP_China ~ EMIGOVERPOP + IMMOVERPOP + factor(tax) + POPSTOCK_China + I(POPSTOCK_China^2) 
-               + REL_INTERP_GDPPERCAP_China + REL_INTERP_INCSHARE50PCT_China + I(REL_INTERP_INCSHARE50PCT_China^2))
-# everything but imm/em flows
-flowreg6 <- lm(data = flow_regress %>% filter(YRIMM > 1885 & YRIMM < 1923), logREGFLOWOVERPOP_China ~ factor(tax) + POPSTOCK_China + I(POPSTOCK_China^2) 
-               + REL_INTERP_GDPPERCAP_China + REL_INTERP_INCSHARE50PCT_China + I(REL_INTERP_INCSHARE50PCT_China^2))
+# equation 1: controls for imm, emm, popstock, and tax
+flowreg1 <- lm(data = flow_regress %>% filter(YRIMM > 1885 & YRIMM < 1924), 
+               CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + factor(tax) + POPSTOCK_China + I(POPSTOCK_China^2))
 
+# using controls for 2yr drops only
+flowreg2 <- lm(data = flow_regress %>% filter(YRIMM > 1885 & YRIMM < 1924) %>% mutate(twoyearpost = ifelse(twoyearpost == "_post50", "_notpost", twoyearpost)), 
+               CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + factor(twoyearpost) + POPSTOCK_China + I(POPSTOCK_China^2))
+
+# controls for both
+flowreg2b <- lm(data = flow_regress %>% filter(YRIMM > 1885 & YRIMM < 1924) %>% mutate(twoyearpost = ifelse(twoyearpost == "_post50", "_notpost", twoyearpost)), 
+               CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + factor(tax) +  factor(twoyearpost) + POPSTOCK_China + I(POPSTOCK_China^2))
+
+# using census flows
+# equation 1: controls for imm, emm, popstock, and tax
+flowcensus1 <- lm(data = flow_regress %>% filter(YRIMM > 1879 & YRIMM < 1921), 
+               FLOW_China ~ EMIG_TOT + IMMFLOW_CENSUS + factor(tax) + POPSTOCK_China + I(POPSTOCK_China^2))
+
+# using controls for 2yr drops only
+flowcensus2 <- lm(data = flow_regress %>% filter(YRIMM > 1879 & YRIMM < 1921), 
+               FLOW_China ~ EMIG_TOT + IMMFLOW_CENSUS + factor(twoyearpost) + POPSTOCK_China + I(POPSTOCK_China^2))
+
+# controls for both
+flowcensus2b <- lm(data = flow_regress %>% filter(YRIMM > 1879 & YRIMM < 1921), 
+                FLOW_China ~ EMIG_TOT + IMMFLOW_CENSUS + factor(tax) +  factor(twoyearpost) + POPSTOCK_China + I(POPSTOCK_China^2))
+
+# sub log flow over pop
+flowcensus3 <- lm(data = flow_regress %>% filter(YRIMM > 1879 & YRIMM < 1921), 
+               logFLOWOVERPOP_China ~ IMMFLOW_CENSUS + factor(tax) +  POPSTOCK_China + I(POPSTOCK_China^2))
 
 if (toggle == "display"){
   print(summary(flowreg1))
   print(summary(flowreg2))
-  print(summary(flowreg3))
-  print(summary(flowreg4))
-  print(summary(flowreg5))
-  print(summary(flowreg6))
+  print(summary(flowreg2b))
+  print(summary(flowcensus1))
+  print(summary(flowcensus2))
+  print(summary(flowcensus2b))
+  print(summary(flowcensus3))
 }
 
-## REGRESSIONS V2: All countries
-flow_regress_long <- flow_regress %>% select(-c(starts_with("FLOW"), starts_with("CANPOP"), starts_with("INTERP_POP"),
-                                                starts_with("INTERP_GDPPERCAP"), starts_with("INTERP_INCSHARE50PCT"))) %>%
-  pivot_longer(c(starts_with("logFLOWOVERPOP"), starts_with("REL_INTERP"), starts_with("POPSTOCK")),
-               names_to = c(".value", "BPL"), names_pattern = "(.*)_([A-z]+)$") %>%
-  filter(BPL != "Canada" & BPL != "ForeignBorn") %>%
-  dummy_cols(select_columns = c("BPL", "tax")) %>%
-  mutate(across(starts_with("BPL_"), ~.x*tax_50, .names = "{.col}_tax_50"),
-         across(starts_with("BPL_"), ~.x*tax_100, .names = "{.col}_tax_100"),
-         across(starts_with("BPL_"), ~.x*tax_500, .names = "{.col}_tax_500"))
-ggplot(flow_regress_long %>% filter(YRIMM > 1870 & YRIMM < 1920), aes(x = YRIMM, y = logFLOWOVERPOP)) + geom_line() + facet_wrap("BPL")
+reg_mean = round(mean(filter(flow_regress, YRIMM > 1885 & YRIMM < 1924)$CHIFLOW_REGISTER), 1)
+reg_se = round(sd(filter(flow_regress, YRIMM > 1885 & YRIMM < 1924)$CHIFLOW_REGISTER)/sqrt(1923-1886),1)
+census_mean = round(mean(filter(flow_regress, YRIMM >= 1880 & YRIMM < 1921)$FLOW_China),1)
+census_se = round(sd(filter(flow_regress, YRIMM >= 1880 & YRIMM < 1921)$FLOW_China)/sqrt(1920-1880),1)
 
-interact_str <- paste0(glue_collapse(glue("BPL_{country_list}_tax_50"), sep = "+"), "+",
-                       glue_collapse(glue("BPL_{country_list}_tax_100"), sep = "+"), "+",
-                       glue_collapse(glue("BPL_{country_list}_tax_500"), sep = "+"))
-
-# not interacting BPL and tax
-flowregall1 <- lm(data = flow_regress_long %>% filter(YRIMM > 1880 & YRIMM < 1921), logFLOWOVERPOP ~ factor(tax) + factor(BPL) + IMMOVERPOP +
-                    POPSTOCK + I(POPSTOCK^2) + REL_INTERP_GDPPERCAP + REL_INTERP_INCSHARE50PCT + I(REL_INTERP_INCSHARE50PCT^2))
-
-# including BPL dummies and tax x BPL dummies (not tax dummies)
-flowregall2 <- lm(data = flow_regress_long %>% filter(YRIMM > 1880 & YRIMM < 1921), 
-                  paste0("logFLOWOVERPOP ~ factor(BPL) + POPSTOCK + I(POPSTOCK^2) + IMMOVERPOP + REL_INTERP_GDPPERCAP + REL_INTERP_INCSHARE50PCT + 
-                         I(REL_INTERP_INCSHARE50PCT^2) +", interact_str))
-
-# no controls for tax
-flowregall_base <- lm(data = flow_regress_long %>% filter(YRIMM > 1880 & YRIMM < 1921), logFLOWOVERPOP ~ factor(BPL) + 
-                        POPSTOCK + I(POPSTOCK^2) + IMMOVERPOP + REL_INTERP_GDPPERCAP + REL_INTERP_INCSHARE50PCT + I(REL_INTERP_INCSHARE50PCT^2),
-                      na.action = na.exclude)
-  
-if (toggle == "display"){
-  print(summary(flowregall1))
-  print(summary(flowregall2))
-  print(summary(flowregall_base))
-}
-
-flow_regress_out <- flowregall_base$model %>% mutate(PRED = flowregall_base$residuals)
-#ggplot(flow_regress_out, aes(x = Y))
-
-## base model: includes quadratic time trend, gnp growth, census imm reg uses total census imm
-
-## checking if flows change with year -- register
-yrimm_flow1 <- lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + t + I(t^2) + GNP_GROWTH + IMMFLOW_NATL)
-
-# original
-summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + t + I(t^2) + GNP_GROWTH + IMMFLOW_NATL))
-
-# without tax controls
-summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ POP_China + GNP_GROWTH + IMMFLOW_NATL))
-summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + factor(tax)))
-summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ POP_China + I(POP_China^2) + EMIG_TOT + IMMFLOW_NATL + factor(tax)))
-
-# with population stock instead of time and time squared
-summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + POP_China + GNP_GROWTH + IMMFLOW_NATL))
-
-# with control for total HK emigration
-summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + POP_China + IMMFLOW_NATL+ EMIG_TOT))
-
-# with linear term on tax instead of tax indicators
-summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ tax + POP_China + GNP_GROWTH + IMMFLOW_NATL+ EMIG_TOT))
-
-# with tax and tax change indicators
-summary(lm(data = yrimm_flow_regress %>% filter(YRIMM > 1885), CHIFLOW_REGISTER ~ factor(tax) + factor(taxchange) + POP_China + GNP_GROWTH + IMMFLOW_NATL+ EMIG_TOT))
-
-
-## checking if flows change with year -- census
-yrimm_flow2 <- lm(data = yrimm_flow_regress, FLOW_China ~ factor(tax) + t + I(t^2) + GNP_GROWTH + FLOW_All)
-
-## checking if flows change with year -- japanese (census)
-yrimm_flow3 <- lm(data = yrimm_flow_regress, FLOW_Japan ~ factor(tax) + t + I(t^2) +  GNP_GROWTH + FLOW_All)
+flowreg_stats = c(rep(glue("{reg_mean} ({reg_se})"),3),rep(glue("{census_mean} ({census_se})"),3))
+flowreg_means = c(rep(glue("{reg_mean}"),3),rep(glue("{census_mean}"),3))
+flowreg_ses = c(rep(glue("({reg_se})"),3),rep(glue("({census_se})"),3))
 
 ## output
-stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3,
+stargazer(flowreg1, flowreg2, flowreg2b, flowcensus1, flowcensus2, flowcensus2b,
           out = glue("{git}/figs/immflow_regs.tex"), 
-          float = FALSE, 
+          float = FALSE,
+          digits = 2,
           intercept.bottom = FALSE,
           keep.stat=c("n","adj.rsq"),
-          column.labels = c("Chinese Register", "Canadian Census", "Canadian Census"),
-          column.separate = c(1,1,1),
-          dep.var.labels = c("Chinese Imm. Inflow", "Chinese Imm. Inflow", "Japanese Imm. Inflow"),
-          keep = c(2:4),
-          covariate.labels = c("\\$50 Tax", "\\$100 Tax", "\\$500 Tax"),
-          add.lines = list(c("Time Trends", "Yes", "Yes", "Yes"), c("Ctrl. for Tot. Imm.", "Yes", "Yes", "Yes"), c("Ctrl. for Lagged Real GNP", "Yes", "Yes", "Yes")))
+          dep.var.caption = "Dependent Variable: $FLOW_{China, t}$",
+          dep.var.labels.include = FALSE,
+          column.labels = c("Chinese Register (1886-1923)", "Canadian Census (1880-1920)"),
+          column.separate = c(3,3),
+          keep = "^factor",
+          covariate.labels = c("$\\gamma_{50}$ (\\$50 Tax)", "$\\gamma_{100}$ (\\$100 Tax)", "$\\gamma_{500}$ (\\$500 Tax)",
+                               "$\\gamma_{50}^{2YR}$ (2 Yr $\\times$ \\$50 Tax)", "$\\gamma_{100}^{2YR}$ (2 Yr $\\times$ \\$100 Tax)", 
+                               "$\\gamma_{500}^{2YR}$ (2 Yr $\\times$ \\$500 Tax)"),
+          add.lines = list(c("Dep. Var. Mean (SE)", flowreg_means),c("", flowreg_ses)),
+          table.layout = "=lc#-t-as=")
 
-## checking if flows change with year -- census [pre 1908]
-yrimm_flow4 <- lm(data = yrimm_flow_regress %>% filter(YRIMM < 1908), FLOW_China ~ factor(tax) + t + I(t^2) + GNP_GROWTH + FLOW_All)
-
-## checking if flows change with year -- japanese (census)
-yrimm_flow5 <- lm(data = yrimm_flow_regress %>% filter(YRIMM < 1908), JAPFLOW_CENSUS ~ factor(tax) + t + I(t^2) +  GNP_GROWTH + IMMFLOW_CENSUS)
-
-stargazer(yrimm_flow1, yrimm_flow2, yrimm_flow3, yrimm_flow4, yrimm_flow5,
-          out = glue("{git}/figs/21jul23/immflow_regs.tex"), 
-          float = FALSE, 
-          intercept.bottom = FALSE,
-          keep.stat=c("n","adj.rsq"),
-          dep.var.labels = c("$CHIFLOW^R$ (Register)", "$CHIFLOW^C$ (Census)", "$JAPANFLOW^C$ (Census)","$CHIFLOW^C$ (Pre-1908)", "$JAPANFLOW^C$ (Pre-1908)"),
-          keep = c(2:4),
-          covariate.labels = c("\\$50 Tax", "\\$100 Tax", "\\$500 Tax"))
-
-## aug 8 regressions
-# reg_countries <- c("Germany", "France", "Italy", "Netherlands", "Norway", "Denmark", "Australia and NZ", "Switzerland", "Spain", "Poland", "Sweden",
-#                "Austria and Hungary", "Greece", "Russia", "Belgium", "China", "Japan", "India", "Iceland", "Chile", "Romania",
-#                "West Indies", "Bermuda", "Mexico", "Finland", "Portugal", "East Indies", "Turkey", "Brazil") %>%
-#   make.names()
-
-reg_countries <- c("India", "Belgium", "Australia.and.NZ", "France", "Poland", "Russia", "Italy", "Denmark", "Norway", "Germany",
-                   "Switzerland", "Sweden", "West.Indies", "Austria.and.Hungary", "Finland" ,"China",  "Japan")%>%
-  make.names()
+## REGRESSIONS V2: All countries
+reg_countries <- filter(yrimm_census %>% filter(YRIMM >= 1880 & YRIMM < 1921 & BPL != "Other" & BPL != "Unknown" & BPL != "Iceland") %>% group_by(BPL) %>% summarize(n=n()), n > 20)$BPL
 graph_country_regs <- list()
 i = 1
 for (country in reg_countries){
-  shiftcoef = -0.3 + (i-1)*(0.6/length(reg_countries))
-  #reg <- lm(data = yrimm_flow_regress, glue("FLOW_{country} ~ factor(tax) + t + I(t^2) + GNP_GROWTH + FLOW_All"))
-  reg <- lm(data = yrimm_flow_regress, glue("FLOW_{country} ~ factor(tax) + POP_{country} + GNP_GROWTH + FLOW_All"))
-  print(country)
-  print(summary(reg))
+  shiftcoef = -0.4 + (i-1)*(0.8/length(reg_countries))
+  flow_regress_filt <-  filter(flow_regress, YRIMM >= 1880 & YRIMM < 1921)
+  flow_regress_filt <- flow_regress_filt[which(!is.na(flow_regress_filt[[glue("logFLOWOVERPOP_{country}")]])),]
+  reg <- lm(data = flow_regress_filt, glue("logFLOWOVERPOP_{country} ~ IMMFLOW_CENSUS + factor(tax) +  POPSTOCK_{country} + I(POPSTOCK_{country}^2)"))
   regcoef <- summary(reg)$coefficients
   taxrows <- which(str_detect(rownames(regcoef),"factor\\(tax\\)"))
   out <- as.data.frame(summary(reg)$coefficients[taxrows,1:2]) 
   graph_country_regs[[i]] <- out %>% 
-    mutate(tax = rownames(regcoef)[taxrows], meanimm = mean(yrimm_flow_regress[[glue("FLOW_{country}")]], na.rm=TRUE),
+    mutate(tax = rownames(regcoef)[taxrows], meanimm = mean(flow_regress_filt[[glue("FLOW_{country}")]], na.rm=TRUE),
            country = country, shift = shiftcoef)
   i = i + 1
 }
-minyear = min(filter(yrimm_flow_regress, !is.na(FLOW_China))$YRIMM)
-maxyear = max(filter(yrimm_flow_regress, !is.na(FLOW_China))$YRIMM)
 graph_countries <- bind_rows(graph_country_regs) %>%
-  mutate(est_scale = asinh(Estimate/meanimm),
-         stderr_scale = asinh(`Std. Error`/meanimm),
-         est_lb = est_scale - 1.96*stderr_scale,
-         est_ub = est_scale + 1.96*stderr_scale) %>%
+  mutate(est_lb = Estimate - 1.96*`Std. Error`,
+         est_ub = Estimate + 1.96*`Std. Error`) %>%
   group_by(tax) %>% 
-  arrange(desc(est_scale), .by_group = TRUE) %>%
+  arrange(desc(Estimate), .by_group = TRUE) %>%
   mutate(row = row_number(),
-         shift = -0.3 + (row-1)*(0.6/max(row)),
-         taxyear = case_when(tax == "factor(tax)50" ~ 1 + shift,
-                             tax == "factor(tax)100" ~ 2 + shift,
-                             tax == "factor(tax)500" ~ 3 + shift))
-         # taxyear = case_when(tax == "factor(tax)0" ~ minyear + (1885-minyear)/2,
-         #                     tax == "factor(tax)50" ~ 1885 + (1900-1885)/2,
-         #                     tax == "factor(tax)100" ~ 1900 + (1903-1900)/2,
-         #                     tax == "factor(tax)500" ~ 1903 + (maxyear-1903)/2))
+         shift = -0.4 + (row-1)*(0.8/max(row)),
+         taxyear = case_when(tax == "factor(tax)1496.19" ~ 1 + shift,
+                             tax == "factor(tax)2992.61" ~ 2 + shift,
+                             tax == "factor(tax)14115.7" ~ 3 + shift))
 
-ggplot(graph_countries %>% filter(country != "China" & country != "Japan" & country != "India"), aes(x = taxyear, y = est_scale, group = country, color = 'other')) + geom_point() +
-  geom_errorbar(aes(min = est_lb, max = est_ub), width = 0.1, color = "grey") +
-  geom_point(data = graph_countries %>% filter(country == "Japan"), aes(x = taxyear, y = est_scale, color = "japan")) +
-  geom_errorbar(data = graph_countries %>% filter(country == "Japan"), aes(min = est_lb, max = est_ub), width = 0.1, color = "orange") +
-  geom_point(data = graph_countries %>% filter(country == "India"), aes(x = taxyear, y = est_scale, color = "india")) +
-  geom_errorbar(data = graph_countries %>% filter(country == "India"), aes(min = est_lb, max = est_ub), width = 0.1, color = "green") +
-  geom_point(data = graph_countries %>% filter(country == "China"), aes(x = taxyear, y = est_scale, color = 'china')) +
-  geom_errorbar(data = graph_countries %>% filter(country == "China"), aes(min = est_lb, max = est_ub), width = 0.1, color = "red") + 
-  scale_x_continuous("", breaks = c(1,2,3), labels = c("1"="$50 Head Tax","2"="$100 Head Tax","3"="$500 Head Tax")) +
-  labs(y = "Coefficient (Scaled by Mean Imm. Inflow)") + 
-  scale_color_manual(name = "Country", breaks = c('other', 'china','japan','india'),
-                     values = c('other' = 'grey', 'china'='red','japan'='orange','india'='green')) +
-  ggtitle("Inflow Regression Coefficients by Country (1880-1910)")
+ggplot(graph_countries, aes(x = taxyear, y = Estimate, color = "Other")) + 
+  geom_errorbar(aes(min = est_lb, max = est_ub, color = 'Other'), width = 0.05) + geom_point() +
+  geom_errorbar(data = graph_countries %>% filter(country == "China"), aes(min = est_lb, max = est_ub, color = 'China'), width = 0.05) + 
+  geom_point(data = graph_countries %>% filter(country == "China"), aes(x = taxyear, y = Estimate, color = 'China')) +
+  scale_x_continuous("", breaks = c(1,2,3), labels = c("1"= expression(paste("$50 Head Tax (",gamma[50] ^c, ")")),
+                                                       "2"= expression(paste("$100 Head Tax (",gamma[100] ^c, ")")),
+                                                       "3"= expression(paste("$500 Head Tax (",gamma[500] ^c, ")")))) +
+  labs(y = expression(paste("Estimated Effect of Head Tax on Immigration"))) + 
+  scale_color_manual(name = "Country", breaks = c('Other', 'China'),
+                     values = c('Other' = ht, 'China'='red')) + theme_minimal() + theme(legend.position='bottom')
 
-#ggsave(glue("{git}/figs/8aug23/reg_coefs.png"), height = 4, width = 7)
-ggsave(glue("{git}/figs/6sep23/reg_coefs.png"), height = 4, width = 7)
+ggsave(glue("{git}/figs/immflow_countries.png"), height = 4, width = 7)
+
 
 ########################################################################
 ### TABLE 3: DIFF IN DIFF REGRESSION OF CHI IMM VS OTHER IMM AT EACH 'EVENT'
@@ -530,9 +487,9 @@ ggsave(glue("{git}/figs/6sep23/reg_coefs.png"), height = 4, width = 7)
 did_data <- can_imm %>% filter(YEAR >= 1901 & YRIMM >= 1880 & YRIMM <= 1910) %>% #only keeping years with earnings/yrimm data
   mutate(YEARSAFTER1890 = YRIMM - 1890,
          BORNCHI = ifelse(BPL == "China", 1, 0),
-         BORNCHI_tax50 = BORNCHI*ifelse(tax == 50, 1, 0),
-         BORNCHI_tax100 = BORNCHI*ifelse(tax == 100, 1, 0),
-         BORNCHI_tax500 = BORNCHI*ifelse(tax == 500, 1, 0),
+         BORNCHI_tax50 = BORNCHI*ifelse(tax == 1496.19, 1, 0),
+         BORNCHI_tax100 = BORNCHI*ifelse(tax == 2992.61, 1, 0),
+         BORNCHI_tax500 = BORNCHI*ifelse(tax == 14115.70, 1, 0),
          YEARSSINCEIMM = YEAR - YRIMM) %>%
   filter(AGE >= 18 & MALE == 1)
 
@@ -657,9 +614,9 @@ ggsave(glue("{git}/figs/6sep23/immflow.png"), height = 4, width = 7)
 ### TABLE 4: US VS CAN REGRESSIONS
 ########################################################################
 did_data_us <- us_imm %>% filter(YEAR >= 1900 & YRIMM >= 1880 & YRIMM <= 1910) %>% #only keeping years with earnings/yrimm data
-  mutate(BORNCHI_tax50 = BORNCHI*ifelse(tax == 50, 1, 0),
-         BORNCHI_tax100 = BORNCHI*ifelse(tax == 100, 1, 0),
-         BORNCHI_tax500 = BORNCHI*ifelse(tax == 500, 1, 0),
+  mutate(BORNCHI_tax50 = BORNCHI*ifelse(tax == 1496.19, 1, 0),
+         BORNCHI_tax100 = BORNCHI*ifelse(tax == 2992.61, 1, 0),
+         BORNCHI_tax500 = BORNCHI*ifelse(tax == 14115.70, 1, 0),
          ERSCORE = ifelse(EARN > 100, NA, EARN)) %>%
   filter(AGE >= 18 & MALE == 1)
 
