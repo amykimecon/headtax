@@ -1,4 +1,4 @@
-\begin{thebibliography}{12}
+\begin{thebibliography}{10}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -38,19 +38,12 @@ A.~B. Chan.
 \newblock URL
   \url{https://www.thecanadianencyclopedia.ca/en/article/chinese-canadians}.
 
-\bibitem[Chen(2015)]{Chen2015}
-J.~J. Chen.
-\newblock The impact of skill-based immigration restrictions: The chinese
-  exclusion act of 1882.
-\newblock \emph{Journal of Human Capital}, 9\penalty0 (3):\penalty0 298--328,
-  2015.
-
-\bibitem[Chen and Xie(2020)]{ChenXie2020}
-S.~Chen and B.~Xie.
-\newblock {Institutional Discrimination and Assimilation: Evidence from the
-  Chinese Exclusion Act of 1882}.
-\newblock IZA Discussion Papers 13647, Institute of Labor Economics (IZA), Aug.
-  2020.
+\bibitem[Chiquiar and Hanson(2005)]{chiquiarhanson2005}
+D.~Chiquiar and G.~Hanson.
+\newblock International migration, self‐selection, and the distribution of
+  wages: Evidence from mexico and the united states.
+\newblock \emph{Journal of Political Economy}, 113\penalty0 (2):\penalty0
+  239--281, 2005.
 
 \bibitem[Clark et~al.(2007)Clark, Hatton, and Williamson]{Clarketal2007}
 X.~Clark, T.~J. Hatton, and J.~G. Williamson.
@@ -58,17 +51,12 @@ X.~Clark, T.~J. Hatton, and J.~G. Williamson.
 \newblock \emph{The Review of Economics and Statistics}, 89\penalty0
   (2):\penalty0 359--373, 05 2007.
 
-\bibitem[Postel(2023)]{Postel2023}
-H.~M. Postel.
-\newblock Record linkage for character-based surnames: Evidence from chinese
-  exclusion.
-\newblock \emph{Explorations in Economic History}, 87:\penalty0 101493, 2023.
-
-\bibitem[Roy(1951)]{roy1951}
-A.~D. Roy.
-\newblock {Some Thoughts on the Distribution of Earnings}.
-\newblock \emph{Oxford Economic Papers}, 3\penalty0 (2):\penalty0 135--146, 06
-  1951.
+\bibitem[McKenzie and Rapoport(2010)]{mckenzierapoport2010}
+D.~McKenzie and H.~Rapoport.
+\newblock Self-selection patterns in mexico-u.s. migration: The role of
+  migration networks.
+\newblock \emph{The Review of Economics and Statistics}, 92\penalty0
+  (4):\penalty0 811--821, 2010.
 
 \bibitem[Ruggles et~al.(2021)Ruggles, Fitch, Goeken, Hacker, Nelson, Roberts,
   Schouweiler, and Sobek]{ipums}
