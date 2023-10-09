@@ -129,7 +129,7 @@ ggsave(glue("{git}/figs/5oct23/agehist_census.png"), width = 8, height = 4)
 #reg_chi_whipple = 5*sum(ifelse(filter(reg_chi, AGE >= 23 & AGE <= 62)$AGE %% 5 == 0, 1, 0))/nrow(filter(reg_chi, AGE >= 23 & AGE <= 62))
 
 # over time (register)
-reg_chi_whipple <- reg_chi %>% filter(YRIMM >= 1886 & YRIMM <= 1923 & AGE >= 23 & AGE <= 62) %>%
+reg_chi_whipple <- reg_chi %>% filter(YRIMM >= 1886 & YRIMM <= 1923 & AGE >= 18 & AGE <= 57) %>%
   group_by(YRIMM) %>%
   summarize(whipple = 500*sum(ifelse(AGE %% 5 == 0, 1, 0))/n(), n = n(),
             pred_whipple = mean(pred_whipple_AUSYD, na.rm=TRUE))
@@ -153,24 +153,36 @@ ggplot(census_whipple, aes(x = YRIMM, y = whipple, color = factor(BPL))) + geom_
 ggsave(glue("{git}/figs/5oct23/whippleplot3_census.png"), width = 8, height = 4)
 
 ## literacy (census)
-literacy_census <- can_imm %>% filter(YRIMM >= 1880 & YRIMM <= 1923 & !is.na(CANREAD) & AGE >= 23 & AGE <= 62 &
+literacy_census <- can_imm %>% filter(YRIMM >= 1880 & YRIMM <= 1923 & !is.na(CANREAD) & AGE >= 18 &
                                         BPL %in% c("China", "Japan") & MALE == 1) %>% 
-  group_by(BPL, YRIMM) %>% summarize(literacy = 100*sum(ifelse(CANREAD == 1, WEIGHT, 0))/sum(WEIGHT), n = sum(WEIGHT))
+  group_by(BPL, YRIMM, YEAR) %>% summarize(literacy = 100*sum(ifelse(CANREAD == 1, WEIGHT, 0))/sum(WEIGHT), n = sum(WEIGHT))
 
-ggplot(literacy_census %>% filter(BPL == "China"), aes(x = YRIMM, y = literacy)) + geom_smooth(method = "lm", aes(weight = n)) + geom_point(aes(size = n))
+ggplot(literacy_census %>% filter(BPL == "China"), aes(x = YRIMM, y = literacy, color = factor(YEAR))) + geom_smooth(method = "lm", aes(weight = n)) + geom_point(aes(size = n))
 #ggsave(glue("{git}/figs/5oct23/whippleplot1_census.png"), width = 8, height = 4)
 
+earnings_census <- can_imm %>% filter(YRIMM >= 1880 & YRIMM <= 1923 & AGE >= 18 &
+                                        BPL %in% c("China", "Japan") & MALE == 1) %>% 
+  group_by(BPL, YRIMM, YEAR) %>% summarize(earnings = weighted.mean(EARN, WEIGHT, na.rm=TRUE), n = sum(WEIGHT))
+
+ggplot(earnings_census %>% filter(BPL == "China"), aes(x = YRIMM, y = earnings, color = factor(YEAR))) + geom_smooth(method = "lm", aes(weight = n)) + geom_point(aes(size = n))
 
 ggplot(literacy_census, aes(x = YRIMM, y = literacy, color = factor(BPL))) + geom_smooth(method = "lm", aes(weight = n)) + geom_point(aes(size = n))
 #ggsave(glue("{git}/figs/5oct23/whippleplot3_census.png"), width = 8, height = 4)
 
 ## REDOING CENSUS SELECTION STUFF
-census_regs <- can_imm %>% filter(BPL %in% c("China", "Japan") & YRIMM >= 1880 & YRIMM <= 1923 & !is.na(CANREAD) & AGE >= 23 & MALE == 1) %>%
-  mutate(CHI50 = ifelse(BPL == "China" & tax == 1496.19, 1, 0),
+census_regs <- can_imm %>% filter(!is.na(CANREAD) & AGE >= 18 & MALE == 1 & YRIMM >= 1880 & YRIMM <= 1920 & !is.na(YRIMM)) %>%
+  dummy_cols(select_columns = "YRIMM") %>%
+  mutate(chiind = ifelse(BPL == "China", 1, 0),
+         across(starts_with("RIMM",))
+         japind = ifelse(BPL == "Japan", 1, 0),
+         CHI50 = ifelse(BPL == "China" & tax == 1496.19, 1, 0),
          CHI100 = ifelse(BPL == "China" & tax == 2992.61, 1, 0),
          CHI500 = ifelse(BPL == "China" & tax == 14115.7, 1, 0))
-summary(lm(data = census_regs, CANREAD ~ factor(YRIMM) + factor(BPL) + CHI50 + CHI100 + CHI500))
 
+summary(lm(data = census_regs %>% filter(YRIMM >= 1880 & YRIMM <= 1890),
+           CANREAD ~ factor(YRIMM)*factor(chiind) + factor(YEAR) + AGE, weights = WEIGHT))
+
+summary(lm(data = census_regs, CANREAD ~ factor(YRIMM)*factor(BPL)+ factor(YEAR) + AGE, weights = WEIGHT))
 
 # 
 # 

@@ -1,4 +1,4 @@
-\begin{thebibliography}{10}
+\begin{thebibliography}{13}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -51,12 +51,31 @@ X.~Clark, T.~J. Hatton, and J.~G. Williamson.
 \newblock \emph{The Review of Economics and Statistics}, 89\penalty0
   (2):\penalty0 359--373, 05 2007.
 
+\bibitem[{Employment and Immigration Canada}(1982)]{canimm}
+{Employment and Immigration Canada}.
+\newblock {Immigration Statistics}.
+\newblock Technical report, {Employment and Immigration Canada}, 1982.
+
+\bibitem[Inwood(2009)]{census1891}
+K.~Inwood.
+\newblock {Census of Population, 1891}.
+\newblock Dataset, University of Guelph Data Resource Center, 2009.
+\newblock Data retrieved from odesi,
+  \url{https://odesi.ca/#/details?uri=/odesi/census-E-1891.xml}.
+
 \bibitem[McKenzie and Rapoport(2010)]{mckenzierapoport2010}
 D.~McKenzie and H.~Rapoport.
 \newblock Self-selection patterns in mexico-u.s. migration: The role of
   migration networks.
 \newblock \emph{The Review of Economics and Statistics}, 92\penalty0
   (4):\penalty0 811--821, 2010.
+
+\bibitem[{Programme de Recherche en Démographie Historique}(2021)]{census1881}
+{Programme de Recherche en Démographie Historique}.
+\newblock {100\% public-use microdata file of the 1881 Census of Canada}.
+\newblock Dataset, {Université de Montreal}, 2021.
+\newblock Data retrieved from PRDH,
+  \url{https://www.prdh.umontreal.ca/census/en/member/download.aspx}.
 
 \bibitem[Ruggles et~al.(2021)Ruggles, Fitch, Goeken, Hacker, Nelson, Roberts,
   Schouweiler, and Sobek]{ipums}
