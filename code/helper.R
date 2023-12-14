@@ -11,7 +11,7 @@ wtd_se <- function(x, w){
 }
 
 # helper function to create summary stats for a given dataset, given list of variables
-summstats <- function(rawdata, vars = c("MALE", "MAR", "AGE", "CANREAD", "LABOR", "EARN", "YRIMM")){
+summstats <- function(rawdata, vars = c("MALE", "MAR", "PRE1886", "YRIMM18861895", "YRIMM18961905", "YRIMM19061915", "POST1916", "UNDER18","AGE1825","AGE2535","AGE35PLUS", "CANREAD", "LABOR", "EARN")){
   outdata <- rawdata %>% select(c(source, group, WEIGHT, all_of(vars))) %>%
     group_by(source, group) %>% 
     summarize(across(-c(WEIGHT), 

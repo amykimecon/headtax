@@ -35,7 +35,7 @@ reg_chi <- read_csv(glue("{dbox}/cleaned/chireg.csv")) %>%
                                         BIRTHYR < 1880 ~ 122,
                                         BIRTHYR < 1890 ~ 100,
                                         BIRTHYR < 1910 ~ 100,
-                                        TRUE ~ NA),)
+                                        TRUE ~ NA))
 
 # height sample: males age 24-50 with height at least 100 cm and age arriving between 1886-1923
 height_sample <- reg_chi %>% filter(AGE >= 23 & AGE <= 50 & YRIMM > 1885 & YRIMM < 1924 & HEIGHT > 100 & MALE == 1)

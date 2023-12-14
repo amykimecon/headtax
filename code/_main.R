@@ -47,7 +47,8 @@ reg_chi <- read_csv(glue("{dbox}/cleaned/chireg.csv")) %>%
          tax = case_when(YRIMM <= 1885 ~ 0,
                          YRIMM <= 1900 ~ 1496.19,
                          YRIMM <= 1903 ~ 2992.61,
-                         YRIMM < 1924 ~ 14115.70))
+                         YRIMM < 1924 ~ 14115.70),
+         HEIGHT = HEIGHT*2.54)
 
 ## census data
 can_imm <- read_csv(glue("{dbox}/cleaned/can_clean_imm.csv")) %>% 
