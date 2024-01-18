@@ -118,6 +118,14 @@ fig1_taxespaid <- ggplot(tax_by_year_arriv %>% filter(YEAR <= 1923), aes(x = YEA
 
 ggsave(glue("{git}/figs/fig1_taxespaid.png"), fig1_taxespaid, height = 5, width = 9)
 
+fig1_taxespaid_slides <-  ggplot(tax_by_year_arriv %>% filter(YEAR <= 1923), aes(x = YEAR, y = tax)) + geom_line(linewidth = 1) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts_slides, show.legend = FALSE, color = ht) +
+  geom_text(aes(x = yrs, y = 400, label = labs), data = headtaxcuts_slides, inherit.aes = FALSE, angle = 90, nudge_x = -1.2, size = 4, color = ht) + expand_limits(y = 0) +
+  xlab("Year of Arrival") + ylab("Average Tax Paid Among Tax Payers") + theme_minimal() + 
+  theme(text = element_text(size=18), axis.text = element_text(size = 14))
+
+ggsave(glue("{git}/figs/slides/fig1_taxespaid.png"), fig1_taxespaid_slides, height = 5, width = 8)
+
 ########################################################################
 ### FIGURE 1: NUMBER OF CHINESE IMMIGRANTS: INFLOW BY YEAR AND DATA SOURCE
 ########################################################################
@@ -142,7 +150,7 @@ yrimm_flow_graph <- rbind(yrimm_reg %>% mutate(FLOW = CHIFLOW_REGISTER/1000, var
   filter(YRIMM >= 1886 & YRIMM <= 1930)
 
 # key graph: inflow of chinese/all immigrants into canada using migration data
-ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
+fig1_immflow <- ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
   scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c2,c4)) +
   scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(2, 1)) +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
@@ -156,7 +164,32 @@ ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linet
 # annotate("rect", xmin = 1910, xmax = 1912, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) +
 # annotate("rect", xmin = 1913, xmax = 1915, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.3)
 
-ggsave(glue("{git}/figs/fig1_immflow.png"), height = 4, width = 7)
+ggsave(glue("{git}/figs/fig1_immflow.png"), fig1_immflow, height = 4, width = 7)
+
+fig1_immflow_slides_chionly <- ggplot(data = yrimm_flow_graph %>% filter(variable == "Chinese Immigrants") %>%
+                                        mutate(variable = ifelse(variable == "Chinese Immigrants", "Chinese Immigrants (Register)", variable)), 
+                              aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line(linewidth = 1) +
+  scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants (Register)"), values = c(c2,c4)) +
+  scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants (Register)"), values = c(2, 1)) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts_slides, show.legend = FALSE, color = "#808080", linetype = 3, linewidth = 0.8) +
+  geom_text(aes(x = yrs, y = 7, label = labs), data = headtaxcuts_slides, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 5, color = "#808080") +
+  scale_y_continuous("Chinese Immigrant Inflow (Thous.)") + 
+  labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom') + 
+  theme(text = element_text(size=18), axis.text = element_text(size = 14))
+
+ggsave(glue("{git}/figs/slides/fig1_immflow_chionly.png"), fig1_immflow_slides_chionly, height = 5, width = 9)
+
+fig1_immflow_slides <- ggplot(data = yrimm_flow_graph %>% mutate(variable = ifelse(variable == "Chinese Immigrants", "Chinese Immigrants (Register)", variable)), 
+                              aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line(linewidth = 1) +
+  scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants (Register)"), values = c(c2,c4)) +
+  scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants (Register)"), values = c(2, 1)) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts_slides, show.legend = FALSE, color = "#808080", linetype = 3, linewidth = 0.8) +
+  geom_text(aes(x = yrs, y = 7, label = labs), data = headtaxcuts_slides, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 5, color = "#808080") +
+  scale_y_continuous("Chinese Immigrant Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
+  labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom') + 
+  theme(text = element_text(size=18), axis.text = element_text(size = 14))
+
+ggsave(glue("{git}/figs/slides/fig1_immflow.png"), fig1_immflow_slides, height = 5, width = 9)
 
 # key inflow graph using census data rather than migration data
 yrimm_flow_census_graph <- rbind(yrimm_census %>% filter(BPL == "China") %>% 
@@ -167,7 +200,7 @@ yrimm_flow_census_graph <- rbind(yrimm_census %>% filter(BPL == "China") %>%
                                    select(c(YRIMM, FLOW, variable))) %>%
   filter(YRIMM >= 1880 & YRIMM <= 1920)
 
-ggplot(data = yrimm_flow_census_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
+fig2_census_flow <- ggplot(data = yrimm_flow_census_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
   scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c2,c4)) +
   scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(2, 1)) +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
@@ -175,7 +208,17 @@ ggplot(data = yrimm_flow_census_graph, aes(x = YRIMM, y = FLOW, color = variable
   scale_y_continuous("Chinese Immigrant Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
   labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
 
-ggsave(glue("{git}/figs/fig2_census_flow.png"), height = 4, width = 7)
+ggsave(glue("{git}/figs/fig2_census_flow.png"), fig2_census_flow, height = 4, width = 7)
+
+fig2_census_flow_slides <- ggplot(data = yrimm_flow_census_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line(linewidth = 1) +
+  scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c2,c4)) +
+  scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(2, 1)) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts_slides, show.legend = FALSE, color = "#808080", linetype = 3, linewidth = 1) +
+  geom_text(aes(x = yrs, y = 3, label = labs), data = headtaxcuts_slides, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 5, color = "#808080") +
+  scale_y_continuous("Chinese Immigrant Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
+  labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom') + 
+  theme(text = element_text(size=18), axis.text = element_text(size = 14))
+ggsave(glue("{git}/figs/slides/fig2_census_flow.png"), fig2_census_flow_slides, height = 5, width = 9)
 
 ## chinese emigration to canada and total chinese emigration
 yrem_flow_graph <- hk_departure %>% filter(YEAR > 1880) %>% mutate(EMIG_CA = EMIG_CA/1000, EMIG_TOT = EMIG_TOT/10000) %>%
@@ -183,7 +226,7 @@ yrem_flow_graph <- hk_departure %>% filter(YEAR > 1880) %>% mutate(EMIG_CA = EMI
                                     names_prefix = "EMIG_", values_to = "EMIG") %>%
   mutate(YRIMM = YEAR, FLOW = EMIG, variable = ifelse(variable == "CA", "Emigration from Hong Kong to Canada", "Total Emigration from Hong Kong"))
 
-ggplot(data = yrem_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
+fig2_flow_hkemig <- ggplot(data = yrem_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
   scale_color_manual(breaks = c("Total Emigration from Hong Kong", "Emigration from Hong Kong to Canada"), values = c(hk2,hk4)) +
   scale_linetype_manual(breaks = c("Total Emigration from Hong Kong", "Emigration from Hong Kong to Canada"), values = c(2, 1)) +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
@@ -191,7 +234,17 @@ ggplot(data = yrem_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linety
   scale_y_continuous("HK Emigration Outflow to Canada (Thous.)", sec.axis = sec_axis(~ . *10, name = "Total HK Emigration Outflow (Thous.)")) + 
   labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
 
-ggsave(glue("{git}/figs/fig2_flow_hkemig.png"), height = 4, width = 7)
+ggsave(glue("{git}/figs/fig2_flow_hkemig.png"), fig2_flow_hkemig, height = 4, width = 7)
+
+fig2_flow_hkemig_slides <- ggplot(data = yrem_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line(linewidth = 1) +
+  scale_color_manual(breaks = c("Total Emigration from Hong Kong", "Emigration from Hong Kong to Canada"), values = c(hk2,hk4)) +
+  scale_linetype_manual(breaks = c("Total Emigration from Hong Kong", "Emigration from Hong Kong to Canada"), values = c(2, 1)) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts_slides, show.legend = FALSE, color = "#808080", linetype = 3, linewidth = 1) +
+  geom_text(aes(x = yrs, y = 13, label = labs), data = headtaxcuts_slides, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 5, color = "#808080") +
+  scale_y_continuous("HK Emigration Outflow to Canada (Thous.)", sec.axis = sec_axis(~ . *10, name = "Total HK Emigration Outflow (Thous.)")) + 
+  labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom') + 
+  theme(text = element_text(size=18), axis.text = element_text(size = 14))
+ggsave(glue("{git}/figs/slides/fig2_flow_hkemig.png"), fig2_flow_hkemig_slides, height = 5, width = 9)
 
 ## chinese emigration to canada in hk harbourmaster reports vs. immigration in register
 yrimmandem_flow_graph <- rbind(yrimm_reg %>% mutate(FLOW = CHIFLOW_REGISTER/1000, variable = "Chinese Immigration to Canada") %>%
@@ -200,15 +253,24 @@ yrimmandem_flow_graph <- rbind(yrimm_reg %>% mutate(FLOW = CHIFLOW_REGISTER/1000
                                  select(c(FLOW, YRIMM, variable))) %>%
   filter(YRIMM >= 1880 & YRIMM <= 1930)
 
-ggplot(data = yrimmandem_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
+fig2_flow_immandem <- ggplot(data = yrimmandem_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
   scale_color_manual(breaks = c("Canadian Emigration from Hong Kong", "Chinese Immigration to Canada"), values = c(hk4,c4)) +
   scale_linetype_manual(breaks = c("Canadian Emigration from Hong Kong", "Chinese Immigration to Canada"), values = c(4, 1)) +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = yrs, y = 7, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
-  labs(x = "Year of Immigration", y = "Number of Migrants", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
+  geom_text(aes(x = yrs, y = 10, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+  labs(x = "Year of Immigration", y = "Number of Migrants (Thous.)", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
 
-ggsave(glue("{git}/figs/fig2_flow_immandem.png"), height = 4, width = 7)
+ggsave(glue("{git}/figs/fig2_flow_immandem.png"), fig2_flow_immandem, height = 4, width = 7)
 
+fig2_flow_immandem_slides <- ggplot(data = yrimmandem_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line(linewidth = 1) +
+  scale_color_manual(breaks = c("Canadian Emigration from Hong Kong", "Chinese Immigration to Canada"), values = c(hk4,c4)) +
+  scale_linetype_manual(breaks = c("Canadian Emigration from Hong Kong", "Chinese Immigration to Canada"), values = c(4, 1)) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts_slides, show.legend = FALSE, color = "#808080", linetype = 3, linewidth = 1) +
+  geom_text(aes(x = yrs, y = 10, label = labs), data = headtaxcuts_slides, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 5, color = "#808080") +
+  labs(x = "Year of Immigration", y = "Number of Migrants (Thous.)", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom') + 
+  theme(text = element_text(size=18), axis.text = element_text(size = 14))
+ggsave(glue("{git}/figs/slides/fig2_flow_immandem.png"), fig2_flow_immandem_slides, height = 5, width = 8)
+  
 
 
 

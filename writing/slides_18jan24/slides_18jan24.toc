@@ -1,0 +1,6 @@
+\beamer@sectionintoc {1}{Introduction}{2}{0}{1}
+\beamer@sectionintoc {2}{Historical Context}{6}{0}{2}
+\beamer@sectionintoc {3}{Data}{9}{0}{3}
+\beamer@sectionintoc {4}{Effects on Immigration Inflow}{11}{0}{4}
+\beamer@sectionintoc {5}{Effects on Selection into Immigration}{16}{0}{5}
+\beamer@sectionintoc {6}{Conclusion}{24}{0}{6}

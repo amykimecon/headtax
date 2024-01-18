@@ -1,7 +1,7 @@
 # outcome/selection analysis 
 
 #### HEIGHT PLOT ####
-height_plot <- reg_chi %>% filter(AGE >= 23 & AGE <= 50 & YRIMM < 1924 & HEIGHT > 100 & MALE == 1) %>%
+height_plot <- reg_chi %>% filter(AGE >= 23 & AGE <= 50 & YRIMM > 1879 & YRIMM < 1924 & HEIGHT > 100 & MALE == 1) %>%
   group_by(YRIMM, tax) %>%
   summarize(height = mean(ifelse(HEIGHT==0,NA,HEIGHT), na.rm=TRUE), 
             height25 = quantile(ifelse(HEIGHT==0,NA,HEIGHT),0.25,na.rm=TRUE),
@@ -14,17 +14,17 @@ height_plot2 <- reg_chi %>% filter(AGE >= 23 & AGE <= 50 & YRIMM > 1879 & YRIMM 
   summarize(height = mean(ifelse(HEIGHT==0,NA,HEIGHT), na.rm=TRUE),
             n= n()) %>% filter(n > 1)
 # 
-# ggplot(height_plot, aes(x = YRIMM, y = height)) + 
+# ggplot(height_plot, aes(x = YRIMM, y = height)) +
 #   geom_smooth(method = "lm", mapping = aes(weight = n), color = c3) +
 #   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
 #   geom_text(aes(x = yrs, y = 167.5, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
-#   geom_point(aes(size = n), color = c1, alpha = 0.9) + 
+#   geom_point(aes(size = n), color = c1, alpha = 0.9) +
 #   #geom_errorbar(mapping = aes(ymin = height10, ymax = height90)) +
-#   theme_minimal() + theme(legend.position='bottom') + 
+#   theme_minimal() + theme(legend.position='bottom') +
 #   labs(x = "Year of Immigration", y = "Mean Height of Chinese Immigrants (cm)", size = "# of Chinese Immigrants")
 
 taxmeanheights = summarize(group_by(height_plot, tax), meanheight = weighted.mean(height, n))$meanheight
-ggplot(height_plot, aes(x = YRIMM, y = height)) + 
+fig_height <- ggplot(height_plot, aes(x = YRIMM, y = height)) + 
   geom_segment(aes(y = taxmeanheights[1], yend = taxmeanheights[1], x = 1881, xend = 1885), inherit.aes = FALSE, color = c3) +
   geom_segment(aes(y = taxmeanheights[2], yend = taxmeanheights[2], x = 1885, xend = 1900), inherit.aes = FALSE, color = c3) +
   geom_segment(aes(y = taxmeanheights[3], yend = taxmeanheights[3], x = 1900, xend = 1903), inherit.aes = FALSE, color = c3) +
@@ -37,7 +37,23 @@ ggplot(height_plot, aes(x = YRIMM, y = height)) +
   theme_minimal() + theme(legend.position='bottom') + 
   labs(x = "Year of Immigration", y = "Mean Height of Chinese Immigrants (cm)", size = "# of Chinese Immigrants")
 
-ggsave(glue("{git}/figs/height_selection.png"), height = 4, width = 7)
+ggsave(glue("{git}/figs/height_selection.png"), fig_height, height = 4, width = 7)
+
+fig_height_slides <- ggplot(height_plot, aes(x = YRIMM, y = height)) + 
+  geom_segment(aes(y = taxmeanheights[1], yend = taxmeanheights[1], x = 1881, xend = 1885), inherit.aes = FALSE, color = c3) +
+  geom_segment(aes(y = taxmeanheights[2], yend = taxmeanheights[2], x = 1885, xend = 1900), inherit.aes = FALSE, color = c3) +
+  geom_segment(aes(y = taxmeanheights[3], yend = taxmeanheights[3], x = 1900, xend = 1903), inherit.aes = FALSE, color = c3) +
+  geom_segment(aes(y = taxmeanheights[4], yend = taxmeanheights[4], x = 1903, xend = 1923), inherit.aes = FALSE, color = c3) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts_slides, show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = yrs, y = 167.5, label = labs), data = headtaxcuts_slides, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 5, color = "#808080") +
+  geom_text(aes(x = 1919, y = taxmeanheights[4] - 0.2, label = "Interval Mean"), inherit.aes=FALSE, color = c3, size = 5) +
+  geom_point(aes(size = n), color = c4, alpha = 0.9) + 
+  #geom_errorbar(mapping = aes(ymin = height10, ymax = height90)) +
+  theme_minimal() + theme(legend.position='bottom') + 
+  labs(x = "Year of Immigration", y = "Avg. Height of Chinese Imm. (cm)", size = "# of Chinese Immigrants") +
+  theme(text = element_text(size=18), axis.text = element_text(size = 14))
+
+ggsave(glue("{git}/figs/slides/height_selection.png"), fig_height_slides, height = 5, width = 8)
 
 # summary(lm(data = reg_chi %>% filter(AGE >= 23 & AGE <= 50 & YRIMM > 1885 & YRIMM < 1924 & HEIGHT > 100 & MALE == 1),
 #            ))
@@ -50,6 +66,43 @@ ggsave(glue("{git}/figs/height_selection.png"), height = 4, width = 7)
 #   geom_text(aes(x = yrs, y = 167.5, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
 #   geom_point(aes(size = n), alpha = 0.9) + theme_minimal() + theme(legend.position='bottom') +
 #   labs(x = "Year of Immigration", y = "Mean Height of Chinese Immigrants (cm)", size = "# Chinese Immigrants")
+
+height_plot_compare <- reg_chi %>% filter(AGE >= 23 & AGE <= 50 & YRIMM > 1879 & YRIMM < 1924 & HEIGHT > 100 & MALE == 1) %>%
+  mutate(BIRTHYR = ifelse(YRIMM != 0, YRIMM - AGE, NA),
+        pred_height_AUNT = case_when(BIRTHYR < 1850 ~ 164.2,
+                                               BIRTHYR < 1855 ~ 164,
+                                               BIRTHYR < 1860 ~ 163.8,
+                                               BIRTHYR < 1865 ~ 163.9,
+                                               BIRTHYR < 1870 ~ 163.9,
+                                               BIRTHYR < 1875 ~ 163.6,
+                                               BIRTHYR < 1880 ~ 163.3,
+                                               BIRTHYR < 1885 ~ 162.8,
+                                               BIRTHYR < 1890 ~ 162,
+                                               BIRTHYR < 1895 ~ 162.1,
+                                               BIRTHYR < 1900 ~ 162.1,
+                                               BIRTHYR < 1905 ~ 162.4,
+                                               BIRTHYR < 1910 ~ 162.9,
+                                               TRUE ~ NA)) %>%
+  group_by(YRIMM, tax) %>%
+  summarize(Actual = mean(ifelse(HEIGHT==0,NA,HEIGHT), na.rm=TRUE), 
+            Predicted = mean(ifelse(HEIGHT == 0, NA, pred_height_AUNT), na.rm=TRUE),
+            n= n()) %>%
+  pivot_longer(Actual:Predicted, names_to = "var", values_to = "height")
+
+
+fig_height_compare_slides <- ggplot(height_plot_compare %>% mutate(var = ifelse(var == "Predicted", "Predicted (AUS NT Migrants)", var)), aes(x = YRIMM, y = height, color = var, shape = var)) + 
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts_slides, show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = yrs, y = 167.5, label = labs), data = headtaxcuts_slides, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 5, color = "#808080") +
+  #geom_point(aes(y = pred_height_AUNT, size = n), color = c2, alpha = 0.9, shape = 18) + 
+  geom_point(aes(size = n), alpha = 0.9) + 
+  scale_color_manual(breaks = c("Actual","Predicted (AUS NT Migrants)"), values = c(c4,c2)) +
+  guides(size = "none", color = guide_legend(override.aes = list(size=7))) +
+  #geom_errorbar(mapping = aes(ymin = height10, ymax = height90)) +
+  theme_minimal() + theme(legend.position='bottom') + 
+  labs(x = "Year of Immigration", y = "Avg. Height of Chinese Imm. (cm)", size = "", color = "", shape = "") +
+  theme(text = element_text(size=18), axis.text = element_text(size = 14))
+
+ggsave(glue("{git}/figs/slides/height_compare_selection.png"), fig_height_compare_slides, height = 5, width = 8)
 
 
 ########################################################################
@@ -141,6 +194,9 @@ did_data_japan_ses <- c(wtd_se(filter(did_data_japan, !is.na(LABOR))$LABOR,filte
                           wtd_se(filter(did_data_japan, !is.na(CANREAD))$CANREAD,filter(did_data_japan, !is.na(CANREAD))$WEIGHT),
                           wtd_se(filter(did_data_japan, !is.na(HOUSEOWN))$HOUSEOWN,filter(did_data_japan, !is.na(HOUSEOWN))$WEIGHT))
 
+did_data_means_chi <- c(weighted.mean(filter(did_data, !is.na(LABOR) & BORNCHI == 1)$LABOR,filter(did_data, !is.na(LABOR) & BORNCHI == 1)$WEIGHT),
+                    weighted.mean(filter(did_data, !is.na(CANREAD) & BORNCHI == 1)$CANREAD,filter(did_data, !is.na(CANREAD) & BORNCHI == 1)$WEIGHT),
+                    weighted.mean(filter(did_data, !is.na(HOUSEOWN) & BORNCHI == 1)$HOUSEOWN,filter(did_data, !is.na(HOUSEOWN) & BORNCHI == 1)$WEIGHT))
 
 stargazer(did_reg_labor, did_reg_canread, did_reg_houseown,did_reg_labor_japan, did_reg_canread_japan, did_reg_houseown_japan,
           out = glue("{git}/figs/selection.tex"), float = FALSE, 
@@ -159,9 +215,36 @@ stargazer(did_reg_labor, did_reg_canread, did_reg_houseown,did_reg_labor_japan, 
           add.lines = list(c("Dep. Var. Mean (SE)", formatC(did_data_means, format = "f"), formatC(did_data_japan_means, format = "f"), "\\\\"),
                            c("", paste0("(",c(formatC(did_data_ses, format = "f"), formatC(did_data_japan_ses, format = "f")), ")"), "\\\\")))
 
+# slides: all immig
+stargazer(did_reg_labor, did_reg_canread, did_reg_houseown,
+          out = glue("{git}/figs/slides/selection_all.tex"), float = FALSE,
+          intercept.bottom = FALSE,
+          single.row = TRUE,
+          dep.var.labels = c("$\\mathbb{P}[\\text{Laborer}]$","$\\mathbb{P}[\\text{Literate}]$","$\\mathbb{P}[\\text{Owns House}]$"),
+          keep = c("BORNCHI*"), 
+          covariate.labels = c("$\\hat{\\beta}_{1}$ (Born in China)", 
+                               "$\\hat{\\gamma}_{50}^{DD}$ ($C_i \\times$ \\$50 Tax)", 
+                               "$\\hat{\\gamma}_{100}^{DD}$ ($C_i \\times$ \\$100 Tax)", 
+                               "$\\hat{\\gamma}_{500}^{DD}$ ($C_i \\times$ \\$500 Tax)"),
+          keep.stat=c("n","adj.rsq"),
+          table.layout = "d-t-as",
+          add.lines = list(c("Dep. Var. Mean (Chinese)", formatC(did_data_means_chi, format = "f"))))
                              
-                             
-                            
+   
+#slides: japanese immig
+stargazer(did_reg_labor_japan, did_reg_canread_japan, did_reg_houseown_japan,
+          out = glue("{git}/figs/slides/selection_japan.tex"), float = FALSE,
+          intercept.bottom = FALSE,
+          single.row = TRUE,
+          dep.var.labels = c("$\\mathbb{P}[\\text{Laborer}]$","$\\mathbb{P}[\\text{Literate}]$","$\\mathbb{P}[\\text{Owns House}]$"),
+          keep = c("BORNCHI*"), 
+          covariate.labels = c("$\\hat{\\beta}_{1}$ (Born in China)", 
+                               "$\\hat{\\gamma}_{100}^{DD}$ ($C_i \\times$ \\$100 Tax)", 
+                               "$\\hat{\\gamma}_{500}^{DD}$ ($C_i \\times$ \\$500 Tax)"),
+          keep.stat=c("n","adj.rsq"),
+          table.layout = "d-t-as",
+          add.lines = list(c("Dep. Var. Mean (Chinese)", formatC(did_data_means_chi, format = "f"))))
+
 # ########################################################################
 # ### TABLE 4: US VS CAN REGRESSIONS
 # ########################################################################

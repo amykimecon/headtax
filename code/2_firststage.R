@@ -67,7 +67,7 @@ flowreg2b <- lm(data = flow_regress %>% filter(YRIMM > 1885 & YRIMM < 1924) %>% 
 ## GRAPHING COUNTERFACTUAL
 flowregcf <- flow_regress %>% mutate(`Actual Inflow` = CHIFLOW_REGISTER,
                                      `Counterfactual Inflow` = -5038.87798039 -0.00413598*EMIG_TOT +0.01910090*IMMFLOW_NATL+0.79610697*POPSTOCK_China-0.00001107*POPSTOCK_China^2)
-ggplot(flowregcf %>% filter(YRIMM > 1885 & YRIMM < 1922) %>% 
+fig_flowregcf <- ggplot(flowregcf %>% filter(YRIMM > 1885 & YRIMM < 1922) %>% 
          pivot_longer(c(`Actual Inflow`,`Counterfactual Inflow`), names_to = "cat", values_to = "flow") %>%
          mutate(flow = flow/1000),
        aes(x=YRIMM, y = flow, color = cat, linetype = cat)) + geom_line() +
@@ -77,7 +77,20 @@ ggplot(flowregcf %>% filter(YRIMM > 1885 & YRIMM < 1922) %>%
   geom_text(aes(x = yrs, y = 13.5, label = labs), data = headtaxcuts %>% filter(yrs < 1922), inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
   labs(x = "Year of Immigration", y = "Chinese Immigrant Inflow (Thous.)", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
 
-ggsave(glue("{git}/figs/immflow_counterfactual.png"), height = 4, width = 7)
+ggsave(glue("{git}/figs/immflow_counterfactual.png"), fig_flowregcf, height = 4, width = 7)
+
+fig_flowregcf_slides <- ggplot(flowregcf %>% filter(YRIMM > 1885 & YRIMM < 1922) %>% 
+         pivot_longer(c(`Actual Inflow`,`Counterfactual Inflow`), names_to = "cat", values_to = "flow") %>%
+         mutate(flow = flow/1000),
+       aes(x=YRIMM, y = flow, color = cat, linetype = cat)) + geom_line(linewidth = 1) +
+  scale_color_manual(breaks = c("Actual Inflow", "Counterfactual Inflow"), values = c(c4,c1)) +
+  scale_linetype_manual(breaks = c("Actual Inflow", "Counterfactual Inflow"), values = c(1, 2)) +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts_slides %>% filter(yrs < 1922), show.legend = FALSE, color = "#808080", linetype = 3, linewidth = 1) +
+  geom_text(aes(x = yrs, y = 13.5, label = labs), data = headtaxcuts_slides %>% filter(yrs < 1922), inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 5, color = "#808080") +
+  labs(x = "Year of Immigration", y = "Chinese Immigrant Inflow (Thous.)", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom') +
+  theme(text = element_text(size=18), axis.text = element_text(size = 14))
+
+ggsave(glue("{git}/figs/slides/immflow_counterfactual.png"), fig_flowregcf_slides, height = 5, width = 8)
 
 # using census flows
 # equation 1: controls for imm, emm, popstock, and tax
@@ -95,6 +108,7 @@ flowcensus2b <- lm(data = flow_regress %>% filter(YRIMM > 1879 & YRIMM < 1921),
 # sub log flow over pop
 flowcensus3 <- lm(data = flow_regress %>% filter(YRIMM > 1879 & YRIMM < 1921), 
                   logFLOWOVERPOP_China ~ IMMFLOW_CENSUS + factor(tax) +  POPSTOCK_China + I(POPSTOCK_China^2))
+
 
 if (toggle == "display"){
   print(summary(flowreg1))
@@ -133,6 +147,22 @@ stargazer(flowreg1, flowreg2, flowreg2b, flowcensus1, flowcensus2, flowcensus2b,
           add.lines = list(c("Dep. Var. Mean (SE)", flowreg_means),c("", flowreg_ses)),
           table.layout = "=lc#-t-as=")
 
+# output without 2yrs (SLIDES)
+stargazer(flowreg1, flowcensus1, 
+          out = glue("{git}/figs/slides/immflow_regs.tex"), 
+          float = FALSE,
+          single.row=TRUE,
+          digits = 2,
+          intercept.bottom = FALSE,
+          keep.stat=c("n","adj.rsq"),
+          column.labels = c("Register (1886-1923)", "Census (1880-1920)"),
+          column.separate = c(1,1),
+          keep = "^factor",
+          covariate.labels = c("$\\gamma_{50}$ (\\$50 Tax)", "$\\gamma_{100}$ (\\$100 Tax)", "$\\gamma_{500}$ (\\$500 Tax)"),
+          add.lines = list(c("Dep. Var. Mean", c(reg_mean, census_mean))),
+          table.layout = "c-!t-as")
+
+
 ## REGRESSIONS V2: All countries
 reg_countries <- filter(yrimm_census %>% filter(YRIMM >= 1880 & YRIMM < 1921 & BPL != "Other" & BPL != "Unknown" & BPL != "Iceland") %>% group_by(BPL) %>% summarize(n=n()), n > 20)$BPL
 graph_country_regs <- list()
@@ -162,15 +192,37 @@ graph_countries <- bind_rows(graph_country_regs) %>%
                              tax == "factor(tax)14115.7" ~ 3 + shift))
 
 # graph of gamma coefs
-ggplot(graph_countries, aes(x = taxyear, y = Estimate, color = "Other")) + 
+immflow_countries <- ggplot(graph_countries, aes(x = taxyear, y = Estimate, color = "Other")) + 
   geom_errorbar(aes(min = est_lb, max = est_ub, color = 'Other'), width = 0.05) + geom_point() +
   geom_errorbar(data = graph_countries %>% filter(country == "China"), aes(min = est_lb, max = est_ub, color = 'China'), width = 0.05) + 
   geom_point(data = graph_countries %>% filter(country == "China"), aes(x = taxyear, y = Estimate, color = 'China')) +
+  geom_errorbar(data = graph_countries %>% filter(country == "Germany"), aes(min = est_lb, max = est_ub, color = 'Germany'), width = 0.05) + 
+  geom_point(data = graph_countries %>% filter(country == "Germany"), aes(x = taxyear, y = Estimate, color = 'Germany')) +
+  geom_errorbar(data = graph_countries %>% filter(country == "India"), aes(min = est_lb, max = est_ub, color = 'India'), width = 0.05) + 
+  geom_point(data = graph_countries %>% filter(country == "India"), aes(x = taxyear, y = Estimate, color = 'India')) +
   scale_x_continuous("", breaks = c(1,2,3), labels = c("1"= expression(paste("$50 Head Tax (",gamma[50] ^c, ")")),
                                                        "2"= expression(paste("$100 Head Tax (",gamma[100] ^c, ")")),
                                                        "3"= expression(paste("$500 Head Tax (",gamma[500] ^c, ")")))) +
   labs(y = expression(paste("Estimated Effect of Head Tax on Immigration"))) + 
-  scale_color_manual(name = "Country", breaks = c('Other', 'China'),
-                     values = c('Other' = ht, 'China'='red')) + theme_minimal() + theme(legend.position='bottom')
+  scale_color_manual(name = "Country", breaks = c('Other', 'China', 'Germany', "India"),
+                     values = c('Other' = ht, 'China'='red', "Germany" = c2, "India" = c4)) + theme_minimal() + theme(legend.position='bottom')
 
-ggsave(glue("{git}/figs/immflow_countries.png"), height = 4, width = 7)
+ggsave(glue("{git}/figs/immflow_countries.png"), immflow_countries, height = 4, width = 7)
+
+immflow_countries_slides <- ggplot(graph_countries %>% filter(!(country %in% c("China", "Germany", "India"))), aes(x = taxyear, y = Estimate, color = "Other")) + 
+  geom_errorbar(aes(min = est_lb, max = est_ub, color = 'Other'), width = 0, linewidth = 2.8, alpha = 0.2) + geom_point(size=2, shape = 1) +
+  geom_errorbar(data = graph_countries %>% filter(country == "China"), aes(min = est_lb, max = est_ub, color = 'China'), width = 0, linewidth = 2.8, alpha = 0.4) + 
+  geom_point(data = graph_countries %>% filter(country == "China"), aes(x = taxyear, y = Estimate, color = 'China'), size = 3, shape = 17) +
+  geom_errorbar(data = graph_countries %>% filter(country == "Germany"), aes(min = est_lb, max = est_ub, color = 'Germany'), width = 0, linewidth = 2.8, alpha = 0.4) + 
+  geom_point(data = graph_countries %>% filter(country == "Germany"), aes(x = taxyear, y = Estimate, color = 'Germany'), size = 3, shape = 15) +
+  geom_errorbar(data = graph_countries %>% filter(country == "India"), aes(min = est_lb, max = est_ub, color = 'India'), width = 0, linewidth = 2.8, alpha = 0.4) + 
+  geom_point(data = graph_countries %>% filter(country == "India"), aes(x = taxyear, y = Estimate, color = 'India'), size = 3, shape = 18) +
+  scale_x_continuous("", breaks = c(1,2,3), labels = c("1"= expression(paste("$50 Head Tax (",gamma[50] ^c, ")")),
+                                                       "2"= expression(paste("$100 Head Tax (",gamma[100] ^c, ")")),
+                                                       "3"= expression(paste("$500 Head Tax (",gamma[500] ^c, ")")))) +
+  labs(y = expression(paste("Est. Effect of HT on Imm."))) + 
+  scale_color_manual(name = "Country", breaks = c('Other', 'China', 'Germany', "India"),
+                     values = c('Other' = ht, 'China'='red', "Germany" = c2, "India" = c4)) + theme_minimal() + theme(legend.position='bottom') +
+  theme(text = element_text(size=18), axis.text = element_text(size = 14))
+
+ggsave(glue("{git}/figs/slides/immflow_countries.png"), immflow_countries_slides, height = 5, width = 8)

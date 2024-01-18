@@ -12,6 +12,7 @@ library(ggpubr)
 library(readxl)
 library(stargazer)
 library(fastDummies)
+library(ivreg)
 
 ########################################################################
 ### DEFINING PATHS
@@ -72,6 +73,7 @@ us_jap <- us_imm %>% filter(BORNJAP == 1) %>% mutate(group = "Japanese Immigrant
 
 ## key head tax years for graphing & labeling vertical lines
 headtaxcuts <- data.frame(yrs = c(1885, 1900, 1903, 1923), labs = c("Initial $50 Head Tax", "Increase to $100", "Increase to $500", "Total Imm. Ban"))
+headtaxcuts_slides <- data.frame(yrs = c(1885, 1900, 1903, 1923), labs = c("$50 Head Tax", "Incr. to $100", "Incr. to $500", "Total Ban"))
 
 ## historical macro data (canada)
 canhistmacro <- read_xls(glue("{dbox}/raw/CANMACRO_data.xls")) %>% rename(RGNP = RGDP)

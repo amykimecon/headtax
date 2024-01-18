@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  20 OCT 2023 19:10
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.4.10)  15 JAN 2024 14:13
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -550,8 +550,12 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 15.
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) (././1_intro.tex [1
 
-{/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2]) (././2_context.tex [3] [4]) (././3_data.tex [5] [6] [7] (./../../figs/summstats.tex) [8]) (././4_flows.tex
-<./../../figs/fig1_immflow.png, id=275, 505.89pt x 289.08pt>
+{/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2] [3]) (././2_context.tex [4] [5]) (././3_data.tex [6] [7] (./../../figs/summstats.tex)
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+[8] [9]) (././4_flows.tex
+<./../../figs/fig1_immflow.png, id=280, 505.89pt x 289.08pt>
 File: ./../../figs/fig1_immflow.png Graphic file (type png)
 <use ./../../figs/fig1_immflow.png>
 Package pdftex.def Info: ./../../figs/fig1_immflow.png  used on input line 7.
@@ -560,16 +564,15 @@ Package pdftex.def Info: ./../../figs/fig1_immflow.png  used on input line 7.
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-[9]
 LaTeX Font Info:    Trying to load font information for U+bbm on input line 18.
- (/usr/local/texlive/2022/texmf-dist/tex/latex/bbm-macros/ubbm.fd
+(/usr/local/texlive/2022/texmf-dist/tex/latex/bbm-macros/ubbm.fd
 File: ubbm.fd 1999/03/15 V 1.2 Font definition for bbm font - TH
-) [10 <./../../figs/fig1_immflow.png>] [11] [12] (./../../figs/immflow_regs.tex)
+) [10] [11 <./../../figs/fig1_immflow.png>] [12] (./../../figs/immflow_regs.tex)
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-) (././5_framework.tex [13] [14] [15]) (././6_selection.tex [16] [17]
-<./../../figs/height_selection.png, id=489, 505.89pt x 289.08pt>
+) (././5_framework.tex [13] [14] [15] [16]) (././6_selection.tex [17] [18]
+<./../../figs/height_selection.png, id=495, 505.89pt x 289.08pt>
 File: ./../../figs/height_selection.png Graphic file (type png)
 <use ./../../figs/height_selection.png>
 Package pdftex.def Info: ./../../figs/height_selection.png  used on input line 37.
@@ -578,34 +581,34 @@ Package pdftex.def Info: ./../../figs/height_selection.png  used on input line 3
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-[18] [19 <./../../figs/height_selection.png>] [20] (./../../figs/selection.tex)
+[19] [20 <./../../figs/height_selection.png>] [21] (./../../figs/selection.tex)
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-[21] [22]) (././7_conclusion.tex [23]) [24] (./_main.bbl
+[22] [23]) (././7_conclusion.tex) [24] [25] (./_main.bbl
 Underfull \hbox (badness 3428) in paragraph at lines 75--80
 \OT1/cmr/m/n/12 re-trieved from CCRI, []$\OT1/cmtt/m/n/12 https : / / ccri . library . ualberta . ca / en1921census / database /
  []
 
-[25]
+[26]
 Underfull \hbox (badness 10000) in paragraph at lines 96--100
 []\OT1/cmr/m/n/12 A. Chan.  Chi-nese head tax in canada, Sep 2016.  URL []$\OT1/cmtt/m/n/12 https : / / www .
  []
 
-[26] [27]) [28] (././a1_appfigs.tex
-<./../../figs/fig1_taxespaid.png, id=619, 2710.125pt x 1505.625pt>
+[27] [28]) [29] (././a1_appfigs.tex
+<./../../figs/fig1_taxespaid.png, id=624, 650.43pt x 361.35pt>
 File: ./../../figs/fig1_taxespaid.png Graphic file (type png)
 <use ./../../figs/fig1_taxespaid.png>
 Package pdftex.def Info: ./../../figs/fig1_taxespaid.png  used on input line 10.
-(pdftex.def)             Requested size: 484.20988pt x 269.00208pt.
- [29 <./../../figs/fig1_taxespaid.png>]
-<./../../figs/fig2_flow_immandem.png, id=631, 2107.875pt x 1204.5pt>
+(pdftex.def)             Requested size: 484.20988pt x 269.01035pt.
+ [30 <./../../figs/fig1_taxespaid.png>]
+<./../../figs/fig2_flow_immandem.png, id=636, 505.89pt x 289.08pt>
 File: ./../../figs/fig2_flow_immandem.png Graphic file (type png)
 <use ./../../figs/fig2_flow_immandem.png>
 Package pdftex.def Info: ./../../figs/fig2_flow_immandem.png  used on input line 41.
-(pdftex.def)             Requested size: 484.20988pt x 276.67996pt.
- [30 <./../../figs/fig2_flow_immandem.png>] [31]
-<./../../figs/immflow_countries.png, id=666, 505.89pt x 289.08pt>
+(pdftex.def)             Requested size: 484.20988pt x 276.6976pt.
+ [31 <./../../figs/fig2_flow_immandem.png>] [32]
+<./../../figs/immflow_countries.png, id=671, 505.89pt x 289.08pt>
 File: ./../../figs/immflow_countries.png Graphic file (type png)
 <use ./../../figs/immflow_countries.png>
 Package pdftex.def Info: ./../../figs/immflow_countries.png  used on input line 68.
@@ -614,16 +617,16 @@ Package pdftex.def Info: ./../../figs/immflow_countries.png  used on input line 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-) [32] [33 <./../../figs/immflow_countries.png>] (./_main.aux)
+) [33] [34 <./../../figs/immflow_countries.png>] (./_main.aux)
 Package rerunfilecheck Info: File `_main.out' has not changed.
 (rerunfilecheck)             Checksum: 3E02FDB02F6DD11D64A80CBE2FB8B64D;3902.
  ) 
 Here is how much of TeX's memory you used:
- 13485 strings out of 478268
- 216563 string characters out of 5846347
- 514860 words of memory out of 5000000
- 31292 multiletter control sequences out of 15000+600000
- 482539 words of font info for 81 fonts, out of 8000000 for 9000
+ 13488 strings out of 478268
+ 216605 string characters out of 5846347
+ 515860 words of memory out of 5000000
+ 31294 multiletter control sequences out of 15000+600000
+ 483147 words of font info for 83 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  77i,14n,99p,1128b,554s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
@@ -719,11 +722,11 @@ pdfTeX warning (dest): name{Hfootnote.2} has been referenced but does not exist,
 
 pdfTeX warning (dest): name{Hfootnote.1} has been referenced but does not exist, replaced by a fixed one
 
- </Users/amykim/Library/texlive/2022/texmf-var/fonts/pk/ljfour/public/bbm/bbm12.600pk>{/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb>
-Output written on _main.pdf (33 pages, 1080327 bytes).
+ </Users/amykim/Library/texlive/2022/texmf-var/fonts/pk/ljfour/public/bbm/bbm12.600pk>{/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb>
+Output written on _main.pdf (34 pages, 1085380 bytes).
 PDF statistics:
- 803 PDF objects out of 1000 (max. 8388607)
- 676 compressed objects within 7 object streams
- 151 named destinations out of 1000 (max. 500000)
+ 812 PDF objects out of 1000 (max. 8388607)
+ 682 compressed objects within 7 object streams
+ 152 named destinations out of 1000 (max. 500000)
  186 words of extra memory for PDF output out of 10000 (max. 10000000)
 

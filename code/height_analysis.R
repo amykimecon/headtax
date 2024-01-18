@@ -15,7 +15,7 @@ reg_chi <- read_csv(glue("{dbox}/cleaned/chireg.csv")) %>%
          BIRTHYR = ifelse(REG_Year != 0, REG_Year - AGE, NA),
          birthcohort = cut(BIRTHYR, breaks = c(1850, 1860, 1870, 1880, 1890)),
          HEIGHT = HEIGHT * 2.54,
-         pred_height_AUQLD = case_when(BIRTHYR < 1850 ~ 164.2,
+         pred_height_AUNT = case_when(BIRTHYR < 1850 ~ 164.2,
                                  BIRTHYR < 1855 ~ 164,
                                  BIRTHYR < 1860 ~ 163.8,
                                  BIRTHYR < 1865 ~ 163.9,
