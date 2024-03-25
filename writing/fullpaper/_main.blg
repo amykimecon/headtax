@@ -11,45 +11,45 @@ Warning--empty year in pier21canimm
 Warning--empty year in pier21context
 Warning--empty year in hkharbourmaster
 Warning--empty year in hkharbourmaster
-You've used 45 entries,
+You've used 47 entries,
             2773 wiz_defined-function locations,
-            879 strings with 12279 characters,
-and the built_in function-call counts, 17525 in all, are:
-= -- 1626
-> -- 731
-< -- 42
-+ -- 261
-- -- 216
-* -- 1315
-:= -- 2756
-add.period$ -- 150
-call.type$ -- 45
-change.case$ -- 216
-chr.to.int$ -- 45
-cite$ -- 96
-duplicate$ -- 831
-empty$ -- 1581
-format.name$ -- 289
-if$ -- 3666
+            895 strings with 12788 characters,
+and the built_in function-call counts, 18561 in all, are:
+= -- 1723
+> -- 773
+< -- 46
++ -- 275
+- -- 228
+* -- 1391
+:= -- 2905
+add.period$ -- 157
+call.type$ -- 47
+change.case$ -- 225
+chr.to.int$ -- 47
+cite$ -- 100
+duplicate$ -- 885
+empty$ -- 1677
+format.name$ -- 305
+if$ -- 3898
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 30
-newline$ -- 248
-num.names$ -- 180
-pop$ -- 354
+missing$ -- 32
+newline$ -- 258
+num.names$ -- 190
+pop$ -- 374
 preamble$ -- 1
-purify$ -- 162
+purify$ -- 169
 quote$ -- 0
-skip$ -- 605
+skip$ -- 645
 stack$ -- 0
-substring$ -- 742
-swap$ -- 48
-text.length$ -- 2
+substring$ -- 799
+swap$ -- 60
+text.length$ -- 4
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 495
+type$ -- 517
 warning$ -- 6
-while$ -- 171
+while$ -- 182
 width$ -- 0
-write$ -- 613
+write$ -- 640
 (There were 7 warnings)

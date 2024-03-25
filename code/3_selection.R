@@ -82,7 +82,8 @@ height_plot_compare <- reg_chi %>% filter(AGE >= 23 & AGE <= 50 & YRIMM > 1879 &
                                                BIRTHYR < 1900 ~ 162.1,
                                                BIRTHYR < 1905 ~ 162.4,
                                                BIRTHYR < 1910 ~ 162.9,
-                                               TRUE ~ NA)) %>%
+                                               TRUE ~ NA),
+        ) %>%
   group_by(YRIMM, tax) %>%
   summarize(Actual = mean(ifelse(HEIGHT==0,NA,HEIGHT), na.rm=TRUE), 
             Predicted = mean(ifelse(HEIGHT == 0, NA, pred_height_AUNT), na.rm=TRUE),
