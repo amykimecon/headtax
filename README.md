@@ -15,3 +15,6 @@
 ### 2_analysis
 - inflow.R: This file produces analysis tables & graphs for Section 4 of the paper (effects of the head tax on immigrant inflow)
 - selection.R: This file produces analysis tables & graphs for Section 6 of the paper (effects of the head tax on selection into immigration)
+
+## Data Dependencies (Dropbox Link to Data: https://www.dropbox.com/scl/fo/u4b9gc3yso8okx2lb2xg1/AFyaMuK3KLO3om-Z2Ei3hJ4?rlkey=9bbl0gsrnfbplspnedm1wlftj&dl=0)
+TODO
