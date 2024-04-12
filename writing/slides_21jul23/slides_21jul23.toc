@@ -1,2 +1,0 @@
-\beamer@sectionintoc {1}{Immigration Inflow}{3}{0}{1}
-\beamer@sectionintoc {2}{Immigrant Composition}{6}{0}{2}
