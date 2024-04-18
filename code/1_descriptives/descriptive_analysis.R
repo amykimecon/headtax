@@ -37,75 +37,85 @@ hk_ships <- c("Empress Of China", "Empress Of Japan", "Empress Of India", "Empre
 #_____________________________________________________________
 # SUMMARY STATS TABLE ----
 #_____________________________________________________________
-# Register variables: sex, year of imm, age at imm, 
-varlist_reg = c("MALE", "PRE1886", "YRIMM18861895", "YRIMM18961905", "YRIMM19061915", "POST1916", 
-                "UNDER18","AGE1825","AGE2535","AGE35PLUS", "LABOR")
 ## Chinese Register Data ----
-reg_chi_summ <- reg_chi %>% mutate(LABOR = ifelse(AGE < 18, NA, LABOR),
-                                   UNDER18 = ifelse(AGE < 18, 1, 0),
-                                   AGE1825 = ifelse(AGE >= 18 & AGE < 25, 1, 0),
-                                   AGE2535 = ifelse(AGE >= 25 & AGE < 35, 1, 0),
-                                   AGE35PLUS = ifelse(AGE >= 35, 1, 0),
-                                   PRE1886 = ifelse(YRIMM < 1886, 1, 0),
-                                   YRIMM18861895 = ifelse(YRIMM >= 1886 & YRIMM < 1896, 1, 0),
-                                   YRIMM18961905 = ifelse(YRIMM >= 1896 & YRIMM < 1906, 1, 0),
-                                   YRIMM19061915 = ifelse(YRIMM >= 1906 & YRIMM < 1916, 1, 0),
-                                   POST1916 = ifelse(YRIMM >= 1916, 1, 0),
-                                   across(all_of(varlist_reg),
-                                          ~ .x*100)) %>% 
+# Register variables: sex, year of imm, age at imm, laborer status, height
+# x100 for stats that are being output as percentages
+varlist_reg = c("MALE", "PRE1886", "YRIMM18861895", "YRIMM18961905", "YRIMM19061915", "POST1916", 
+                "UNDER18","AGE1825","AGE2535","AGE35PLUS","WHIPPLE","LABOR", "HEIGHT")
+reg_chi_summ <- reg_chi %>% mutate(LABOR = ifelse(AGE < 18, NA, LABOR)*100,
+                                   UNDER18 = ifelse(AGE < 18, 1, 0)*100,
+                                   AGE1825 = ifelse(AGE >= 18 & AGE < 25, 1, 0)*100,
+                                   AGE2535 = ifelse(AGE >= 25 & AGE < 35, 1, 0)*100,
+                                   AGE35PLUS = ifelse(AGE >= 35, 1, 0)*100,
+                                   PRE1886 = ifelse(YRIMM < 1886, 1, 0)*100,
+                                   YRIMM18861895 = ifelse(YRIMM >= 1886 & YRIMM < 1896, 1, 0)*100,
+                                   YRIMM18961905 = ifelse(YRIMM >= 1896 & YRIMM < 1906, 1, 0)*100,
+                                   YRIMM19061915 = ifelse(YRIMM >= 1906 & YRIMM < 1916, 1, 0)*100,
+                                   POST1916 = ifelse(YRIMM >= 1916, 1, 0)*100,
+                                   MALE = MALE*100) %>% 
   filter(YRIMM >= 1886 & YRIMM <= 1923)
 
 ## Canadian Census Data ----
+# Census variables: sex, year of imm, age at imm, marital status, literacy, laborer status, earnings
+varlist_cen <- c("MALE", "MAR", "PRE1886", "YRIMM18861895", "YRIMM18961905", "YRIMM19061915", "POST1916", 
+  "UNDER18","AGE1825","AGE2535","AGE35PLUS", "CANREAD", "WHIPPLE", "LABOR", "EARN")
 can_imm_summ <- can_imm %>% mutate(AGEATIMM = AGE - (YEAR-YRIMM),
-                                   UNDER18 = ifelse(AGEATIMM < 18, 1, 0),
-                                   AGE1825 = ifelse(AGEATIMM >= 18 & AGEATIMM < 25, 1, 0),
-                                   AGE2535 = ifelse(AGEATIMM >= 25 & AGEATIMM < 35, 1, 0),
-                                   AGE35PLUS = ifelse(AGEATIMM >= 35, 1, 0),
-                                   PRE1886 = ifelse(YRIMM < 1886, 1, 0),
-                                   YRIMM18861895 = ifelse(YRIMM >= 1886 & YRIMM < 1896, 1, 0),
-                                   YRIMM18961905 = ifelse(YRIMM >= 1896 & YRIMM < 1906, 1, 0),
-                                   YRIMM19061915 = ifelse(YRIMM >= 1906 & YRIMM < 1916, 1, 0),
-                                   POST1916 = ifelse(YRIMM >= 1916, 1, 0),
-                                   across(c("MALE", "MAR", "PRE1886", "YRIMM18861895", "YRIMM18961905", "YRIMM19061915", "POST1916", "UNDER18","AGE1825","AGE2535","AGE35PLUS", "CANREAD", "LABOR"),
-                                          ~ .x*100))
+                                   UNDER18 = ifelse(AGEATIMM < 18, 1, 0)*100,
+                                   AGE1825 = ifelse(AGEATIMM >= 18 & AGEATIMM < 25, 1, 0)*100,
+                                   AGE2535 = ifelse(AGEATIMM >= 25 & AGEATIMM < 35, 1, 0)*100,
+                                   AGE35PLUS = ifelse(AGEATIMM >= 35, 1, 0)*100,
+                                   PRE1886 = ifelse(YRIMM < 1886, 1, 0)*100,
+                                   YRIMM18861895 = ifelse(YRIMM >= 1886 & YRIMM < 1896, 1, 0)*100,
+                                   YRIMM18961905 = ifelse(YRIMM >= 1896 & YRIMM < 1906, 1, 0)*100,
+                                   YRIMM19061915 = ifelse(YRIMM >= 1906 & YRIMM < 1916, 1, 0)*100,
+                                   POST1916 = ifelse(YRIMM >= 1916, 1, 0)*100,
+                                   LABOR = LABOR*100,
+                                   CANREAD = CANREAD*100,
+                                   MALE = MALE*100,
+                                   MAR = MAR*100)
 
 ## Summarizing and binding by group ----
-varlist_reg = c("MALE", "MAR", "PRE1886", "YRIMM18861895", "YRIMM18961905", "YRIMM19061915", "POST1916", "UNDER18","AGE1825","AGE2535","AGE35PLUS", "CANREAD", "LABOR", "EARN")
-summ_stats_df <- bind_rows(summstats(can_imm_summ, varlist),
-                           summstats(can_imm_summ %>% filter(BPL == "Japan")),
-                           summstats(can_imm_summ %>% filter(BPL == "China")),
-                           summstats(reg_chi_summ %>% filter(FEES != 0), 
-                                     vars = c("MALE",  "PRE1886", "YRIMM18861895", "YRIMM18961905", "YRIMM19061915", "POST1916", "UNDER18","AGE1825","AGE2535","AGE35PLUS", "LABOR")),
-                           summstats(reg_chi_summ %>% filter(FEES == 0), 
-                                     vars = c("MALE",  "PRE1886", "YRIMM18861895", "YRIMM18961905", "YRIMM19061915", "POST1916", "UNDER18","AGE1825","AGE2535","AGE35PLUS", "LABOR"))) %>%
+summ_stats_df <- bind_rows(summstats(can_imm_summ, varlist_cen),
+                           summstats(can_imm_summ %>% filter(BPL == "Japan"), varlist_cen),
+                           summstats(can_imm_summ %>% filter(BPL == "China"), varlist_cen),
+                           summstats(reg_chi_summ %>% filter(FEES != 0), varlist_reg),
+                           summstats(reg_chi_summ %>% filter(FEES == 0), varlist_reg)) %>%
   select(c(-OBS, OBS)) %>%
   arrange(across(c(group, source)))
 
 summ_stats_out <- t(summ_stats_df) %>% as.data.frame()
 
 ## Writing to table ----
-summ_cats <- c("\\% Male", "\\% Married*", "Year of Immigration (\\%)", "\\;\\; Before 1886", "\\;\\; 1886-1895", "\\;\\; 1896-1905", "\\;\\; 1906-1915", "\\;\\;After 1916", 
-               "Age at Immigration (\\%)", "\\;\\; Under 18", "\\;\\; 18-24","\\;\\; 25-34", "\\;\\; Over 35", "\\% Literate*", "\\% Laborers*", "Mean Earnings")
-summtex <- file(glue("{git}/figs/summstats.tex"), open = "w")
+# variable names for table
+summ_cats <- c("\\% Male", "\\% Married*", "Year of Immigration (\\%)", "\\;\\; Before 1886", 
+               "\\;\\; 1886-1895", "\\;\\; 1896-1905", "\\;\\; 1906-1915", "\\;\\;After 1916", 
+               "Age at Immigration (\\%)", "\\;\\; Under 18", "\\;\\; 18-24","\\;\\; 25-34", 
+               "\\;\\; Over 35", "\\% Literate*", "Whipple Index", "\\% Laborers**", "Mean Annual Earnings**", "Height (cm)**")
+# opening table connection
+summtex <- file(glue("{tabs}/summstats.tex"), open = "w")
+
+# writing table header
 writeLines(c("\\begin{tabular}{lcccccc}", 
              "\\hhline{=======}", 
              "& \\multicolumn{3}{c}{Canadian Census} & & \\multicolumn{2}{c}{Chinese Register} \\\\ ", 
              "\\hhline{~---~--}", "& (1) & (2) & (3) & & (4) & (5) \\\\ ",
               "& All Foreign-Born. & Japanese Imm. & Chinese Imm. & & Head Tax & No Head Tax \\\\ ", " \\hhline{-------}"), summtex)
+
+# iterating through lines
 ind = 1
 for (i in 1:length(summ_cats)){
-  if(summ_cats[i] == "Age at Immigration" | summ_cats[i] == "Year of Immigration"){
+  # skip category rownames
+  if(summ_cats[i] == "Age at Immigration (\\%)" | summ_cats[i] == "Year of Immigration (\\%)"){
     writeLines(glue_collapse(c(summ_cats[i],rep("&",6), "\\\\")), summtex)
   }else{
     means <- ifelse(is.na(summ_stats_out[2*ind+1,]) | as.numeric(summ_stats_out[2*ind+1,])==0, "-", formatC(as.numeric(summ_stats_out[2*ind+1,]), digits = 4))
-    #sds <- ifelse(is.na(summ_stats_out[2*i+2,]), "", paste0("(",round(as.numeric(summ_stats_out[2*i+2,]),4),")"))
     writeLines(c(paste(summ_cats[i], "&", glue_collapse(c(means[1:3],"",means[4:5]), sep = "&", last = ""), "\\\\ ")), summtex) 
-    #paste("&", glue_collapse(c(sds[1:3],"",sds[4:5]), sep = "&", last = ""), "\\\\ ")), summtex)
     ind = ind + 1
   }
 }
+
+# writing number of observations for each sample
 obs <- ifelse(is.na(summ_stats_out[2*ind+1,]), "-", formatC(as.numeric(summ_stats_out[2*ind+1,]), format = "d", big.mark = ","))
-  #round(as.numeric(summ_stats_out[2*(length(summ_cats)+1)+1,]), 0))
 writeLines(c("Obs.", "&", glue_collapse(c(obs[1:3],"",obs[4:5]), sep = "&", last = ""), "\\\\ "), summtex)
 writeLines(c("\\hhline{-------}","\\end{tabular}"), summtex)
 close(summtex)

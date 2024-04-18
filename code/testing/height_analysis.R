@@ -1,6 +1,6 @@
 ## ANALYSING TRENDS IN REGISTER DATA 
 reg_chi <- read_csv(glue("{dbox}/cleaned/chireg.csv")) %>% 
-  mutate(source = "xRegister", group = "Chinese Immigrants", WEIGHT = 1, YRIMM = YEAR, YRIMM_FISCAL = FISCALYEAR,
+  mutate(source = "xRegister", group = "Chinese Immigrants", WEIGHT = 1, YRIMM = YEAR,
          tax = case_when(YRIMM <= 1885 ~ 0,
                          YRIMM <= 1900 ~ 1496.19,
                          YRIMM <= 1903 ~ 2992.61,

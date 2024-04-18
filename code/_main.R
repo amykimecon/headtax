@@ -2,7 +2,7 @@
 # FILE DESCRIPTION: Main code file -- initial data imports + calls to other files
 # CREATED BY: Amy Kim
 # CREATED ON: Aug 7 2022 
-# LAST MODIFIED: Oct 2023
+# LAST MODIFIED: Apr 2024
 #_____________________________________________________________
 
 # Importing Packages ----------------------------------
@@ -19,9 +19,12 @@ library(fastDummies)
 # Defining Paths and Colors ----------------------------------
 #_____________________________________________________________
 if (Sys.getenv("USER") == "amykim"){
-  dbox = "/Users/amykim/Dropbox (Princeton)/head_tax_data"
+  dbox = "/Users/amykim/Dropbox (Princeton)/head_tax/head_tax_data"
   git = "/Users/amykim/Documents/GitHub/headtax"
 }
+figs = glue("{git}/output/paper/figures")
+tabs = glue("{git}/output/paper/tables")
+slides_out = glue("{git}/output/slides")
 
 us <- "#00BFC4"
 ht <- "#808080"
@@ -43,6 +46,9 @@ hk5 <- "#FFB370"
 headtaxcuts <- data.frame(yrs = c(1885, 1900, 1903, 1923), labs = c("Initial $50 Head Tax", "Increase to $100", "Increase to $500", "Total Imm. Ban"))
 headtaxcuts_slides <- data.frame(yrs = c(1885, 1900, 1903, 1923), labs = c("$50 Head Tax", "Incr. to $100", "Incr. to $500", "Total Ban"))
 
+## running helper function 
+source(glue("{git}/code/helper.R"))
+
 #_____________________________________________________________
 # CLEANING DATA - ONLY NEED TO RUN ONCE -----
 #_____________________________________________________________
@@ -58,16 +64,17 @@ source(glue("{git}/code/0_dataclean/can_census_clean.R"))
 ## Canadian Data ----
 # chinese register, note that sample pre-1885 is biased (non mandatory registration, so only some selected people registered)
 reg_chi <- read_csv(glue("{dbox}/cleaned/chireg.csv")) %>% 
-  mutate(source = "xRegister", group = "Chinese Immigrants", WEIGHT = 1, YRIMM = YEAR, YRIMM_FISCAL = FISCALYEAR,
+  mutate(source = "xRegister", group = "Chinese Immigrants", WEIGHT = 1, YRIMM = YEAR, 
+         WHIPPLE = ifelse(AGE >= 18, 500*ifelse(AGE %% 5 == 0, 1, 0), NA),
          tax = case_when(YRIMM <= 1885 ~ 0,
                          YRIMM <= 1900 ~ 1496.19,
                          YRIMM <= 1903 ~ 2992.61,
-                         YRIMM < 1924 ~ 14115.70),
-         HEIGHT = HEIGHT*2.54)
+                         YRIMM < 1924 ~ 14115.70))
 
 # CA census
 can_imm <- read_csv(glue("{dbox}/cleaned/can_clean_imm.csv")) %>% 
   mutate(source = "CA Census", group = "All Immigrants",
+         WHIPPLE = ifelse(AGE >= 18, 500*ifelse(AGE %% 5 == 0, 1, 0), NA),
          tax = case_when(YRIMM <= 1885 ~ 0,
                          YRIMM <= 1900 ~ 1496.19,
                          YRIMM <= 1903 ~ 2992.61,
