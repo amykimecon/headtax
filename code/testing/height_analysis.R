@@ -103,9 +103,9 @@ summary(lm(data = taxed_age, AGE ~ factor(tax)))
 summary(lm(data = taxed_age, AGE ~ factor(tax) + t))
 
 # height
-taxed_height <-filter(reg_chi, AGE>= 24 & AGE <=50 & YRIMM > 1885 & YRIMM < 1924 & FEES > 0 & MALE == 1 & !is.na(HEIGHT)) %>% mutate(t = YRIMM - 1885)
+taxed_height <-filter(reg_chi, AGE>= 23 & AGE <=50 & YRIMM > 1880 & YRIMM < 1924 & FEES > 0 & MALE == 1 & !is.na(HEIGHT)) %>% mutate(t = YRIMM - 1885)
 summary(lm(data = taxed_height, HEIGHT ~ t))
-summary(lm(data = taxed_height, HEIGHT ~ factor(tax)))
+summary(lm(data = taxed_height, HEIGHT ~ factor(tax) + AGE))
 summary(lm(data = taxed_height, HEIGHT ~ factor(tax) + t))
 summary(lm(data = taxed_height, HEIGHT ~ pred_height_AUQLD + factor(tax) + t))
 

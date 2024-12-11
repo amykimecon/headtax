@@ -8,7 +8,9 @@
 #_____________________________________________________________
 # IMPORTING RAW CENSUS DATA ----
 #_____________________________________________________________
-## canadian census data from 1871-1921
+# census years
+years <- seq(1871, 1921, 10)
+
 raw1871 <- read.spss(glue("{dbox}/raw/census1871.sav")) %>% as.data.frame() #1.8% stratified sample w weights
 raw1881 <- read.spss(glue("{dbox}/raw/census1881.sav")) %>% as.data.frame() # 100% sample
 raw1891 <- read.spss(glue("{dbox}/raw/census1891.sav")) %>% as.data.frame() # 5% sample
@@ -16,28 +18,60 @@ raw1901 <- read.spss(glue("{dbox}/raw/census1901.sav")) %>% as.data.frame() # 5%
 raw1911 <- read.spss(glue("{dbox}/raw/census1911.sav")) %>% as.data.frame() # 5% sample
 raw1921 <- read.spss(glue("{dbox}/raw/census1921.sav")) %>% as.data.frame() # 4% sample
 
-#raw1911 <-read_csv(glue("{dbox}/raw/census1911.csv"), guess_max = 1000000)
-#_____________________________________________________________
-# DECLARING KEY VARIABLES AND LISTS ----
-#_____________________________________________________________
-# census years
-years <- seq(1871, 1921, 10)
+## crosswalk from 1901 occupation codes to occ1950
+cfp_occ1950 <- read_xlsx(glue("{dbox}/crosswalks/cfp_to_occ1950_final.xlsx")) %>%
+  select(c(OCC_CFP, OCC_STR, Occ1950_code, Manual_Code, FLAG_MANUAL_CORRECT)) %>%
+  mutate(x = 1)
 
+## csv versions (for cleaner occupational coding)
+raw1911_csv <- read_csv(glue("{dbox}/raw/census1911.csv"), guess_max = 1000000)
+
+# creating crosswalk from occupation string to occ1950 codes using cleaned 1911 census
+occ1950_crosswalk <- inner_join(raw1911 %>% select(Derived_Household_Id, Derived_Person_Num_In_Household, OCCUPATION_CHIEF_OCC_IND), 
+                                raw1911_csv %>% mutate(OCCCODE = OCCUPATION_CHIEF_OCC_IND, Derived_Household_Id = as.numeric(Derived_Household_Id)) %>% 
+                                  select(Derived_Household_Id, Derived_Person_Num_In_Household, OCCCODE)) %>%
+  group_by(OCCCODE) %>% summarize(n_1911=n(), OCCDESC = first(OCCUPATION_CHIEF_OCC_IND)) %>% filter(!is.na(OCCCODE))
+
+# ## getting crosswalk from documentation
+# raw_codes_1911 <- pdf_text(glue("{dbox}/docs/1911Codes-Combined.pdf"))
+# bpl_raw_1911 <- raw_codes_1911[which(str_detect(raw_codes_1911, "Individual Birth Country"))] %>%
+#   str_split("\n") %>% unlist()
+# bpl_crosswalk_1911 <- data.frame(bplcode = str_trim(str_extract(bpl_raw_1911, "^\\s+[0-9]{4,}")),
+#                                  bplname = str_trim(str_remove(bpl_raw_1911, "^\\s+[0-9]{4,}"))) %>%
+#   filter(!is.na(bplcode))
+# 
+# ## linking spss with csv for occupation codes
+# linked1911 <- full_join(raw1911, raw1911_csv, by = c("Individual_Id", "Household_Id"))
+# 
+# ## 1901 'laborer' occupations for comparison
+# lab_occs_1901 <- filter(raw1901, occ2 == "Labourer") %>% group_by(occ, occ1) %>% summarize(n=n())
+# 
+# write_csv(raw1901 %>% group_by(occ, occ1) %>% summarize(n=n()), glue("{dbox}/raw/1901_occcodes.csv"))
+#_____________________________________________________________
+# DECLARING KEY VARIABLES, CROSSWALKS, LISTS ----
+#_____________________________________________________________
 # us states, canadian provinces/places, UK countries (to define country of origin)
 us_states <- trimws(as.character(as.data.frame(table(raw1881$birthplace_ccri))$Var1[1:82]))
 canadian <- trimws(as.character(as.data.frame(table(raw1881$birthplace_ccri))$Var1[84:1130]))
 uk <- c("England", "Ireland", "Scotland", "Wales", "Jersey", "Isle of Man", "Gibraltar", "Great Britain", "Channel Islands",
         "Guernsey", "United Kingdom, n.s", "Northern Ireland", "Orkney Islands", "Shetland Islands") 
 
+# variables to keep (for all censuses)
+varnames <- c("WEIGHT", "YEAR", "AGE", "WHIPPLE", "MALE", "MAR", "BPL", "IMM", "HHID", "PERNUM", "FIRSTNAME", "LASTNAME")
+
+# additional variables to keep (for 1901-1921 censuses)
+varnames_extra <- c(varnames, "YRIMM", "CANREAD", "SPEAKENG", "SPEAKENGFR", "OCC1950", "OCC_STR", "EARN", "EMPLOYEE", "EMPLOYED")
+
 #_____________________________________________________________
 # CLEANING CENSUS DATA ----
 #_____________________________________________________________
-# variables to keep (for all censuses)
-varnames <- c("WEIGHT", "YEAR", "AGE", "WHIPPLE", "MALE", "MAR", "BPL", "IMM")
-varnames_extra <- c(varnames, "YRIMM", "CANREAD", "SPEAKENG", "SPEAKENGFR")
 ## 1871 Census ----
 clean1871 <- raw1871 %>% 
   mutate(WEIGHT = popwgt,
+         HHID = as.character(serial),
+         PERNUM = newpno,
+         FIRSTNAME = fnam,
+         LASTNAME = lnam,
          YEAR = 1871,
          AGE = ifelse(ageerr == "Error", NA, age),
          WHIPPLE = ifelse(!is.na(AGE) & AGE >= 23 & AGE <= 62, ifelse(AGE %% 5 == 0, 1, 0), NA),
@@ -69,6 +103,10 @@ clean1871 <- raw1871 %>%
 ## 1881 Census ----
 clean1881 <- raw1881 %>% 
   mutate(WEIGHT = 1,
+         HHID = as.character(SERIAL),
+         PERNUM = PERNUM,
+         FIRSTNAME = NAMFRST,
+         LASTNAME = NAMLAST,
          YEAR = 1881,
          WHIPPLE = ifelse(!is.na(AGE) & AGE >= 23 & AGE <= 62, ifelse(AGE %% 5 == 0, 1, 0), NA),
          MALE = case_when(SEX == "Male" ~ 1,
@@ -103,7 +141,12 @@ clean1881 <- raw1881 %>%
 
 ## 1891 Census ----
 clean1891 <- raw1891 %>% 
+  group_by(Reelnumber, DwellingPage, DwellingLine) %>%
+  mutate(HHID = as.character(cur_group_id()),
+         PERNUM = row_number()) %>% ungroup() %>%
   mutate(WEIGHT = case_when(samplesize == 5 ~ 20, samplesize == 10 ~ 10, samplesize == 100 ~ 1),
+         FIRSTNAME = NAMEFIRST,
+         LASTNAME = NAMELAST,
          YEAR = 1891,
          AGE = ifelse(agecode == 999, NA, as.numeric(agecode)),
          WHIPPLE = ifelse(!is.na(AGE) & AGE >= 23 & AGE <= 62, ifelse(AGE %% 5 == 0, 1, 0), NA),
@@ -166,7 +209,12 @@ clean1891 <- raw1891 %>%
 
 ## 1901 Census ----
 clean1901 <- raw1901 %>% 
+  distinct(hhdid, hhdpos, reel, pagenbr, linenbr, .keep_all = TRUE) %>% ## NEED TO DROP DUPLICATES FOR 1901 CENSUS!
   mutate(WEIGHT = 20,
+         HHID = hhdid,
+         PERNUM = hhdpos,
+         LASTNAME = indlnm,
+         FIRSTNAME = indfnm,
          YEAR = 1901,
          AGE = ageyr,
          WHIPPLE = ifelse(!is.na(AGE) & AGE >= 23 & AGE <= 62, ifelse(AGE %% 5 == 0, 1, 0), NA),
@@ -235,8 +283,27 @@ clean1901 <- raw1901 %>%
                                 is.na(SPEAKENG) ~ NA_integer_,
                                 SPEAKENG == 0 & french == "No" ~ 0,
                                 TRUE ~ NA_integer_),
-         OCCSTR = ifelse(occ1 == "99999", NA, as.numeric(as.character(str_extract(occ1,"^[0-9]{3}")))), #extracts first three digits of occupation code (IPUMS)
-         # HOUSEOWN = ifelse(AGE >= 18, ifelse(PROPOWNR == "Yes", 1, 0), NA),
+         OCC_CFP = ifelse(occ1 == "99999", NA, as.numeric(as.character(str_extract(occ1,"^[0-9]{5}")))),
+         OCC_STR = trimws(occ),
+         mos_emp = ifelse(is.na(moempfac) & is.na(moemphom) & is.na(moempoth), 12, rowSums(pick(moempfac:moempoth), na.rm=TRUE)),
+         EARN = case_when(earnper == "Daily" & earnings < 100 ~ (earnings*300)*(mos_emp/12), #for daily earnings, multiply by 300 (exclude obvious outliers that are miscoded as daily)
+                          earnper == "Weekly" ~ (earnings*50)*(mos_emp/12), #for weekly, multiply by 50 (scaled by months working)
+                          earnper == "Monthly" ~ (earnings*mos_emp), #for monthly, scale by months working
+                          !is.na(earnings) ~ earnings, #for everyone else, assume annual (just report total amount)
+                          is.na(earnings) ~ NA_integer_ #unless missing (report NA)
+                          ) + ifelse(!is.na(exearn), exearn, 0), #add extra earnings if nonmissing
+         EMPLOYED = case_when(!is.na(employee) & employee == "Yes" ~ 1,
+                              !is.na(employer) & employer == "Yes" ~ 1,
+                              !is.na(ownacct) & ownacct == "Yes" ~ 1,
+                              !is.na(EARN) ~ 1,
+                              TRUE ~ 0),
+         #ifelse(employee == "Yes" | employer == "Yes" | ownacct == "Yes" | ownmeans == "Yes" | !is.na(EARN), 1, 0),
+         EMPLOYEE = ifelse(EMPLOYED == 1, ifelse(employee == "Yes", 1, 0), NA)
+         ) %>% #numeric version of occcode
+  left_join(cfp_occ1950, by = c("OCC_CFP" = "OCC_CFP", "OCC_STR" = "OCC_STR")) %>%
+  mutate(OCC1950 = as.numeric(ifelse(str_detect(Occ1950_code, "NA"), Manual_Code, Occ1950_code)),
+         OCC1950_ALT = as.numeric(ifelse(!is.na(FLAG_MANUAL_CORRECT), Manual_Code, OCC1950))
+    # HOUSEOWN = ifelse(AGE >= 18, ifelse(PROPOWNR == "Yes", 1, 0), NA),
          # LABOR = ifelse(AGE >= 18 & MALE == 1, ifelse(str_detect(OCC, "LAB"), 1, 0), NA),
          # OCCGRP = case_when(occ2 == "Labourer" | str_detect(OCC, "LAB") ~ "Laborer",
          #                    OCCSTR >= 711 & OCCSTR < 719 ~ "Farmer",
@@ -246,15 +313,19 @@ clean1901 <- raw1901 %>%
          #                    TRUE ~ NA_character_),
          # EARN = ifelse(AGE >= 18 & MALE == 1 & !is.na(earnings), earnings + ifelse(is.na(exearn), 0, exearn), NA)
   )%>%
-  select(all_of(varnames_extra)) 
+  select(all_of(c(varnames_extra, "OCC1950_ALT")))
 
 ## 1911 Census ----
-# getting crosswalk for csv from documentation
-
 clean1911 <- raw1911 %>% 
+  left_join(raw1911_csv %>% mutate(OCCCODE = OCCUPATION_CHIEF_OCC_IND, Derived_Household_Id = suppressWarnings(as.numeric(Derived_Household_Id))) %>% 
+              select(Derived_Household_Id, Derived_Person_Num_In_Household, OCCCODE)) %>%
   mutate(WEIGHT = case_when(str_starts(Dwelling_Unit_Type, "UU") ~ 20,
                             str_starts(Dwelling_Unit_Type, "SU") ~ 10,
                             str_starts(Dwelling_Unit_Type, "MU") ~ 4),
+         HHID = as.character(Derived_Household_Id),
+         PERNUM = Derived_Person_Num_In_Household,
+         FIRSTNAME = str_to_upper(str_replace(FIRST_NAME, "([0-9]{7,}|\\*)", "")),
+         LASTNAME = str_to_upper(str_replace(LAST_NAME, "([0-9]{7,}|\\*)", "")),
          YEAR = 1911,
          AGE = ifelse(AGE_AMOUNT > 120, NA, floor(AGE_AMOUNT)),
          WHIPPLE = ifelse(!is.na(AGE) & AGE >= 23 & AGE <= 62, ifelse(AGE %% 5 == 0, 1, 0), NA),
@@ -304,7 +375,16 @@ clean1911 <- raw1911 %>%
                               LANGUAGE_SPOKEN_1 %in% c("Uncodable", "Invalid Value", "Unknown", "Not Given", "None", "Unknown - Suggestion", "Missing -- Mandatory Field", 
                                                        "Suspicious", "Illegible", "Damaged", "Blank") ~ NA_integer_,
                               TRUE ~ 0),
-         # OCCIND = str_to_lower(OCCUPATION_CHIEF_OCC_IND_CL),
+         OCC1950 = as.numeric(OCCCODE),
+         OCC_STR = str_to_lower(OCCUPATION_CHIEF_OCC_IND_CL),
+         EMPLOYED = ifelse(EMPLOYEE == "Yes" | EMPLOYER == "Yes" | WORKING_ON_OWN_ACCOUNT == "Yes", 1, 0),
+         EMPLOYEE = ifelse(EMPLOYED == 1, ifelse(EMPLOYEE == "Yes", 1, 0), NA),
+         EARNCHIEF = ifelse(grepl("[0-9]+", EARNINGS_AT_CHIEF_OCC), suppressWarnings(as.numeric(as.character(EARNINGS_AT_CHIEF_OCC))), NA),
+         EARNOTH = ifelse(grepl("[0-9]+", EARNINGS_AT_OTHER_OCC), suppressWarnings(as.numeric(as.character(EARNINGS_AT_OTHER_OCC))), NA),
+         EARN = case_when(is.na(EARNCHIEF) & is.na(EARNOTH) ~ NA_integer_,
+                          is.na(EARNCHIEF) ~ EARNOTH,
+                          is.na(EARNOTH) ~ EARNCHIEF,
+                          !is.na(EARNCHIEF) & !is.na(EARNOTH) ~ EARNCHIEF + EARNOTH)
          # LABOR = ifelse(AGE >= 18 & MALE == 1, ifelse(str_detect(OCCIND, "(L|l)abour") | str_detect(OCCIND, "(L|l)abor"), 1, 0), NA),
          # OCCGRP = case_when(occ1 == "Agriculture" ~ "Farmer",
          #                    OCC == "Laborers (n.e.c.)" |  str_detect(OCCIND, "Labour") ~ "Laborer",
@@ -319,14 +399,19 @@ clean1911 <- raw1911 %>%
          #                 ifelse(grepl("[0-9]+", EARNINGS_AT_OTHER_OCC), suppressWarnings(as.numeric(as.character(EARNINGS_AT_OTHER_OCC))), 0),
          #               NA),
          # HOUSEOWN = ifelse(AGE >= 18, ifelse(RELATIONSHIP == "Head", 1, 0), NA)) %>%
-  )%>%
+  ) %>%
   select(all_of(varnames_extra))
 
 ## 1921 Census ----
 clean1921 <- raw1921 %>% 
+  left_join(occ1950_crosswalk %>% select(-c(n_1911)), by = c("CHIEF_OCCUPATION" = "OCCDESC")) %>%
   mutate(WEIGHT = case_when(str_starts(Dwelling_Unit_Type, "UU") ~ 25,
                             str_starts(Dwelling_Unit_Type, "SU") ~ 10,
                             str_starts(Dwelling_Unit_Type, "MU") ~ 5),
+         HHID = as.character(Derived_Household_Id),
+         PERNUM = Derived_Person_Num_In_Household,
+         FIRSTNAME = str_to_upper(str_replace(FIRST_NAME, "([0-9]{7,}|\\*)", "")),
+         LASTNAME = str_to_upper(str_replace(LAST_NAME, "([0-9]{7,}|\\*)", "")),
          YEAR = 1921,
          AGE = ifelse(Derived_Age_In_Years < 120, floor(Derived_Age_In_Years), NA),
          WHIPPLE = ifelse(!is.na(AGE) & AGE >= 23 & AGE <= 62, ifelse(AGE %% 5 == 0, 1, 0), NA),
@@ -381,7 +466,11 @@ clean1921 <- raw1921 %>%
                                 is.na(SPEAKENG) | SPEAK_FRENCH_INDICATOR != "No" ~ NA_integer_,
                                 SPEAKENG == 0 & SPEAK_FRENCH_INDICATOR == "No" ~ 0,
                                 TRUE ~ NA_integer_),
-        #  OCC = str_to_lower(OCC),
+         OCC1950 = OCCCODE,
+         OCC_STR = CHIEFOCCUP,
+         EARN = ifelse(grepl("[0-9]+", ANNUAL_EARNING_AMOUNT), suppressWarnings(as.numeric(as.character(ANNUAL_EARNING_AMOUNT))), NA),
+         EMPLOYED = ifelse(EMPLOYMENT_STATUS_IND %in% c("Employer", "Worker", "Own account"), 1, 0),
+         EMPLOYEE = ifelse(EMPLOYED == 0, NA, ifelse(EMPLOYMENT_STATUS_IND == "Worker", 1, 0))
         #  LABOR = ifelse(AGE >= 18 & MALE == 1, ifelse(str_detect(OCC, "labor") | str_detect(OCC, "labour"), 1, 0), NA),
         #  OCCGRP = case_when(str_detect(CHIEF_OCCUPATION, "Farm") ~ "Farmer",
         #                     str_detect(CHIEF_OCCUPATION, "Labor") | str_detect(CHIEF_OCCUPATION, "labor") ~ "Laborer",
@@ -391,7 +480,6 @@ clean1921 <- raw1921 %>%
         #                     TRUE ~ NA_character_),
         #  HOUSEOWN = ifelse(AGE >= 18, ifelse(str_detect(HOME_OWNED_OR_RENTED, "Owned"), 1, 0), NA),
         #  HOUSEOWN2 = ifelse(AGE >= 18, ifelse(RELATIONSHIP == "Head", 1, 0), NA),
-        # EARN = ifelse(AGE >= 18 & MALE == 1, ifelse(grepl("[0-9]+", ANNUAL_EARNING_AMOUNT), suppressWarnings(as.numeric(as.character(ANNUAL_EARNING_AMOUNT))), NA_real_), NA),
         # RURAL = ifelse(str_detect(CCRI_URBAN_RURAL_1921,"Rural"), 1, 0)
         ) %>%
   select(all_of(varnames_extra))
@@ -400,16 +488,22 @@ clean1921 <- raw1921 %>%
 all_census_cleaned <- list(clean1871, clean1881, clean1891, clean1901, clean1911, clean1921)
 clean_all <- bind_rows(all_census_cleaned)
 write_csv(clean_all, glue("{dbox}/cleaned/can_clean.csv"))
-
+write_csv(clean_all %>% filter(IMM == 1), glue("{dbox}/cleaned/can_clean_imm.csv"))
 #_____________________________________________________________
 # POPULATION STOCK CALCULATIONS ----
 #_____________________________________________________________
 ## Grouping by Year and BPL and interpolating ----
 bplall <- clean_all %>% filter(IMM == 1) %>%
-  group_by(YEAR, BPL) %>% summarize(POP = sum(WEIGHT)) 
+  group_by(YEAR, BPL) %>% summarize(POP = sum(WEIGHT)) %>% mutate(ORIG = 1) #indicator for a non-interpolated data point
+
+## Uninterpolated Totals
+bpl_china <- bplall %>% filter(BPL == "China") %>% ungroup() %>%
+  arrange(YEAR) %>% mutate(POPSTOCKCHANGE_China = POP - lag(POP))
+
+write_csv(bpl_china, glue("{dbox}/cleaned/popstockchange_china.csv"))
 
 # pivoting data wide (id col = year, diff val cols for each country)
-bplall_wide <- bplall %>% pivot_wider(id_cols = YEAR, names_from = BPL, values_from = POP) %>%
+bplall_wide <- bplall %>% pivot_wider(id_cols = YEAR, names_from = BPL, values_from = c(POP)) %>% 
   ungroup()
 
 # interpolating intercensal values
@@ -420,12 +514,16 @@ bpl_interp <- data.frame(YEAR = 1871:1921) %>%
   #discarding any country with fewer than 2 nonmissing values
   purrr::discard(~length(.x)-sum(is.na(.x)) < 2) %>%
   #interpolating all inter-decennial values using natural cubic spline (_spline) and linear (_linear)
-  mutate(across(-YEAR, function(.x) spline(YEAR, .x, method = "natural", xout = YEAR)$y, .names = "{.col}_spline"),
+  mutate(across(-c(YEAR), function(.x) spline(YEAR, .x, method = "natural", xout = YEAR)$y, .names = "{.col}_spline"),
          across(-c(YEAR, ends_with("spline")), function(.x) approx(YEAR, .x, xout = YEAR)$y, .names = "{.col}_linear")) %>%
-  select(c(ends_with("spline"), ends_with("linear"), "YEAR")) %>%
+  select(c(ends_with("spline"), ends_with("linear"), "YEAR")) %>% 
   #pivoting data to be long on year x country
   pivot_longer(cols = -YEAR, names_to = c("BPL", "INTERP"), names_pattern = "(.*)_(.*)", values_to = "POP") %>%
-  mutate(POP = ifelse(POP < 0, 0, POP)) #lower bound of zero
+  mutate(POP = ifelse(POP < 0, 0, POP)) %>% #lower bound of zero
+  left_join(bplall %>% select(-POP)) %>% 
+  group_by(BPL, INTERP) %>% arrange(YEAR) %>% 
+  fill(ORIG, .direction = "down") %>%
+  mutate(POP = ifelse(is.na(ORIG), NA, POP)) #making sure no interpolation beyond endpoints
 
 # outputting cleaned population stock data
 write_csv(bpl_interp, glue("{dbox}/cleaned/popstock_can.csv"))
