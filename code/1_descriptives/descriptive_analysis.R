@@ -158,7 +158,7 @@ yrimm_reg <- reg_chi %>%
 # number of chinese immigrants by month 
 moimm_reg <- reg_chi %>%
   mutate(MOIMM = lubridate::floor_date(DATE, "month")) %>%
-  group_by(MOIMM, tax) %>%
+  group_by(YRIMM, MOIMM, tax) %>%
   summarize(CHIFLOW_REGISTER = n()) %>%
   arrange(MOIMM)
 
@@ -192,6 +192,33 @@ fig1_immflow <- ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = FLOW, color =
 # annotate("rect", xmin = 1913, xmax = 1915, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.3)
 
 ggsave(glue("{git}/output/paper/figures/fig1_immflow.png"), fig1_immflow, height = 4, width = 7)
+
+# same graph but by month
+startyr = 1882
+endyr = 1908
+moimm1 <- moimm_reg %>% filter(YRIMM >= startyr & YRIMM <= endyr & !is.na(lagFLOW))
+moimm_mo <- lm(logFLOW ~ factor(month) + YRIMM, data = moimm1)
+moimm1$FLOW_DETR <- resid(moimm_mo)
+ggplot(data = moimm1,
+                              aes(x = MOIMM, y = logFLOW)) + geom_line() +
+  geom_vline(aes(xintercept = dates), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
+             show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = dates, y = 1, label = labs), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
+            inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+  labs(x = "Year of Immigration") + theme_minimal() + theme(legend.position='bottom')
+
+# same graph but by quarter
+moimm2 <- nmoimm_reg %>% filter(YRIMM >= startyr & YRIMM <= endyr)
+moimm_n <- lm(log(CHIFLOW_REGISTER) ~ factor(month), data = moimm2)
+moimm2$FLOW_DETR <- resid(moimm_n)
+ggplot(data = moimm2,
+       aes(x = MOIMM, y = log(CHIFLOW_REGISTER))) + geom_line() +
+  geom_vline(aes(xintercept = dates), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
+             show.legend = FALSE, color = "#808080", linetype = 3) +
+  geom_text(aes(x = dates, y = 1, label = labs), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
+            inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+  labs(x = "Year of Immigration") + theme_minimal() + theme(legend.position='bottom')
+
 
 fig1_immflow_slides_chionly <- ggplot(data = yrimm_flow_graph %>% filter(variable == "Chinese Immigrants") %>%
                                         mutate(variable = ifelse(variable == "Chinese Immigrants", "Chinese Immigrants (Register)", variable)), 

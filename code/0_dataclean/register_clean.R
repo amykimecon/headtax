@@ -28,15 +28,22 @@ chireg <- chiregraw %>%
          DAY = str_pad(DATE_ARRIV, 2, "left", pad = "0"),
          # date of arrival as date object (replacing missing month/day with middle of year/month)
          DATE = case_when(DAY == "00" & MONTH != "00" ~ as.Date(glue("{YEAR}-{MONTH}-15"), format = "%Y-%m-%d"),
-                          MONTH == "00" & YEAR != 0 ~ as.Date(glue("{YEAR}-07-01"), format = "%Y-%m-%d"),
-                          TRUE ~ as.Date(glue("{YEAR}-{MONTH}-{DAY}"), format = "%Y-%m-%d")),
+                                     MONTH == "00" & YEAR != 0 ~ NA_Date_,
+                                     TRUE ~ as.Date(glue("{YEAR}-{MONTH}-{DAY}"), format = "%Y-%m-%d")),
          PORT = case_when(ARR_PORT == "Victoria" ~ "Victoria",
                           ARR_PORT == "Vancouver" ~ "Vancouver",
                           TRUE ~ "Other"),
-         OCCGRP = case_when(PROFESSION == "Labourer" ~ "Labourer",
-                            PROFESSION == "Student" | PROFESSION == "Merchant" ~ "Student or Merchant",
-                            PROFESSION == "Farmer" ~ "Farmer",
-                            PROFESSION == "Laundryman" | PROFESSION == "Cook" | PROFESSION == "Grocer" ~ "Service",
+         OCCGRP = case_when(PROFESSION %in% c("Labourer", "Cannery Man", "Sawmill Hand", "Servant") | 
+                              str_detect(PROFESSION, "Miner") | str_detect(PROFESSION, "Labour") ~ "Labourer",
+                            PROFESSION == "Student" ~ "Student",
+                            str_detect(PROFESSION, "Merchant") ~ "Merchant",
+                            PROFESSION == "Farmer" | PROFESSION == "Fisherman" ~ "Farmer",
+                            PROFESSION %in% c("Clerk", "Salesman", "Saleman", "Book Keeper", "Teacher", "Doctor",
+                                              "Druggist", "Shop Assistant", "Manager") ~ "Clerical/Sales/Professional",
+                            PROFESSION %in% c("Laundryman", "Cook", "Grocer", "Shoemaker",
+                                              "Tailor", "Carpenter", "Gardener", "Barber", "Butcher",
+                                              "Peddler", "Cigar Maker", "Baker") | str_detect(PROFESSION, "Keeper") |
+                              str_detect(PROFESSION, "Fire") ~ "Service/Artisan",
                             TRUE ~ "Other"),
          BIRTHYEAR = REG_Year - AGE,
          MALE = case_when(SEX == "Male" ~ 1, 
@@ -48,7 +55,7 @@ chireg <- chiregraw %>%
          HEIGHT = 2.54*ifelse(is.na(HEIGHT_FT) | HEIGHT_FT == 0, NA, HEIGHT_FT*12 + ifelse(is.na(HEIGHT_IN_WHOLE), 0, HEIGHT_IN_WHOLE) + 
                                                  ifelse(is.na(HEIGHT_IN_FRAC), 0, as.numeric(str_extract(HEIGHT_IN_FRAC,"^[0-9]"))/as.numeric(str_extract(HEIGHT_IN_FRAC, "[0-9]$")))),
          HEIGHT_ADULTMEN = ifelse(MALE == 1 & AGE >= 18, HEIGHT, NA)) %>%
-  filter(!is.na(DATE) & YEAR != 0) #excluding entries without valid arrival date (for now) -- only 522 such entries out of ~100k
+  filter(YEAR != 0) #excluding entries without valid arrival date (for now) -- only 522 such entries out of ~100k
 
 #outputting to csv file
 write_csv(chireg, glue("{dbox}/cleaned/chireg.csv"))

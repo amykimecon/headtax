@@ -18,6 +18,8 @@ library(duckdb)
 library(tictoc)
 library(sandwich)
 library(lmtest)
+library(lubridate)
+library(strucchange)
 
 #_____________________________________________________________
 # Defining Paths and Colors ----------------------------------
@@ -49,7 +51,10 @@ hk5 <- "#FFB370"
 ## key head tax years for graphing & labeling vertical lines
 headtaxcuts <- data.frame(yrs = c(1885, 1900, 1903, 1923), labs = c("Initial $50 Head Tax", "Increase to $100", "Increase to $500", "Total Imm. Ban"))
 headtaxcuts_slides <- data.frame(yrs = c(1885, 1900, 1903, 1923), labs = c("$50 Head Tax", "Incr. to $100", "Incr. to $500", "Total Ban"))
-
+headtaxcuts_month <- data.frame(dates = c(as.Date("1885-07-20"), as.Date("1900-07-18"), as.Date("1901-01-01"),
+                                          as.Date("1903-07-10"), as.Date("1904-01-01"), as.Date("1923-07-01")),
+                                labs = c("$50 HT", "Incr to $100 Announced", "Incr to $100 Eff",
+                                         "Incr to $500 Announced", "Incr to $500 Eff", "Ban"))
 ## running helper function 
 source(glue("{git}/code/helper.R"))
 

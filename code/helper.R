@@ -18,6 +18,9 @@ remove_duplicates <- function(rawdata, idvars){
   print(nrow(distinct(rem_na)))
 }
 
+robustse <- function(model){
+  return(sqrt(diag(vcovHC(model, type = "HC1"))))
+}
 
 #_____________________________________________________________
 # SUMMARY STATS TABLES ----
@@ -40,6 +43,144 @@ summstats <- function(rawdata, vars){
                               ~wtd_se(.x, WEIGHT))), #SE
               OBS = n()) #n obs
   return(outdata)
+}
+
+#_____________________________________________________________
+# [TO CLEAN] BREAKPOINT STUFF ----
+#_____________________________________________________________
+qlrtest_month <- function(df, yvar = "logFLOW", ctrls = "factor(month) + MOIMM", k=15, controls = ""){
+  qlr <- Fstats(as.formula(glue("{yvar} ~ {ctrls}")), data = df, from = k)
+  print(df$MOIMM[qlr$breakpoint])
+  return(qlr)
+}
+
+discont_data <- function(df, t0, yvar, groupname, indiv = FALSE, window = 3, start = NA, end = NA, k = 15, ctrls = "factor(month) + MOIMM"){
+  if (is.na(start)){
+    start = t0 - years(window)
+  }
+  if (is.na(end)){
+    end = t0 + years(window)
+  }
+
+  df_out <- df[which(!is.na(df[[yvar]])),] %>% 
+    filter(MOIMM >= start & MOIMM < end) %>% 
+    mutate(group = groupname, t = interval(t0, MOIMM) %/% months(1))
+  
+  reg <- lm(as.formula(glue("{yvar} ~ factor(month)")), data = df_out)
+  df_out[[glue("{yvar}_DETR")]] = resid(reg)
+  df_out[[glue("{yvar}_RAW")]] = df_out[[yvar]]
+  
+  # if indiv-level data, group here
+  if (indiv == 1){
+    df_out <- df_out %>% 
+      group_by(YRIMM, MOIMM, month, t, tax, group) %>%
+      summarize(across(all_of(c(ends_with("_DETR"),ends_with("_RAW"))), 
+                       mean), n = n()) %>%
+      ungroup() %>% group_by(group) %>% arrange(MOIMM) %>%
+      mutate(ma3_n = rollapply(n, 3, sum, fill = NA),
+             ma6_n = rollapply(n, 6, sum, fill = NA),
+             across(all_of(c(ends_with("_DETR"),ends_with("_RAW"))), ~ .x*n, .names = "{.col}_MA"),
+             across(ends_with("MA"), 
+                    ~ rollapply(.x, 3, sum, fill = NA)/ma3_n,
+                    .names = "{.col}3"),
+             across(ends_with("MA"), 
+                    ~ rollapply(.x, 6, sum, fill = NA)/ma6_n,
+                    .names = "{.col}6"))
+  }
+  
+  qlr <- qlrtest_month(df_out, yvar = glue("{yvar}_RAW"), k = k, ctrls = ctrls)
+  df_out$FStat = NA
+  df_out$FStat[k:(nrow(df_out)-k)] = qlr$Fstats
+  df_out$bound = NA
+  df_out$bound[k:(nrow(df_out)-k)] = boundary(qlr)
+  
+  if (indiv){
+    qlr_ma3 <- qlrtest_month(df_out, yvar = glue("{yvar}_DETR_MA3"), k = k, ctrls = ctrls)
+    df_out$FStatMA3 = NA
+    df_out$FStatMA3[(k+1):(nrow(df_out)-(k+1))] = qlr_ma3$Fstats
+    df_out$boundMA3 = NA
+    df_out$boundMA3[(k+1):(nrow(df_out)-(k+1))] = boundary(qlr_ma3)
+  }
+  
+  return(df_out)
+}
+
+  
+all_disconts <- function(df, yvar, indiv = FALSE, k = 15, ctrls = "factor(month) + MOIMM"){
+  df_out <- bind_rows(list(discont_data(df, as.Date("1886-01-01"), yvar, "$50 Tax", indiv = indiv, k = k, ctrls = ctrls),
+                                discont_data(df, as.Date("1901-01-01"), yvar, "$100 Tax", 
+                                             end = as.Date("1903-07-01"), indiv = indiv, k = k, ctrls = ctrls),
+                                discont_data(df, as.Date("1904-01-01"), yvar, "$500 Tax", 
+                                             start = as.Date("1901-06-01"), indiv = indiv, k = k, ctrls = ctrls))) %>% 
+    mutate(group = factor(group, levels = c("$50 Tax", "$100 Tax", "$500 Tax")))
+  return(df_out)
+}
+
+graph_disconts <- function(discont_df, yvar, ylab, rollmean = FALSE, rollk = 3, yint = 0, 
+                           lab_vjust = 0.05, lab_hjust = 0.05, sampmean = NA){
+  if (rollmean){
+    discont_df[[glue("{yvar}_ROLL")]] <- rollmean(discont_df[[yvar]], rollk, na.pad = TRUE)
+    yvar = glue("{yvar}_ROLL")
+  }
+  if (!is.na(sampmean)){
+    yint = sampmean
+  }
+  ymin = min(discont_df[[yvar]], na.rm=TRUE)
+  ymax = max(discont_df[[yvar]], na.rm=TRUE)
+  plot_out <- ggplot(data = discont_df[which(!is.na(discont_df[[yvar]])),], aes(x = t, y = .data[[yvar]], color = group, linetype = group)) + 
+    geom_vline(xintercept = 0, color = "#808080", linetype = 1, alpha = 0.5, linewidth = 1) +
+    annotate("text", x = 0, y = ymax - (ymax-ymin)*lab_vjust, label = "Head Tax Effective", 
+             color = "#808080", hjust = -lab_hjust, size = 3) +
+    geom_vline(xintercept = -6, color = "#808080", linetype = 3, alpha = 0.5, linewidth = 1) +
+    annotate("text", x = -6, y = ymin + (ymax-ymin)*lab_vjust, label = "Head Tax Announced", 
+             color = "#808080", hjust = 1 + lab_hjust, size = 3) +
+    geom_hline(yintercept = yint, color = "#808080", linetype = 1, alpha = 0.5, linewidth = 0.5) +
+    geom_line() +
+    scale_color_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(c5, c3, c1)) +
+    scale_linetype_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(1, 2, 6)) +
+    labs(x = "Month of Immigration Relative to Head Tax Increase", 
+         y = ylab,
+         linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
+  if (!is.na(sampmean)){
+    plot_out <- plot_out + geom_hline(aes(yintercept = yint), alpha = 0.3, color = "#808080") +
+      annotate("text", x = -30, y = sampmean, label = glue("Sample Mean: {round(sampmean, 1)}"),
+               color = "#808080", vjust = -1, size = 3)
+  }
+  return(plot_out)
+}
+
+graph_fstats <- function(discont_df, ma3 = FALSE, lab_vjust = 0.05, lab_hjust = 0.05){
+  if (ma3){
+    yvar = "FStatMA3"
+    boundvar = "boundMA3"
+  }
+  else{
+    yvar = "FStat"
+    boundvar = "bound"
+  }
+  ymin = min(discont_df[[yvar]], na.rm=TRUE)
+  ymax = max(discont_df[[yvar]], na.rm=TRUE)
+  boundmax = max(discont_df[[boundvar]], na.rm=TRUE)
+  
+  plot_out <- ggplot(data = discont_df[which(!is.na(discont_df[[yvar]])),], 
+                     aes(x = t, y = .data[[yvar]], color = group, linetype = group)) + 
+    geom_vline(xintercept = 0, color = "#808080", linetype = 1, alpha = 0.5, linewidth = 1) +
+    annotate("text", x = 0, y = ymax - (ymax-ymin)*lab_vjust, label = "Head Tax Effective", 
+             color = "#808080", hjust = -lab_hjust, size = 3) +
+    geom_vline(xintercept = -6, color = "#808080", linetype = 3, alpha = 0.5, linewidth = 1) +
+    annotate("text", x = -6, y = ymax - (ymax-ymin)*lab_vjust, label = "Head Tax Announced", 
+             color = "#808080", hjust = 1 + lab_hjust, size = 3) +
+    geom_hline(aes(yintercept = .data[[boundvar]]), alpha = 0.5, color = "black") +
+    annotate("text", x = -20, y = boundmax, label = "95% Critical Value",
+             color = "black", vjust = -1, size = 3) +
+    #geom_rect(aes(xmin = -5, xmax = 0, ymin = -Inf, ymax = Inf), fill = "grey", alpha = 0.1, inherit.aes = FALSE) +
+    geom_line() +
+    scale_color_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(c5, c3, c1)) +
+    scale_linetype_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(1, 2, 6)) +
+    labs(x = "Month of Immigration Relative to Head Tax Increase",
+         y = "Chow F Statistic",
+         linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
+  return(plot_out)
 }
 
 #_____________________________________________________________
