@@ -130,10 +130,10 @@ graph_disconts <- function(discont_df, yvar, ylab, rollmean = FALSE, rollk = 3, 
   plot_out <- ggplot(data = discont_df[which(!is.na(discont_df[[yvar]])),], aes(x = t, y = .data[[yvar]], color = group, linetype = group)) + 
     geom_vline(xintercept = 0, color = "#808080", linetype = 1, alpha = 0.5, linewidth = 1) +
     annotate("text", x = 0, y = ymax - (ymax-ymin)*lab_vjust, label = "Head Tax Effective", 
-             color = "#808080", hjust = -lab_hjust, size = 3) +
+             color = "#808080", hjust = -lab_hjust, size = 4) +
     geom_vline(xintercept = -6, color = "#808080", linetype = 3, alpha = 0.5, linewidth = 1) +
     annotate("text", x = -6, y = ymin + (ymax-ymin)*lab_vjust, label = "Head Tax Announced", 
-             color = "#808080", hjust = 1 + lab_hjust, size = 3) +
+             color = "#808080", hjust = 1 + lab_hjust, size = 4) +
     geom_hline(yintercept = yint, color = "#808080", linetype = 1, alpha = 0.5, linewidth = 0.5) +
     geom_line() +
     scale_color_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(c5, c3, c1)) +
@@ -144,7 +144,7 @@ graph_disconts <- function(discont_df, yvar, ylab, rollmean = FALSE, rollk = 3, 
   if (!is.na(sampmean)){
     plot_out <- plot_out + geom_hline(aes(yintercept = yint), alpha = 0.3, color = "#808080") +
       annotate("text", x = -30, y = sampmean, label = glue("Sample Mean: {round(sampmean, 1)}"),
-               color = "#808080", vjust = -1, size = 3)
+               color = "#808080", vjust = -1, size = 4)
   }
   return(plot_out)
 }
