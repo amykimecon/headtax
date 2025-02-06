@@ -8,6 +8,8 @@ library(glue)
 library(jpeg)
 library(stringdist)
 library(fuzzyjoin)
+library(gtools)
+library(matrixStats)
 
 # SETTING WORKING DIRECTORIES ----
 root <- "/Users/amykim/Princeton Dropbox/Amy Kim/head_tax/head_tax_data"
@@ -129,58 +131,10 @@ agrepls <- function(str, patterns, max.distance = 0.1){
   return(FALSE)
 }
 
-# fuzzy replace: looks for fuzzy match of 
-fuzzy_replace <- function(str, pattern, replace, max.distance = 2){
-  bestmatch = NA
-  bestmatchdist = nchar(pattern)
-  for (i in 1:(nchar(str)-nchar(pattern)+1)){
-    substr = substr(str,i,i+nchar(pattern)-1)
-    substrdist = stringdist(substr, pattern)
-    # print(substr)
-    # print(substrdist)
-    if (substrdist < bestmatchdist){
-      bestmatch = substr
-      bestmatchdist = stringdist(substr, pattern)
-    }
-  }
-  if (bestmatchdist <= max.distance){
-    return(str_replace(str, bestmatch, replace))
-  }
-  else{
-    return(str)
-  }
-}
-
-detect_month <- function(str, low_tol = 0.25){
-  month_out <- case_when(
-    # FIRST: trying fuzzy matching w default distance + exact match for abbrev
-    agrepl("January", str, ignore.case=TRUE) | str_detect(str_to_lower(str), "jan") ~ "01",
-    agrepl("February", str, ignore.case=TRUE) | str_detect(str_to_lower(str), "feb") ~ "02",
-    agrepl("August", str, ignore.case=TRUE) | str_detect(str_to_lower(str), "aug") ~ "08",
-    agrepl("September", str, ignore.case=TRUE) | str_detect(str_to_lower(str), "sep") ~ "09",
-    agrepl("October", str, ignore.case=TRUE) | str_detect(str_to_lower(str), "oct") ~ "10",
-    agrepl("November", str, ignore.case=TRUE) | str_detect(str_to_lower(str), "nov") ~ "11",
-    agrepl("December", str, ignore.case=TRUE) | str_detect(str_to_lower(str), "dec") ~ "12",
-    agrepl("March", str, ignore.case=TRUE) | str_detect(str_to_lower(str), "mar") ~ "03",
-    agrepl("April", str, ignore.case=TRUE) | str_detect(str_to_lower(str), "apr") ~ "04",
-    agrepl("June", str, ignore.case=TRUE) | str_detect(str_to_lower(str), "jun") ~ "06",
-    agrepl("July", str, ignore.case=TRUE) | str_detect(str_to_lower(str), "jul") ~ "07",
-    agrepl("May", str_replace(str_to_lower(str), "day.of", ""), ignore.case=TRUE) ~ "05",
-    # SECOND: trying fuzzy matching w higher max distance + default fuzzy matching for abbrev
-    agrepl("January", str, ignore.case=TRUE, max.distance = low_tol) | agrepl("jan", str, ignore.case=TRUE) ~ "01",
-    agrepl("February", str, ignore.case=TRUE, max.distance = low_tol) | agrepl("feb", str, ignore.case=TRUE) ~ "02",
-    agrepl("August", str, ignore.case=TRUE, max.distance = low_tol) | agrepl("aug", str, ignore.case=TRUE) ~ "08",
-    agrepl("September", str, ignore.case=TRUE, max.distance = low_tol) | agrepl("sep", str, ignore.case=TRUE) ~ "09",
-    agrepl("October", str, ignore.case=TRUE, max.distance = low_tol) | agrepl("oct", str, ignore.case=TRUE) ~ "10",
-    agrepl("November", str, ignore.case=TRUE, max.distance = low_tol) | agrepl("nov", str, ignore.case=TRUE) ~ "11",
-    agrepl("December", str, ignore.case=TRUE, max.distance = low_tol) | agrepl("dec", str, ignore.case=TRUE) ~ "12",
-    agrepl("March", str, ignore.case=TRUE, max.distance = low_tol) | agrepl("mar", str, ignore.case=TRUE) ~ "03",
-    agrepl("April", str, ignore.case=TRUE, max.distance = low_tol) | agrepl("apr", str, ignore.case=TRUE) ~ "04",
-    agrepl("June", str, ignore.case=TRUE, max.distance = low_tol) | agrepl("jun", str, ignore.case=TRUE) ~ "06",
-    agrepl("July", str, ignore.case=TRUE, max.distance = low_tol) | agrepl("jul", str, ignore.case=TRUE) ~ "07",
-    agrepl("May", str_replace(str_to_lower(str), "day.of", ""), ignore.case=TRUE, max.distance = low_tol) ~ "05",
-    TRUE ~ NA_character_)
-  return(month_out)
+# computing lev distance (partial on either side)
+adist_partial <- function(str1, str2){
+  return(min(adist(str1, str2, partial = TRUE),
+      adist(str2, str1, partial = TRUE))/min(nchar(str1), nchar(str2)))
 }
 
 # looks for best partial match for str in vector patterns
@@ -193,7 +147,7 @@ bestpartialmatch <- function(str, patterns, max.distance = 0.1, returnval = FALS
   bestmatchind = NA
   lowestdist = 1
   for (i in 1:length(patterns)){
-    pattern = patterns[i]
+    pattern = str_to_lower(patterns[i])
     maxdist = ceiling(str_length(pattern)*max.distance)
     d = adist(pattern, str, partial = TRUE)
     if((d/str_length(pattern) < lowestdist) & (d <= maxdist)){
@@ -207,28 +161,6 @@ bestpartialmatch <- function(str, patterns, max.distance = 0.1, returnval = FALS
   }
   return(bestmatchind)
 }
-
-# # cleans arrival certs from parsed_wide
-# clean_arrivalcerts <- function(df){
-#   df_mut <- df %>% 
-#     mutate(across(starts_with("ArrivalCert"),
-#          list("Type_Clean" = ~sapply(str_extract(.,paste0(ci_re, "[0-9]+")), cert_type_extract, arrivalcert = TRUE),
-#               "Loc_Clean" = ~str_match(., "([V|v|O][A-Za-z0-9]+)")[,2],
-#               "Number_Clean" = ~as.numeric(str_match(., "([0-9]{3,6})")[,2]))))
-#   
-#   df_mut$ArrivalCert1 <- NA
-#   df_mut$arrivalmatch2 <- NA
-#   
-#   for (arrname in names(df)[which(str_detect(names(df), "ArrivalCert"))]){
-#     # for each arrivalcert column, if 
-#     df_mut$arrivalmatch1 <- ifelse(!is.na(df_mut$arrivalmatch1), df_mut$arrivalmatch1,
-#                                    )
-#   }
-#   
-#   ArrivalCert1_Type_Clean = ifelse(!is.na(ArrivalCert1_Number_Clean), ArrivalCert1_Type_Clean, 0),
-#   ArrivalCert2_Type_Clean = ifelse(!is.na(ArrivalCert2_Number_Clean), ArrivalCert2_Type_Clean, 0),
-#   
-# }
 
 # coerces string of form "ci ##" into valid cert type (4, 5, 28, 30, 36)
 cert_type_extract <- function(str, arrivalcert = FALSE){
@@ -268,15 +200,7 @@ clean_entryship <- function(str){
   
   # generic clean
   str_clean <- str_replace_all(str, "[^A-z\\s]", " ")
-  
-  # # detecting generic boat
-  # if (str_detect(str_to_lower(str_clean), "boat") | str_detect(str_to_lower(str_clean), "ship") |
-  #     adist("steamer", str_clean, ignore.case=TRUE, partial = TRUE) <= 1 |
-  #     (str_detect(str_to_lower(str_clean), "jap") & !str_detect(str_to_lower(str_clean), "japan") &
-  #      adist("empress", str_clean, ignore.case=TRUE, partial=TRUE) > 3)){
-  #   return("Boat")
-  # }
-  
+
   # removing leading 'ss'
   str_clean <- str_remove(str_clean, "^(S|s)\\.?\\s?(S|s)\\.?\\s?")
   
@@ -298,85 +222,98 @@ clean_entryship <- function(str){
   return(str_out)
 }
 
-# looks across all cert type fields for cert type matching certnum and returns column of corresp numbers
+# looks across all cert type fields for cert type matching certnum and returns df with 
+#   all possible matches
 harmonize_cert_type <- function(df, certnum){
-  df[[paste0("CI",certnum,"_ci44")]] <- case_when(
-      # CASE 1: Cert type is 5 and (other cert types not 5 OR at least one other cert number same)
-      df$CertType_Clean == certnum & 
-        ((df$EndorsedCertType_Clean != certnum & df$ArrivalCert1_Type_Clean != certnum & df$ArrivalCert2_Type_Clean != certnum) |
-           (df$EndorsedCertNumber_Clean == df$CertNumber_Clean) | 
-           (df$ArrivalCert1_Number_Clean == df$CertNumber_Clean) |
-           (df$ArrivalCert2_Number_Clean == df$CertNumber_Clean)) ~ as.character(df$CertNumber_Clean),
-      # CASE 2: Endorsed Cert Type is certnum and (other cert types not certnum OR at least one other cert number same)
-      df$EndorsedCertType_Clean == certnum & 
-        ((df$CertType_Clean != certnum & df$ArrivalCert1_Type_Clean != certnum & df$ArrivalCert2_Type_Clean != certnum) |
-           (df$ArrivalCert1_Number_Clean == df$EndorsedCertNumber_Clean) | 
-           (df$ArrivalCert2_Number_Clean == df$EndorsedCertNumber_Clean)) ~ as.character(df$EndorsedCertNumber_Clean),
-      # CASE 3: Arrival Cert 1 Type is certnum and other cert types not certnum
-      df$ArrivalCert1_Type_Clean == certnum & 
-        ((df$CertType_Clean != certnum & df$EndorsedCertType_Clean != certnum & df$ArrivalCert2_Type_Clean != certnum) | 
-           (df$ArrivalCert1_Number_Clean == df$ArrivalCert2_Number_Clean))~ as.character(df$ArrivalCert1_Number_Clean),
-      # CASE 4: Arrival Cert 2 Type is certnum and other cert types not certnum
-      df$ArrivalCert2_Type_Clean == certnum & 
-        (df$CertType_Clean != certnum & df$EndorsedCertType_Clean != certnum & df$ArrivalCert1_Type_Clean != certnum) ~ as.character(df$ArrivalCert2_Number_Clean),
-      # CASE 5: Conflicting Cert and Endorsed Cert numbers (both type certnum)
-      df$CertType_Clean == certnum & df$EndorsedCertType_Clean == certnum ~ paste0(df$CertNumber_Clean, "|", df$EndorsedCertNumber_Clean),
-      # CASE 6: Conflicting Cert and Arrival numbers
-      df$CertType_Clean == certnum & df$ArrivalCert1_Type_Clean == certnum & !is.na(df$ArrivalCert1_Number_Clean) ~
-        paste0(df$CertNumber_Clean, "|", df$ArrivalCert1_Number_Clean),
-      df$CertType_Clean == certnum & df$ArrivalCert2_Type_Clean == certnum & !is.na(df$ArrivalCert2_Number_Clean) ~
-        paste0(df$CertNumber_Clean, "|", df$ArrivalCert2_Number_Clean),
-      # CASE 7: Conflicting Endorsed and Arrival numbers
-      df$EndorsedCertType_Clean == certnum & df$ArrivalCert1_Type_Clean == certnum ~
-        paste0(df$EndorsedCertNumber_Clean, "|", df$ArrivalCert1_Number_Clean),
-      df$EndorsedCertType_Clean == certnum & df$ArrivalCert2_Type_Clean == certnum ~
-        paste0(df$EndorsedCertNumber_Clean, "|", df$ArrivalCert2_Number_Clean),
-      # CASE 8: Conflicting Arrival numbers
-      df$ArrivalCert1_Type_Clean == certnum & df$ArrivalCert2_Type_Clean == certnum ~ 
-        paste0(df$ArrivalCert1_Number_Clean, "|", df$ArrivalCert2_Number_Clean),
-      TRUE ~ NA_character_
-    )
-  
-  df_out <- df %>% 
-    separate_wider_delim(paste0("CI",certnum,"_ci44"), "|", 
-                         names = c(paste0("CI",certnum,"_ci44"), paste0("CI",certnum,"EXTRA_ci44")),
+  certstrings <- rep("", nrow(df))
+
+  # look for cert column roots
+  cert_cols <- str_remove(names(df)[which(str_detect(names(df), "Type") & str_detect(names(df), "Clean"))],
+                          "Type_Clean")
+
+  # iterate through columns
+  for (col in cert_cols){
+    # if type matches certnum AND nonmissing number AND number not already in certstrings, add to certstrings
+    certstrings <- ifelse(df[[paste0(col,"Type_Clean")]] == certnum &
+                            !is.na(df[[paste0(col,"Number_Clean")]]) &
+                            !str_detect(certstrings, paste0("\\|",df[[paste0(col, "Number_Clean")]])),
+                          paste0(certstrings, "|", df[[paste0(col, "Number_Clean")]]),
+                          certstrings)
+  }
+
+  # separating all matches wider on delimiter |
+  df[[paste0("CI",certnum)]] <- str_remove(certstrings, "^\\|")
+  df_out <- df %>%
+    separate_wider_delim(paste0("CI",certnum), "|",
+                         names_sep = "_",
                          too_few = "align_start") %>%
-    mutate(across(starts_with(paste0("CI",certnum)), ~as.numeric(.)))
+    mutate(across(starts_with(paste0("CI",certnum)), ~as.numeric(.))) %>%
+    rename_with(.fn = ~paste0(.,"_ci44"), starts_with(paste0("CI",certnum)))
+
   return(df_out)
 }
 
-# ## NEW VERSION OF HARMONIZE
-# harmonize_cert_type <- function(df, certnum){
-#   certstrings <- rep("", nrow(df))
-# 
-#   # look for cert column roots
-#   cert_cols <- str_remove(names(df)[which(str_detect(names(df), "Type") & str_detect(names(df), "Clean"))],
-#                           "Type_Clean")
-# 
-#   # iterate through columns
-#   for (col in cert_cols){
-#     # if type matches certnum AND nonmissing number AND number not already in certstrings, add to certstrings
-#     certstrings <- ifelse(df[[paste0(col,"Type_Clean")]] == certnum &
-#                             !is.na(df[[paste0(col,"Number_Clean")]]) &
-#                             !str_detect(certstrings, paste0("\\|",df[[paste0(col, "Number_Clean")]])),
-#                           paste0(certstrings, "|", df[[paste0(col, "Number_Clean")]]),
-#                           certstrings)
+# # takes main df and match target df, vector of character columns to check, and returns 'frequency',
+# #   average stringsim between each entry in main df and all entries in target df
+# # colnames should be a vector of stubs such that `name`_ci44 is in df and `name`_reg is in matchdf
+# compute_match_freq <- function(df, colnames, matchdf = df, method = "cosine", outcol_suff = "", quantiles = c(0.95, 0.99)){
+#   df_out <- df
+#   for (col in colnames){
+#     a = df[[paste0(col, "_ci44")]]
+#     b = matchdf[[paste0(col,"_reg")]]
+#     simmat = stringsimmatrix(a,b,method=method)
+#     medscore = median(simmat, na.rm=TRUE)
+#     print(medscore)
+#     #df_out[[paste0(col, "_freq",outcol_suff)]] <- rowMeans(simmat, na.rm = TRUE)
+#     #df_out[[paste0(col, "_freq",outcol_suff)]] <- rowMeans(stringsimmatrix(a,b,method=method)>=medscore, na.rm = TRUE)
+#     df_out[paste0(col, "_freq",outcol_suff,quantiles)] <- rowQuantiles(simmat, probs=quantiles, na.rm = TRUE)
 #   }
-# 
-#   df[[paste0("CI",certnum)]] <- str_remove(certstrings, "^\\|")
-#   df_out <- df %>%
-#     separate_wider_delim(paste0("CI",certnum), "|",
-#                          names_sep = "_",
-#                          too_few = "align_start") %>%
-#     mutate(across(starts_with(paste0("CI",certnum)), ~as.numeric(.))) %>%
-#     rename_with(.fn = ~paste0(.,"_ci44"), starts_with(paste0("CI",certnum)))
-# 
 #   return(df_out)
 # }
 
+# helper: similarity between two name strings (lv)
+name_sim <- function(str1, str2){
+  if (is.na(str1) | is.na(str2)){
+    return(NA)
+  }
+  # ATTEMPT ONE: direct match
+  sim = adist_partial(str1, str2)
+  if(sim == 0){
+    return(1)
+  }
+  
+  # ATTEMPT TWO: permutations
+  if (str_detect(str1, " ") & nchar(str1) < nchar(str2)){
+    splits = unique(str_split(str1, " ")[[1]])
+    if (length(splits) > 1){
+      perms = permutations(n = length(splits), r = length(splits), v = splits)
+      sim2 = min(apply(perms, 1, function(.x){adist_partial(paste(.x, collapse = " "), str2)}))
+      if (sim2 < sim){
+        sim = sim2
+      }
+    }
+  }
+  
+  if (str_detect(str2, " ")){
+    splits = unique(str_split(str2, " ")[[1]])
+    if (length(splits) > 1){
+      perms = permutations(n = length(splits), r = length(splits), v = splits)
+      sim2 = min(apply(perms, 1, function(.x){adist_partial(paste(.x, collapse = " "), str1)}))
+      if (sim2 < sim){
+        sim = sim2
+      }  
+    }
+  }
+  
+  if (sim==0){
+    return(1)
+  }
+  
+  return(1-sim)
+}
 
 # after merging: gets max similarity between ci44 name and reg name (including akas)
-max_name_sim <- function(df, method = "cosine", default = 0, 
+max_name_sim <- function(df, method = "osa", default = 0, 
                          namecols_ci44 = names_ci44, namecols_reg = names_reg,
                          outcol_suff = ""){
   df_temp <- df[,!str_detect(names(df), "namesim")]
@@ -386,7 +323,7 @@ max_name_sim <- function(df, method = "cosine", default = 0,
     for (regcolname in namecols_reg){
       regcol = df_temp[[regcolname]]
       df_temp[[paste0("namesim",i)]] = ifelse(is.na(ci44col) | is.na(regcol), 
-                                              default, stringsim(ci44col, regcol, method = method))
+                                              default, mapply(name_sim, ci44col, regcol))
       i = i + 1
     }
   }
@@ -410,50 +347,59 @@ ship_name_sim <- function(str1, str2, goodmatchcutoff = 0.7){
   }
   
   # ATTEMPT ONE: adist (partial adist on each side)
-  sim = min(adist(str1, str2, partial = TRUE), adist(str2, str1, partial = TRUE))/min(nchar(str1), nchar(str2))
+  sim = adist_partial(str1, str2)
+  if (sim == 0){ #if exact match
+    return(1)
+  }
   
   # ATTEMPT TWO: removing 'empress of'
   str1_2 = str_remove(str1, "Em[A-z]*(\\s?O.?)?\\s")
   str2_2 = str_remove(str2, "Em[A-z]*(\\s?O.?)?\\s")
-  sim2 = min(adist(str1_2, str2_2, partial = TRUE),
-             adist(str2_2, str1_2, partial = TRUE))/min(nchar(str1_2), nchar(str2_2))
+  sim2 = adist_partial(str1_2, str2_2)
   if (sim2 < sim | str_detect(str1, "Em[A-z]*(\\s?O.?)?\\s") | str_detect(str2, "Em[A-z]*(\\s?O.?)?\\s")){
     # if empress match is better or if empress-type string detected in either
     sim = sim2
   }
+  if (sim == 0){
+    return(1)
+  }
   
   # ATTEMPT THREE: removing 'SS'
-  str1_3 = str_remove(str1, "^(S|s)\\.?\\s?(S|s)\\.?\\s?")
-  str2_3 = str_remove(str2, "^(S|s)\\.?\\s?(S|s)\\.?\\s?")
-  sim3 = min(adist(str1_3, str2_3, partial = TRUE),
-             adist(str2_3, str1_3, partial = TRUE))/min(nchar(str1_3), nchar(str2_3))
+  sim3 = adist_partial(str_remove(str1, "^(S|s)\\.?\\s?(S|s)\\.?\\s?"),
+                       str_remove(str2, "^(S|s)\\.?\\s?(S|s)\\.?\\s?"))
   if (sim2 < sim){
     # if ss match is better
     sim = sim3
+  }
+  if (sim == 0){
+    return(1)
   }
   
   # ATTEMPT FOUR: splitting on 'ex'
   if (str_detect(str1, " Ex ")){
     splits <- str_split(str1, " Ex ")[[1]]
-    sim4_1 = min(
-      min(adist(splits[1], str2, partial = TRUE),
-                 adist(str2, splits[1], partial = TRUE))/min(nchar(splits[1]), nchar(str2)),
-      min(adist(splits[2], str2, partial = TRUE),
-                 adist(str2, splits[2], partial = TRUE))/min(nchar(splits[2]), nchar(str2)))
+    sim4_1 = min(adist_partial(splits[1], str2),
+                 adist_partial(splits[2], str2))
     if (sim4_1 < sim){
       sim = sim4_1
     }
   }
   if (str_detect(str2, " Ex ")){
     splits <- str_split(str2, " Ex ")[[1]]
-    sim4_2 = min(
-      min(adist(splits[1], str1, partial = TRUE),
-                 adist(str1, splits[1], partial = TRUE))/min(nchar(splits[1]), nchar(str1)),
-      min(adist(splits[2], str1, partial = TRUE),
-                 adist(str1, splits[2], partial = TRUE))/min(nchar(splits[2]), nchar(str1)))
+    sim4_2 = min(adist_partial(splits[1], str1),
+                 adist_partial(splits[2], str1))
     if (sim4_2 < sim){
       sim = sim4_2
     }
+  }  
+  if (sim == 0){
+    return(1)
+  }
+  
+  # detecting railway
+  if (str_detect(str_to_lower(str1), " ry| rly|c p r|g t r|rail|cpry|train") &
+      str_detect(str_to_lower(str2), " ry| rly|c p r|g t r|rail|cpry|train")){
+    return(1)
   }
   
   # detecting generic ships
@@ -533,10 +479,10 @@ ship_name_sim <- function(str1, str2, goodmatchcutoff = 0.7){
 }
 
 # after merging: cleans up and evaluates matches
-merge_stats <- function(df, certtype=0, name_method="cosine"){
+merge_stats <- function(df, certtype=0){
   # checking for extra certtype matches
   certmatch = numeric(nrow(df)) 
-  if (certtype != 0){
+  if (certtype != 0){ #if certtype 0, other matching cert type will be 
     for (cert in c(5, 28, 30, 36)){
       if (cert != certtype){
         ci44nums <- df[[paste0("CI", cert, "_ci44")]]
@@ -551,8 +497,8 @@ merge_stats <- function(df, certtype=0, name_method="cosine"){
   }
   
   df_out <- df %>%
-    max_name_sim(method=name_method) %>%
-    mutate(shipsim = mapply(ship_name_sim, EntryDateYear_ci44, EntryDateYear_reg),
+    max_name_sim() %>%
+    mutate(shipsim = mapply(ship_name_sim, EntryShip_ci44, EntryShip_reg),
            cert_match = certmatch,
            year_match = case_when(!is.na(EntryDateYear_ci44) & EntryDateYear_ci44 == EntryDateYear_reg ~ 1, #match
                                   !is.na(EntryDateYear_ci44) & !is.na(EntryDateYear_reg) & stringdist(EntryDateYear_ci44, EntryDateYear_reg) == 1 ~ 
@@ -570,7 +516,6 @@ merge_stats <- function(df, certtype=0, name_method="cosine"){
                                  !is.na(EntryDateDay_ci44) & !is.na(EntryDateDay_reg) ~ 0, #big mismatch
                                  TRUE ~ 0.25 #missing
            ),
-           entry_ship_match = stringsim(EntryShip_ci44, EntryShip_reg, method = "cosine"),
            entry_match_score = year_match + month_match + day_match,
            birth_match_score = case_when(is.na(BirthYear_reg) | is.na(BirthYear_ci44) ~ 0,
                                          abs(BirthYear_reg - BirthYear_ci44) > 5 ~ 0,
@@ -596,30 +541,12 @@ merge_stats <- function(df, certtype=0, name_method="cosine"){
 }
 
 # merging parsed_by_cert and reg_chi_clean based on certtype
-merge_dfs <- function(certtype, dfci44 = parsed_bycert, dfreg = reg_chi_clean){
-  # df1[paste0("CI", certtype)] <- df1[[paste0("CI",certtype,"_ci44")]]
-  # df2[paste0("CI", certtype)] <- df2[[paste0("CI",certtype,"_reg")]]
-  # df1[paste0("CI", certtype, "EXTRA")] <- df1[[paste0("CI",certtype,"EXTRA_ci44")]]
-  # df2[paste0("CI", certtype, "EXTRA")] <- df2[[paste0("CI",certtype,"_reg")]]
-  # df_out <- bind_rows(
-  #   list(
-  #     inner_join( #first joining on main cert number from ci44 
-  #       df1[which(!is.na(df1[[paste0("CI", certtype)]])),],
-  #       df2[which(!is.na(df2[[paste0("CI", certtype)]])),],
-  #       by = paste0("CI", certtype)) %>%
-  #       merge_stats(certtype),
-  #     inner_join( #then joining if ci44 also has a different number of the same cert type
-  #       df1[which(!is.na(df1[[paste0("CI", certtype, "EXTRA")]])),],
-  #       df2[which(!is.na(df2[[paste0("CI", certtype, "EXTRA")]])),],
-  #       by = paste0("CI", certtype, "EXTRA")) %>%
-  #       merge_stats(certtype)
-  #   )
-  # )
-  # return(df_out)
+merge_dfs_certtype <- function(certtype, dfci44 = parsed_bycert, dfreg = reg_chi_clean){
   merge_names_ci44 <- names(dfci44)[which(str_detect(names(dfci44), paste0("CI",certtype)))]
   merge_names_reg <- names(dfreg)[which(str_detect(names(dfreg), paste0("CI",certtype)))]
   
-  df_out <- merge_dfs_other(merge_names_ci44, merge_names_reg, dfci44 = dfci44, dfreg = dfreg, matchcolname = paste0("CI", certtype))
+  df_out <- merge_dfs(merge_names_ci44, merge_names_reg, dfci44 = dfci44, dfreg = dfreg, 
+                      matchcolname = paste0("CI", certtype), certtype = certtype)
   return(df_out)
 }
 
@@ -631,16 +558,16 @@ merge_dfs <- function(certtype, dfci44 = parsed_bycert, dfreg = reg_chi_clean){
 #   - match_cols_ci44 are names of columns in dfci44 to try matching with
 #   - match_cols_reg are names of columns in dfreg to try matching with
 #   - matchcolname is name for new column created for matching (in output df, the thing that was matched on)
-merge_dfs_other <- function(merge_cols_ci44, merge_cols_reg,
+merge_dfs <- function(merge_cols_ci44, merge_cols_reg,
                             match_cols_ci44 = merge_cols_ci44, match_cols_reg = merge_cols_reg,
                             dfci44 = parsed_bycert, dfreg = reg_chi_clean,
-                            matchcolname = "othermatchcol",
+                            matchcolname = "othermatchcol", certtype = 0,
                             fuzzymatch = FALSE){
   if (fuzzymatch){
     mergefunc = function(x, y){merge_names(x, y, matchcolname = matchcolname)}
   }
   else{
-    mergefunc = inner_join
+    mergefunc = function(x,y){inner_join(x,y,relationship="many-to-many")}
   }
   
   allmatches = list()
@@ -675,18 +602,18 @@ merge_dfs_other <- function(merge_cols_ci44, merge_cols_reg,
     }  
   }
   
-  return(bind_rows(allmatches) %>% merge_stats())
+  return(bind_rows(allmatches) %>% merge_stats(certtype = certtype))
 }
 
 # helper function to fuzzy merge on names
-merge_names <- function(df1, df2, matchcolname, osadist = 2, cosdist = 0.1){
+merge_names <- function(df1, df2, matchcolname, lvdist = 2, cosdist = 0.1){
   if (sum(is.na(df1[[matchcolname]]), is.na(df2[[matchcolname]])) > 0){
     print(glue("Error in merge_names: should not be any NA values of {matchcolname}"))
   }
   # osa merge
   merge1 <- stringdist_inner_join(df1, df2, by = matchcolname,
-                                  method = "osa", max_dist = osadist,    
-                                  distance_col = "namedist_osa")
+                                  method = "lv", max_dist = lvdist,    
+                                  distance_col = "namedist_lv")
   
   # cosine merge
   merge2 <- stringdist_inner_join(df1, df2, by = matchcolname,
