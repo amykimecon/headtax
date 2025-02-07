@@ -96,10 +96,17 @@ reg_chi_clean <- reg_chi %>%
          EntryShip_reg = sapply(CONVEYANCE, clean_entryship),
          BplDistrict_reg = str_to_lower(str_remove_all(COUNTY, "[^A-z]")),
          BplDistrictNew_reg = ifelse(str_replace(NEW_COUNTY, "\\?","") %in% unique(county_cw$NEW_COUNTY),
-                                     str_to_lower(str_replace(NEW_COUNTY, "\\?","")), BplDistrict_reg),
+                                     str_to_lower(str_replace(NEW_COUNTY, "\\?","")), NA),
          BplVillage_reg = str_to_title(VILLAGE_NA)) %>%
   rename_with(~ paste0(.x, "_reg", recycle0 = TRUE), c(ID, SEX, AGE)) %>%
   select(all_of(ends_with("reg")))
+
+# pivoting long on cert type
+reg_chi_long <- reg_chi_clean %>%
+  pivot_longer(c("CI36_reg", "CI28_reg", "CI30_reg", "CI5_reg", "CI6_reg", "OtherCI_reg"),
+               names_to = "CertType_reg", values_to = "CertNumber_reg") %>%
+  mutate(CertType_reg = as.numeric(str_extract(CertType_reg, "[0-9]{1,2}"))) %>%
+  filter(!is.na(CertNumber_reg))
 
 # CLEANING PARSED DATA ----
 ## initial tidy ----
@@ -202,12 +209,27 @@ parsed_clean <- parsed_wide %>%
       reel == 16184 & str_detect(RegYear_Clean, "192[0-9]") ~ as.numeric(str_extract(RegYear_Clean, "192[0-9]")),
       TRUE ~ 1924
     ),
+    RegNumber_Clean = as.numeric(str_match(str_replace_all(RegistrationNumber, "[^0-9]",""), "([0-9]+)")[,2]),
     BirthYear_ci44 = RegYear_ci44-Age_ci44,
     across(c(starts_with("aka"), all_of(c("Name_ci44", "EntryPort_ci44", "BplVillage_ci44",
                     "BplDistrict_ci44", "EntryShip_ci44"))), ~ifelse(. == "", NA, .)),
   ) %>%
   left_join(county_cw, by = c("BplDistrict_ci44" = "COUNTY_CLEAN")) %>%
-  mutate(BplDistrictNew_ci44 = ifelse(!is.na(NEW_COUNTY), str_to_lower(NEW_COUNTY), BplDistrict_ci44))
+  mutate(BplDistrictNew_ci44 = ifelse(!is.na(NEW_COUNTY), str_to_lower(NEW_COUNTY), NA))
+
+## finding duplicates
+dupids <- find_duplicates(parsed_clean)
+notdups <- c("ham june",
+             "ham tan", 
+             "jang chun wong", 
+             "jang hoy", 
+             "lai dye", 
+             "lee hong pong", 
+             "lee lung", 
+             "low kung yow", 
+             "ma kow que", 
+             "mah gim goon", 
+             "wong bing lee", "wong foo", "wong sam")
 
 ## harmonizing cert types ----
 parsed_bycert <- parsed_clean %>%
@@ -220,38 +242,53 @@ parsed_bycert <- parsed_clean %>%
   harmonize_cert_type(0) %>%
   select(all_of(c(ends_with("ci44"))))
 
+parsed_long <- parsed_clean %>%
+  filter(!NativeBorn) %>%
+  harmonize_cert_type(tolong = TRUE) %>%
+  select(ends_with("ci44")) %>%
+  group_by(ID_ci44, CertNumber_ci44) %>%
+  mutate(CertNumberRepeat_ci44 = n()) %>% ungroup() %>%
+  group_by(ID_ci44, CertNumber_ci44, CertType_ci44) %>%
+  mutate(CertTypeRepeat_ci44 = n(),rownum = row_number()) %>%
+  filter(rownum == 1) %>% ungroup()
+  
 # MERGING ----
 ## getting column name lists ----
-names_ci44 <- c("Name_ci44", names(parsed_bycert)[which(str_detect(names(parsed_bycert), "aka"))])
+names_ci44 <- c("Name_ci44", names(parsed_long)[which(str_detect(names(parsed_long), "aka") & 
+                                                          str_detect(names(parsed_long), "ci44"))])
 names_reg <- c("Name_reg", "aka_reg")
 
-other_cols_ci44 = names(parsed_bycert)[which(str_detect(names(parsed_bycert), "CI0"))]
-other_cols_reg = c("OtherCI_reg")
-all_cols_ci44 = names(parsed_bycert)[which(str_detect(names(parsed_bycert), "^CI"))]
-all_cols_reg = c(paste0("CI",c(5,6,28,30,36), "_reg"), other_cols_reg)
+all_cols_reg = c(paste0("CI",c(5,6,28,30,36), "_reg"), "OtherCI_reg")
 
-## main merge (by ci type) ----
-merge_main <- bind_rows(lapply(list(5, 28, 30, 36), merge_dfs_certtype))
+## main merge (by ci number) ----
+merge_main <- merge_dfs(dfci44 = parsed_long, dfreg = reg_chi_long, 
+                        merge_cols_ci44 = c("CertNumber_ci44"), 
+                                  merge_cols_reg = c("CertNumber_reg")) %>%
+  # calculating bonus score from certs (0.1 if repeated in ci44, 0.2 if matching cert type)
+  mutate(certbonus = ifelse(CertType_ci44 == CertType_reg & !is.na(CertType_ci44) & !is.na(CertType_reg) & CertType_ci44 != 0, 0.2, 0) +
+           ifelse(CertNumberRepeat_ci44 > 1, 0.1, 0)) %>%
+  # if same people are matched more than once, must be because matched on diff cert types/numbers,
+  #   take num of distinct cert number matches per pair and take entry with highest certbonus
+  group_by(ID_ci44, ID_reg) %>% 
+  arrange(desc(certbonus)) %>%
+  mutate(rank = row_number(), nmatch = n_distinct(certmatch)) %>% ungroup() %>%
+  filter(rank == 1) %>%
+  mutate(certbonus = certbonus + (nmatch - 1)) %>%
+  merge_stats() 
 
-## secondary merge (ci number with unspecified type) ----
-merge_other <- merge_dfs(
-  merge_cols_ci44 = other_cols_ci44,
-  merge_cols_reg = other_cols_reg,
-  match_cols_ci44 = all_cols_ci44,
-  match_cols_reg = all_cols_reg,
-)
+merge_main_post <- one_to_one_match(merge_main)
 
-merge_certs <- bind_rows(list(merge_main, merge_other))
-
-# finding poorly/well matched
-## first: taking best match from all possible matches 
-merge_all_post <- merge_all %>% group_by(ID_ci44) %>% 
+merge_main_post_alt <- merge_main  %>% filter(!is.na(total_score)) %>%#this step is temp 
+  group_by(ID_ci44) %>% 
   arrange(desc(total_score), .by_group = TRUE) %>% 
-  mutate(i = row_number()) %>% filter(i == 1)
+  mutate(maxscore_ci44 = max(total_score),
+         rank_ci44 = row_number()) %>%
+  ungroup() %>% filter(rank_ci44 == 1)
+
 ## poorly matched: totalscore below threshold
-poorlymatched_prenames <- merge_all_post %>% filter(total_score < MATCH_SCORE_THRESH)
+poorlymatched_prenames <- merge_main_post %>% filter(total_score < 1.5)
 ## well matched
-wellmatched_prenames <- merge_all_post %>% filter(total_score >= MATCH_SCORE_THRESH)
+wellmatched_prenames <- merge_main_post %>% filter(total_score >= 1.5)
 
 # NOW taking unmatched/poorly matched and fuzzy matching on names
 merge_namesdf <- merge_dfs(
@@ -260,23 +297,19 @@ merge_namesdf <- merge_dfs(
   match_cols_ci44 = names_ci44,
   match_cols_reg = names_reg,
   dfci44 = filter(parsed_bycert, !(ID_ci44 %in% wellmatched_prenames$ID_ci44)),
+  dfreg = filter(reg_chi_clean, !(ID_reg %in% wellmatched_prenames$ID_reg)),
   matchcolname = "namematchcol",
   fuzzymatch = TRUE
-)
+) %>% mutate(certbonus = 0) %>% merge_stats()
 
-merge_names_post <- bind_rows(list(merge_namesdf, merge_all)) %>% 
-  merge_stats() %>% 
-  group_by(ID_ci44) %>%
-  mutate(nonname_score = entry_match_score+birth_match_score) %>%
-  arrange(desc(nonname_score), desc(namesim), .by_group = TRUE) %>% 
-  mutate(i = row_number(), n = n(), 
-         certmatches = sum(ifelse(is.na(namedist_osa) & is.na(namedist_cos), 1, 0))) %>% 
-  filter(i == 1)
+merge_names_post <- bind_rows(list(merge_namesdf %>% mutate(mainmerge = 0),
+                                   merge_main %>% mutate(mainmerge = 1))) %>% 
+  one_to_one_match()
 
 ## poorly matched: totalscore below threshold
-poorlymatched <- merge_names_post %>% filter(total_score < MATCH_SCORE_THRESH)
+poorlymatched <- merge_names_post %>% filter(total_score < 1.5)
 ## well matched
-wellmatched <- merge_names_post %>% filter(total_score >= MATCH_SCORE_THRESH)
+wellmatched <- merge_names_post %>% filter(total_score >= 1.5)
 
 # finding unmatched
 unmatched <- parsed_clean %>% 
@@ -292,7 +325,7 @@ matches <- bind_rows(list(merge_names_post, unmatched))
 write_csv(matches, glue("{dbox}/cleaned/matchtest1_jan30.csv"))
 
 # looking at matches
-View(merge_all %>% arrange(ID_ci44) %>% #filter(!is.na(Name_reg) & entry_match_score < 3) %>%
+View(x %>% arrange(ID_ci44) %>% #filter(!is.na(Name_reg) & entry_match_score < 3) %>%
        select(c(ID_ci44, ID_reg, 
                 total_score, namesim, cert_match, true_match, entry_match_score, birth_match_score, mergedon,
                 #CI36_ci44, CI36_reg, CI36EXTRA_ci44,
