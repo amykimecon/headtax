@@ -59,3 +59,14 @@ county_cw <- reg_chi %>%
   filter(n > 5 & matches <= 1) %>%
   arrange(desc(n))
 write_csv(county_cw, glue("{dbox}/cleaned/reg_county_cw.csv"))
+
+# GETTING OCCUPATION STRINGS
+occstrings_raw <- parsed_wide %>%
+  mutate(Occupation_clean = str_to_lower(trimws(str_replace_all(str_replace_all(Occupation, "[^A-z\\s]", " "), "\\s+", " ")))) %>% 
+  group_by(Occupation_clean) %>% summarize(n=n())
+
+# occ_matches <- occstrings_raw %>% filter(n > 10)
+#   mutate(occclean = case_when(str_detect("labor|labour") ~ "Labourer",
+#                               str_detect("")))
+
+

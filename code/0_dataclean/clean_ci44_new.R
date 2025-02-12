@@ -131,7 +131,7 @@ parsed_tidy <- parsed_raw %>% filter(confidence >= CONF_THRESH) %>%
 ## pivot to wide ----
 parsed_wide <- parsed_tidy %>% 
   pivot_wider(id_cols = c(reel, img, filename), names_from = type, values_from = mentionText) %>%
-  bind_rows(missing_imgs) %>%
+  #bind_rows(missing_imgs) %>%
   unite(Remarks, starts_with("Remarks"), sep = " ", na.rm=TRUE) %>%
   mutate(ID_ci44 = row_number(),
          NativeBorn = case_when(agrepl("China", BirthplaceCountry, ignore.case=TRUE) ~ FALSE, #detect birthplace china
@@ -177,6 +177,8 @@ parsed_clean <- parsed_wide %>%
                                          "[^A-z\\s]"), "\\s+", "\\s")),
       TRUE ~ NA_character_
     ),
+    Occupation_clean = str_to_lower(str_replace_all(str_replace_all(Occupation, "[^A-z\\s]", " "), "\\s+", " ")),
+    Occupation_ci44 = Occupation_clean, #sapply(Occupation_clean, bestpartialmatch, occstrings, returnval = TRUE, max.distance = 0.4),
     Age_clean = as.numeric(str_extract(Age, "[0-9]+")),
     Age_ci44 = ifelse(Age_clean < 99, Age_clean, NA),
     BplDistrict_clean = sapply(str_to_lower(str_remove_all(BirthplaceDistrict,"[^A-z]")),
@@ -254,8 +256,9 @@ parsed_long <- parsed_clean %>%
   
 # MERGING ----
 ## getting column name lists ----
-names_ci44 <- c("Name_ci44", names(parsed_long)[which(str_detect(names(parsed_long), "aka") & 
-                                                          str_detect(names(parsed_long), "ci44"))])
+#names_ci44 <- c("Name_ci44", names(parsed_long)[which(str_detect(names(parsed_long), "aka") & 
+#                                                          str_detect(names(parsed_long), "ci44"))])
+names_ci44 <- c("Name_ci44", "aka1_ci44")
 names_reg <- c("Name_reg", "aka_reg")
 
 all_cols_reg = c(paste0("CI",c(5,6,28,30,36), "_reg"), "OtherCI_reg")
@@ -291,28 +294,58 @@ poorlymatched_prenames <- merge_main_post %>% filter(total_score < 1.5)
 wellmatched_prenames <- merge_main_post %>% filter(total_score >= 1.5)
 
 # NOW taking unmatched/poorly matched and fuzzy matching on names
-merge_namesdf <- merge_dfs(
+merge_namesdf_int <- merge_dfs(
   merge_cols_ci44 = names_ci44,
   merge_cols_reg = names_reg,
-  match_cols_ci44 = names_ci44,
-  match_cols_reg = names_reg,
   dfci44 = filter(parsed_bycert, !(ID_ci44 %in% wellmatched_prenames$ID_ci44)),
   dfreg = filter(reg_chi_clean, !(ID_reg %in% wellmatched_prenames$ID_reg)),
   matchcolname = "namematchcol",
   fuzzymatch = TRUE
-) %>% mutate(certbonus = 0) %>% merge_stats()
+) 
+merge_namesdf <- merge_namesdf_int[which(!duplicated(select(merge_namesdf_int, ID_ci44, ID_reg))),] %>% 
+  mutate(certbonus = 0) %>% 
+  merge_stats(inclnamesim = FALSE) %>%
+  filter(nonname_score >= 0.25) %>% merge_stats(inclnamesim = TRUE)
 
-merge_names_post <- bind_rows(list(merge_namesdf %>% mutate(mainmerge = 0),
-                                   merge_main %>% mutate(mainmerge = 1))) %>% 
-  one_to_one_match()
+merge_all_raw <- bind_rows(list(merge_namesdf %>% mutate(mainmerge = 0),
+                                merge_main %>% mutate(mainmerge = 1))) %>%
+  mutate(total_score_old = total_score,
+         total_score = total_score + mainmerge*0.5,
+         total_score_raw_old = total_score_raw,
+         total_score_raw = total_score_raw + mainmerge*0.5) #0.5 bonus for cert match
 
-## poorly matched: totalscore below threshold
-poorlymatched <- merge_names_post %>% filter(total_score < 1.5)
-## well matched
-wellmatched <- merge_names_post %>% filter(total_score >= 1.5)
+# merge_names_post <- merge_all_raw %>% 
+#   one_to_one_match()
+
+merge_names_post <- merge_all_raw[which(!duplicated(select(merge_all_raw, ID_ci44, ID_reg, total_score))),] %>%
+  group_by(ID_ci44) %>% arrange(desc(total_score)) %>%
+  mutate(n = n(),
+         medscore = median(total_score),
+         maxscore = max(total_score),
+         secondscore = max(total_score*ifelse(row_number() == 2, 1, 0)),
+         scorediff = maxscore - secondscore) 
+
+allmaxes <- merge_names_post %>% filter(row_number() == 1)
+  
+match1 <- merge_names_post %>%
+  filter(maxscore == total_score & scorediff >= 0.5 & total_score >= 1.5 & (total_score > 2 | total_score_raw > 1))
+
+match2 <- merge_names_post %>% 
+  filter(row_number() == 1 & 
+           ((scorediff < 0.5 & total_score >= 2 & total_score_raw > 1)|
+              (scorediff >= 0.5 & total_score < 1.5 & total_score >= 1.4 & total_score_raw > 1)))
+
+match3 <- merge_names_post %>% filter(row_number() == 1) %>%
+  filter(!(ID_ci44 %in% match1$ID_ci44) & !(ID_ci44 %in% match2$ID_ci44)) %>%
+  filter(total_score >= 1.5 & total_score_raw > 1 & nonname_score > 0.5)
+
+wellmatched <- bind_rows(list(match1, match2, match3))
+
+poorlymatched <- merge_names_post %>% filter(row_number() == 1) %>%
+  filter(!(ID_ci44 %in% wellmatched$ID_ci44))
 
 # finding unmatched
-unmatched <- parsed_clean %>% 
+unmatched <- parsed_bycert %>% 
   filter(!(ID_ci44 %in% merge_names_post$ID_ci44))
 
 # reporting matches and match rates
@@ -321,24 +354,18 @@ print(glue("{nrow(poorlymatched)} bad matches {round((100*nrow(poorlymatched))/n
 print(glue("{nrow(unmatched)} unmatched {round((100*nrow(unmatched))/nrow(parsed_bycert),1)}%"))
 
 # saving matches 
-matches <- bind_rows(list(merge_names_post, unmatched))
-write_csv(matches, glue("{dbox}/cleaned/matchtest1_jan30.csv"))
+matches <- bind_rows(list(wellmatched %>% mutate(matchstat = "wellmatched"), 
+                          poorlymatched %>% mutate(matchstat = "poorlymatched"), 
+                          unmatched %>% mutate(matchstat = "unmatched"))) %>%
+  left_join(parsed_bycert %>% select(c(ID_ci44, Occupation_ci44)))
 
-# looking at matches
-View(x %>% arrange(ID_ci44) %>% #filter(!is.na(Name_reg) & entry_match_score < 3) %>%
-       select(c(ID_ci44, ID_reg, 
-                total_score, namesim, cert_match, true_match, entry_match_score, birth_match_score, mergedon,
-                #CI36_ci44, CI36_reg, CI36EXTRA_ci44,
-                #CertNumber, EndorsedCertNumber, ArrivalCert1, ArrivalCert2,
-                #CI5, CI6, Other_CI,
-                EntryPort_ci44, EntryPort_reg, EntryShip_ci44, EntryShip_reg,
-                Name_ci44, Name_reg, BirthYear_ci44, BirthYear_reg,
-                EntryDateYear_ci44, EntryDateYear_reg, 
-                EntryDateMonth_ci44, EntryDateMonth_reg, 
-                EntryDateDay_ci44, EntryDateDay_reg)))
+write_csv(matches, glue("{dbox}/cleaned/matches_feb11.csv"))
 
-# rewriting unmatched info
-unmatched_rewrite <- check_raw_imgs(unmatched,
-                                    outpath = glue("{dbox}/cleaned/missing_ci44_imgs.csv"))
+write_csv(merge_names_post, glue("{dbox}/cleaned/merge_names_post_feb11.csv"))
+
+
+# # rewriting unmatched info
+# unmatched_rewrite <- check_raw_imgs(unmatched,
+#                                     outpath = glue("{dbox}/cleaned/missing_ci44_imgs.csv"))
 
 

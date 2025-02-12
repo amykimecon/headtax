@@ -13,7 +13,25 @@ library(matrixStats)
 
 # SETTING WORKING DIRECTORIES ----
 root <- "/Users/amykim/Princeton Dropbox/Amy Kim/head_tax/head_tax_data"
-code <- "/Users/amykim/Documents/GitHub/<FILL IN>/code"
+code <- "/Users/amykim/Documents/GitHub/headtax/code"
+
+# helper to easily compare matched data
+view_matched <- function(df, extracolnames = c()){
+  View(df %>% select(c(ID_ci44, ID_reg,
+                       total_score, total_score_raw, score_denom, 
+                       nonname_score, nonname_score_raw, nonname_denom, scorediff, namesim, shipsim, 
+                       mainmerge, certbonus, bonus_score,
+                       #CI36_ci44, CI36_reg, CI36EXTRA_ci44,
+                       #CertNumber, EndorsedCertNumber, ArrivalCert1, ArrivalCert2,
+                       #CI5, CI6, Other_CI,
+                       Name_ci44, Name_reg, EntryPort_ci44, EntryPort_reg, EntryShip_ci44, EntryShip_reg,
+                       BirthYear_ci44, BirthYear_reg,
+                       BplVillage_ci44, BplVillage_reg,
+                       BplDistrict_ci44, BplDistrict_reg,
+                       EntryDateYear_ci44, EntryDateYear_reg,
+                       EntryDateMonth_ci44, EntryDateMonth_reg,
+                       EntryDateDay_ci44, EntryDateDay_reg, all_of(extracolnames))))
+}
 
 # compares raw image files with parsed output and displays missing images if true
 # df MUST be of type parsed_tidy -- need to be long but have unique fieldnames for duplicate fields
@@ -145,10 +163,13 @@ bestpartialmatch <- function(str, patterns, max.distance = 0.1, returnval = FALS
   if (is.na(str)){
     return(NA)
   }
+  
   str = str_to_lower(str)
   bestmatch = NA
   bestmatchind = NA
   lowestdist = 1
+  order = order(nchar(patterns), decreasing = TRUE)
+  patterns = patterns[order]
   for (i in 1:length(patterns)){
     pattern = str_to_lower(patterns[i])
     maxdist = ceiling(str_length(pattern)*max.distance)
@@ -162,7 +183,7 @@ bestpartialmatch <- function(str, patterns, max.distance = 0.1, returnval = FALS
   if(returnval){
     return(bestmatch)
   }
-  return(bestmatchind)
+  return(order[bestmatchind])
 }
 
 # coerces string of form "ci ##" into valid cert type (4, 5, 28, 30, 36)
@@ -607,9 +628,17 @@ ship_name_sim <- function(str1, str2, goodmatchcutoff = 0.75){
 merge_stats <- function(df, strcutoff_high = 0.8, strcutoff_low = 0.7,
                         shipmatchcutoff_high = strcutoff_high, shipmatchcutoff_low = strcutoff_low,
                         bplvillcutoff_high = strcutoff_high, bplvillcutoff_low = strcutoff_low,
-                        entryportcutoff_high = strcutoff_high, entryportcutoff_low = strcutoff_low){
+                        entryportcutoff_high = strcutoff_high, entryportcutoff_low = strcutoff_low,
+                        inclnamesim = TRUE){
+  if (inclnamesim){
+    df <- df %>% max_name_sim()
+  }
+  else{
+    df <- df %>% rowwise() %>%
+      mutate(namesim = 1 - namedist_lv/max(min(nchar(namematchcol.x), nchar(namematchcol.y)), 2)) %>% 
+      ungroup()
+  }
   df_out <- df %>%
-    max_name_sim() %>%
     mutate(name_score = ifelse(is.na(Name_ci44) | is.na(Name_reg), NA, namesim),
            shipsim = mapply(ship_name_sim, EntryShip_ci44, EntryShip_reg, goodmatchcutoff = shipmatchcutoff_high),
            ship_score = case_when(shipsim >= shipmatchcutoff_high ~ 1,

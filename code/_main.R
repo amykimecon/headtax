@@ -70,6 +70,12 @@ source(glue("{git}/code/helper.R"))
 #_____________________________________________________________
 # IMPORTING DATA -----
 #_____________________________________________________________
+# CI44 Matches ----
+matches <- read_csv(glue("{dbox}/cleaned/matches_feb11.csv")) %>%
+  filter(matchstat == "wellmatched") %>%
+  select(c(ID_reg, total_score, Occupation_ci44)) %>%
+  mutate(match_ci44 = 1)
+
 ## Canadian Data ----
 # chinese register, note that sample pre-1885 is biased (non mandatory registration, so only some selected people registered)
 reg_chi <- read_csv(glue("{dbox}/cleaned/chireg.csv")) %>% 
@@ -78,7 +84,9 @@ reg_chi <- read_csv(glue("{dbox}/cleaned/chireg.csv")) %>%
          tax = case_when(YRIMM <= 1885 ~ 0,
                          YRIMM <= 1900 ~ 1496.19,
                          YRIMM <= 1903 ~ 2992.61,
-                         YRIMM < 1924 ~ 14115.70))
+                         YRIMM < 1924 ~ 14115.70)) %>%
+  left_join(matches, by = c("ID" = "ID_reg")) %>%
+  mutate(match_ci44 = ifelse(!is.na(match_ci44), match_ci44, 0))
 
 # CA census
 can_imm <- read_csv(glue("{dbox}/cleaned/can_clean_imm.csv")) %>% 
@@ -140,14 +148,14 @@ china_age <- read_csv(glue("{dbox}/cleaned/china_age_plotdata.csv")) %>%
 #_____________________________________________________________
 # CALLING OTHER SCRIPTS ----------------------------------
 #_____________________________________________________________
-## Descriptive Analysis -- summary stats table, raw immigration trends, misc facts
-source(glue("{git}/code/1_descriptive_analysis.R"))
-
-## First Stage -- Effects of Head Tax on immigration inflows
-source(glue("{git}/code/2_firststage.R"))
-
-## Selection -- Effects of Head Tax on selection
-source(glue("{git}/code/3_selection.R"))
+# ## Descriptive Analysis -- summary stats table, raw immigration trends, misc facts
+# source(glue("{git}/code/1_descriptive_analysis.R"))
+# 
+# ## First Stage -- Effects of Head Tax on immigration inflows
+# source(glue("{git}/code/2_firststage.R"))
+# 
+# ## Selection -- Effects of Head Tax on selection
+# source(glue("{git}/code/3_selection.R"))
 
 #_____________________________________________________________
 # DEPRECATED DATA ----
