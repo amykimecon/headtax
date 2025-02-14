@@ -1,559 +1,13 @@
 # outcome/selection analysis 
 
-## SETTING PARAMETERS
-regstart = 1882
-regend = 1923
-minage = 18
-maxage = 65
-
-## CLEANING INDIV DATA
-reg_clean <- reg_chi %>% 
-  filter(!is.na(DATE)) %>%
-  mutate(MOIMM = lubridate::floor_date(DATE, "month"),
-         month = as.character(month(MOIMM)),
-         height_samp = ifelse(AGE >= 23 & AGE <= 50 & 
-                                !is.na(HEIGHT) & HEIGHT > 100 & 
-                                !is.na(MALE) & MALE == 1, 1, 0),
-         whipple_samp = ifelse(AGE >= minage & AGE <= (minage + 39) & !is.na(MALE) & MALE == 1, 1, 0),
-         occ_samp = ifelse(AGE >= minage & AGE <= maxage & !is.na(MALE) & MALE == 1, 1, 0),
-         AGE_ARR = AGE - (ifelse(REG_Year == 0, NA, REG_Year) - YRIMM),
-         AGE_ARR = ifelse(AGE_ARR < 0 | AGE == 0, NA, AGE_ARR),
-         age_samp = ifelse(!is.na(AGE_ARR), 1, 0),
-         cost = tax + 1496.19)
-
-## CREATING MONTHLY GROUPED DATAFRAME
-monthly <- reg_clean %>% group_by(YRIMM, MOIMM, month, tax) %>% 
-  summarize(height = mean(ifelse(height_samp == 1, HEIGHT, NA), na.rm=TRUE),
-            logheight = mean(ifelse(height_samp == 1, log(HEIGHT), NA), na.rm=TRUE),
-            n_height = sum(height_samp),
-            whipple = mean(ifelse(whipple_samp == 1, WHIPPLE, NA), na.rm=TRUE),
-            n_whipple = sum(whipple_samp),
-            labor = mean(ifelse(occ_samp, ifelse(OCCGRP == "Labourer", 1, 0), NA), na.rm=TRUE),
-            merchant = mean(ifelse(occ_samp, ifelse(OCCGRP == "Merchant", 1, 0), NA), na.rm=TRUE),
-            student = mean(ifelse(occ_samp, ifelse(OCCGRP == "Student", 1, 0), NA), na.rm=TRUE),
-            n_occ = sum(occ_samp),
-            age = mean(ifelse(age_samp == 1, AGE_ARR, NA), na.rm=TRUE),
-            n_age = sum(age_samp),
-            n = n()) 
-
-# same thing by year
-yearly <- reg_chi %>% 
-  mutate(height_samp = ifelse(AGE >= minage & AGE <= maxage & HEIGHT > 100 & MALE == 1, 1, 0),
-         whipple_samp = ifelse(AGE >= minage & AGE <= maxage & MALE == 1, 1, 0),
-         occ_samp = ifelse(AGE >= 18 & AGE <= maxage & MALE == 1, 1, 0)) %>%
-  group_by(YRIMM, tax) %>% 
-  summarize(height = mean(ifelse(height_samp == 1, HEIGHT, NA), na.rm=TRUE),
-            n_height = sum(height_samp),
-            whipple = mean(ifelse(whipple_samp == 1, WHIPPLE, NA), na.rm=TRUE),
-            n_whipple = sum(whipple_samp),
-            labor = mean(ifelse(occ_samp, ifelse(OCCGRP == "Labourer", 1, 0), NA), na.rm=TRUE),
-            merchant = mean(ifelse(occ_samp, ifelse(OCCGRP == "Merchant", 1, 0), NA), na.rm=TRUE),
-            student = mean(ifelse(occ_samp, ifelse(OCCGRP == "Student", 1, 0), NA), na.rm=TRUE),
-            n_occ = sum(occ_samp),
-            age = mean(AGE),
-            n = n())
-
 #_____________________________________________________________
-# Main Paper Graphs  ----------------------------------
+# Height Analysis ----------------------------------
 #_____________________________________________________________
-#helper: 
-out_ma6 <- function(df, outcomevar, ylab = str_to_title(outcomevar), save = TRUE){
-  monthly_stack <- all_disconts(df, yvar = outcomevar, indiv = TRUE)
-  plot_out <- graph_disconts(monthly_stack[which(!is.na(monthly_stack[[glue("{outcomevar}_RAW_MA6")]])),],
-                             glue("{outcomevar}_RAW_MA6"), glue("6-month MA {ylab}"),
-                             sampmean = mean(df[[outcomevar]])) + 
-    theme(text = element_text(size=16), axis.text = element_text(size = 14),
-          legend.position='right')
-  print(plot_out)
-  if(save){
-    ggsave(glue("{git}/output/paper/figures/{str_to_lower(outcomevar)}_raw_ma6.png"), 
-           plot_out, height = 4, width = 8)
-  }
-}
-
-out_raw <- function(df, outcomevar, ylab = str_to_title(outcomevar), save = TRUE){
-  monthly_stack <- all_disconts(df, yvar = outcomevar, indiv = TRUE)
-  plot_out <- graph_disconts(monthly_stack[which(!is.na(monthly_stack[[glue("{outcomevar}_RAW")]])),],
-                             glue("{outcomevar}_RAW"), glue("Monthly mean {ylab}"),
-                             sampmean = mean(df[[outcomevar]]))
-  print(plot_out)
-  if(save){
-    ggsave(glue("{git}/output/paper/figures/{str_to_lower(outcomevar)}_raw.png"), plot_out, height = 4, width = 7)
-  }
-}
-
-# HEIGHT: INDIV RAW VALS -> 6MO MA
-out_ma6(reg_clean %>% filter(height_samp == 1), "HEIGHT", ylab = "Height (cm)")
-
-# AGE
-out_ma6(reg_clean %>% filter(age_samp == 1), "AGE_ARR", ylab = "Age at Arrival")
-
-# WHIPPLE/AGE HEAP
-out_ma6(reg_clean %>% filter(whipple_samp == 1), "WHIPPLE", ylab = "Whipple Index")
-
-# OCCGRP
-out_ma6(reg_clean %>% filter(occ_samp == 1) %>% mutate(LABOR = ifelse(OCCGRP == "Labourer", 1, 0)), 
-        "LABOR", ylab = "Share Laborer")
-
-out_ma6(reg_clean %>% filter(occ_samp == 1) %>% mutate(STUMERCH = ifelse(OCCGRP == "Student" | OCCGRP == "Merchant", 1, 0)), 
-        "STUMERCH", ylab = "Indicator for Student/Merchant")
-
-### REGRESSIONS ####
-
-outreg <- function(df, yvar, ylab){
-  # reg0: no ctrls for birthyear ----
-  reg0 <- lm(data = df, as.formula(glue("{yvar} ~ factor(month) + factor(tax)")))
-
-  # reg1: quadratic birthyear ----
-  reg1 <- lm(data = df, as.formula(glue("{yvar} ~ factor(month) + factor(tax) + BIRTHYEAR + I(BIRTHYEAR^2)")))
-
-  # reg2: birthyear fes ----
-  reg2 <- lm(data = df, as.formula(glue("{yvar} ~ factor(month) + factor(tax) + factor(BIRTHYEAR)")))
-  print(summary(reg2))
-  regmean <- round(mean(df[[yvar]]),1)
-  regse <- round(sd(df[[yvar]])/sqrt(nrow(df) - 1),1)
-  
-  # reg3: log-log ----
-  # reg3 <- lm(data = df, as.formula(glue("log({yvar}) ~ factor(month) + log(cost) + factor(BIRTHYEAR)")))
-  # regmean3 <- round(mean(log(df[[yvar]])),1)
-  # regse3 <- round(sd(log(df[[yvar]]))/sqrt(nrow(df) - 1),1)
-  # 
-  # reg50: ht 50 ----
-  reg50 <- lm(data = df %>% filter(YRIMM >= 1883 & YRIMM <= 1888),  
-              as.formula(glue("log({yvar}) ~ factor(month) + log(cost) + factor(BIRTHYEAR)")))
-  print(summary(reg50))
-  regmean50 <- round(mean(filter(df, YRIMM >= 1883 & YRIMM <= 1888)[[yvar]]),1)
-  regse50 <- round(sd(filter(df, YRIMM >= 1883 & YRIMM <= 1888)[[yvar]])/
-                     sqrt(nrow(filter(df, YRIMM >= 1883 & YRIMM <= 1888))-1),1)
-  
-  # ht 100 ----
-  reg100 <- lm(data = df %>% filter(YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01")),  
-               as.formula(glue("log({yvar}) ~ factor(month) + log(cost) + factor(BIRTHYEAR)")))
-  regmean100 <- round(mean(filter(df, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))[[yvar]]),1)
-  print(summary(reg100))
-  regse100 <- round(sd(filter(df, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))[[yvar]])/
-                     sqrt(nrow(filter(df, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01")))-1),1)
-
-  # ht 500 ----
-  reg500 <- lm(data = df %>% filter(MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906),  
-               as.formula(glue("log({yvar}) ~ factor(month) + log(cost) + factor(BIRTHYEAR)")))
-  print(summary(reg500))
-  regmean500 <- round(mean(filter(df, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)[[yvar]]),1)
-  regse500 <- round(sd(filter(df, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)[[yvar]])/
-                     sqrt(nrow(filter(df, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906))-1),1)
-  
-  # compiling lists ----
-  reg_models <- list(reg0, reg2, reg50, reg100, reg500)
-  reg_means <- c(regmean, regmean, regmean50, regmean100, regmean500)
-  reg_ses <- c(glue("({regse})"), glue("({regse})"), 
-                   glue("({regse50})"),glue("({regse100})"),glue("({regse500})"))
-
-  # stargazer ----
-  stargazer(reg_models,
-            se = lapply(reg_models, robustse),
-            keep = c("^factor\\(tax\\)"),
-            #out = glue("{git}/output/paper/tables/{str_to_lower(yvar)}_regs.tex"),
-            float = FALSE,
-            digits = 2,
-            intercept.bottom = FALSE,
-            keep.stat=c("n","adj.rsq"),
-            column.labels = c("All Years (1882-1921)", "\\$50 Tax (1883-1888)",
-                              "\\$100 Tax (1898-1903)", "\\$500 Tax (1901-1906)"),
-            column.separate = c(2,1,1,1),
-            covariate.labels = c("$\\gamma_{50}$ (\\$50 Tax)",
-                                 "$\\gamma_{100}$ (\\$100 Tax)",
-                                 "$\\gamma_{500}$ (\\$500 Tax)"
-            ),
-            add.lines = list(c("Dep. Var. Mean (SE)", reg_means),c("", reg_ses),
-                             c('Birth Year FE', "No", rep("Yes",4))),
-            dep.var.caption = paste0("\\textit{Dependent variable:} ", ylab),
-            table.layout = "=cl#-t-as=")
-}
-
-ht_samp <- function(df, ht){
-  if(ht == 50){
-    df_filt <- df %>% filter(YRIMM >= 1883 & YRIMM <= 1888)
-  }
-  else if (ht == 100){
-    df_filt <- df %>% filter(YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))
-  }
-  else if (ht == 500){
-    df_filt <- df %>% filter(MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)
-  }
-  return(df_filt)
-}
-
-outreg_vars <- function(df, yvars, ylabs = yvars, loglog = FALSE, outfile_root = "selection"){
-  reg_models = list()
-  reg_means = numeric(length(yvars))
-  reg_ses = character(length(yvars))
-  i = 1
-  for (yvar in yvars){
-    df_filt <- df[which(!is.na(df[[yvar]])),] 
-    if (loglog){
-      if (yvar == "AGE"){
-        reg2 <- lm(data = df_filt, as.formula(glue("{yvar} ~ factor(month) + log(cost)")))
-      }
-      else{
-        reg2 <- lm(data = df_filt, as.formula(glue("{yvar} ~ factor(month) + log(cost) + factor(BIRTHYEAR)")))
-      }
-      #reg2 <- lm(data = df_filt, as.formula(glue("{yvar} ~ factor(month) + log(cost) + factor(BIRTHYEAR)")))
-      #regmean = round(mean(log(df_filt[[yvar]])),1)
-      regmean = round(mean(df_filt[[yvar]]),1)
-      #regse = glue("({round(sd(log(df_filt[[yvar]]))/sqrt(nrow(df_filt) - 1),1)})")
-      regse = glue("({round(sd(df_filt[[yvar]])/sqrt(nrow(df_filt) - 1),1)})")
-    }
-    else{
-      reg2 <- lm(data = df_filt, as.formula(glue("{yvar} ~ factor(month) + factor(tax) + factor(BIRTHYEAR)")))
-      regmean = round(mean(df_filt[[yvar]]),1)
-      regse = glue("({round(sd(df_filt[[yvar]])/sqrt(nrow(df_filt) - 1),1)})")
-    }
-    reg_models[[i]] <- reg2
-    reg_means[i] <- regmean
-    reg_ses[i] <- regse
-    i = i + 1
-  }
-    # stargazer ----
-  if (loglog){
-    keepvars = c("log\\(cost\\)")
-    covlabs = c("$\\gamma^{\\varepsilon}$ (log Cost)")
-    extralines = list(c("Dep. Var. Mean", reg_means))
-  }
-  else{
-    keepvars = c("^factor\\(tax\\)")
-    covlabs = c("$\\gamma_{50}$ (\\$50 Tax)",
-                "$\\gamma_{100}$ (\\$100 Tax)",
-                "$\\gamma_{500}$ (\\$500 Tax)")
-    extralines = list(c("Dep. Var. Mean", reg_means))
-  }
-    stargazer(reg_models,
-              se = lapply(reg_models, robustse),
-              keep = keepvars,
-              out = glue("{git}/output/paper/tables/{outfile_root}_regs.tex"),
-              float = FALSE,
-              digits = 2,
-              intercept.bottom = FALSE,
-              keep.stat=c("n","adj.rsq"),
-              column.labels = ylabs,
-              column.separate = rep(1,length(ylabs)),
-              covariate.labels = covlabs,
-              add.lines = extralines,
-              table.layout = "=lc#-t-as=")
-}
-
-# REG DATA
-reg_clean_sample <- reg_clean %>% filter(YRIMM >= regstart & YRIMM <= regend & BIRTHYEAR > 0) %>%
-  mutate(HEIGHT = ifelse(height_samp == 1, HEIGHT, NA),
-         logHEIGHT = log(HEIGHT),
-         AGE = ifelse(age_samp == 1, AGE_ARR, NA),
-         WHIPPLE = ifelse(whipple_samp == 1, WHIPPLE, NA),
-         LABOR = ifelse(occ_samp == 1, ifelse(OCCGRP == "Labourer", 1, 0), NA),
-         MERCHANT = ifelse(occ_samp == 1, ifelse(OCCGRP == "Merchant", 1, 0), NA),
-         STUDENT = ifelse(occ_samp == 1, ifelse(OCCGRP == "Student", 1, 0), NA),
-         MERCHSTUD = ifelse(occ_samp == 1, ifelse(OCCGRP == "Merchant" | OCCGRP == "Student", 1, 0), NA)
-  )
-
-outreg_vars(reg_clean_sample %>% ht_samp(50), 
-            c("HEIGHT", "AGE", "WHIPPLE", "LABOR", "MERCHSTUD"), loglog = TRUE, 
-            outfile_root = "selection50")
-
-outreg_vars(reg_clean_sample %>% ht_samp(100), 
-            c("HEIGHT", "AGE", "WHIPPLE", "LABOR", "MERCHSTUD"), loglog = TRUE,
-            outfile_root = "selection100")
-
-outreg_vars(reg_clean_sample %>% ht_samp(500), 
-            c("HEIGHT", "AGE", "WHIPPLE", "LABOR", "MERCHSTUD"), loglog = TRUE,
-            outfile_root = "selection500")
-
-outreg_vars(reg_clean_sample, 
-            c("HEIGHT", "AGE", "WHIPPLE", "LABOR", "MERCHSTUD"), loglog = TRUE)
-
-
-
-
-
-# OLD STUFF
-
-# HEIGHT
-outreg(filter(reg_clean, YRIMM >= regstart & YRIMM <= regend & height_samp == 1 & BIRTHYEAR > 0), 
-       yvar = "HEIGHT", ylab = "Height (cm)")
-
-# AGE
-outreg(filter(reg_clean, YRIMM >= regstart & YRIMM <= regend & age_samp == 1 & BIRTHYEAR > 0 & AGE > 0) %>% mutate(AGE = AGE_ARR), 
-       yvar = "AGE")
-
-
-heightreg0 <- lm(data = reg_clean %>% filter(YRIMM >= regstart & YRIMM <= regend & height_samp == 1), 
-                 HEIGHT ~ factor(month) + factor(tax))
-summary(heightreg0)
-
-heightreg1 <- lm(data = reg_clean %>% filter(YRIMM >= regstart & YRIMM <= regend & height_samp == 1), 
-               HEIGHT ~ factor(month) + factor(tax) + BIRTHYEAR + I(BIRTHYEAR^2))
-
-summary(heightreg1)
-
-heightreg2 <- lm(data = reg_clean %>% filter(YRIMM >= regstart & YRIMM <= regend & height_samp == 1), 
-                 HEIGHT ~ factor(month) + factor(tax) + factor(BIRTHYEAR))
-
-summary(heightreg2)
-
-# elasticity
-summary(lm(data = reg_clean %>% filter(YRIMM >= regstart & YRIMM <= regend & height_samp == 1), 
-           log(HEIGHT) ~ factor(month) + log(cost))
-)
-
-heightreg3 <- lm(data = reg_clean %>% filter(YRIMM >= regstart & YRIMM <= regend & height_samp == 1), 
-                 log(HEIGHT) ~ factor(month) + log(cost) + factor(BIRTHYEAR))
-summary(heightreg3)
-
-
-regmean1 <- round(mean(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$logFLOW),1)
-regse1 <- round(sd(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$logFLOW)/
-                  sqrt(nrow(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)) - 1),1)
-regmean0 <- round(mean(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$CHIFLOW_REGISTER),1)
-regse0 <- round(sd(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$CHIFLOW_REGISTER)/
-                  sqrt(nrow(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)) - 1),1)
-
-# ht 50
-flowreg50 <- lm(data = reg_clean %>% filter(YRIMM >= 1883 & YRIMM <= 1888 & height_samp == 1),  
-                log(HEIGHT) ~ factor(month) + log(cost) + factor(BIRTHYEAR))
-summary(flowreg50)
-regmean50 <- round(mean(filter(flow_regress, YRIMM >= 1883 & YRIMM <= 1888)$logFLOW),1)
-regse50 <- round(sd(filter(flow_regress, YRIMM >= 1883 & YRIMM <= 1888)$logFLOW)/
-                   sqrt(nrow(filter(flow_regress, YRIMM >= 1883 & YRIMM <= 1888))-1),1)
-
-# ht 100
-flowreg100 <- lm(data = reg_clean %>% filter(YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01") & height_samp == 1),  
-                 log(HEIGHT) ~ factor(month) + log(cost) + factor(BIRTHYEAR))
-summary(flowreg100)
-
-regmean100 <- round(mean(filter(flow_regress, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))$logFLOW),1)
-regse100 <- round(sd(filter(flow_regress, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))$logFLOW)/
-                    sqrt(nrow(filter(flow_regress, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01")))-1),1)
-
-# ht 500
-flowreg500 <- lm(data = reg_clean %>% filter(MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906 & height_samp == 1),  
-                 log(HEIGHT) ~ factor(month) + log(cost) + factor(BIRTHYEAR))
-summary(flowreg500)
-regmean500 <- round(mean(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$logFLOW),1)
-regse500 <- round(sd(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$logFLOW)/
-                    sqrt(nrow(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906))-1),1)
-
-flowreg500_v2 <- lm(data = reg_clean %>% filter(MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906 & height_samp == 1), 
-                    HEIGHT ~ factor(month) + factor(tax) + factor(BIRTHYEAR))
-summary(flowreg500_v2)
-
-regmean500_v2 <- round(mean(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$CHIFLOW_REGISTER),1)
-regse500_v2 <- round(sd(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$CHIFLOW_REGISTER)/
-                       sqrt(nrow(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906))-1),1)
-
-flowreg_means <- c(regmean1, regmean50, regmean100, regmean500, regmean0)
-flowreg_ses <- c(glue("({regse1})"), glue("({regse50})"),glue("({regse100})"),glue("({regse500})"),glue("({regse0})"))
-
-flowreg_means_v2 <- c(regmean1, regmean50, regmean100, regmean500, regmean0, regmean50_v2, regmean100_v2, regmean500_v2)
-flowreg_ses_v2 <- c(glue("({regse1})"), glue("({regse50})"),glue("({regse100})"),glue("({regse500})"),
-                    glue("({regse0})"), glue("({regse50_v2})"),glue("({regse100_v2})"),glue("({regse500_v2})"))
-
-
-
-
-monthly_stack_height <- all_disconts(reg_clean %>% filter(height_samp==1), 
-                                    yvar = "HEIGHT", indiv = TRUE)
-height_raw_ma6 <- graph_disconts(monthly_stack_height %>% filter(!is.na(HEIGHT_RAW_MA6)), 
-                                 "HEIGHT_RAW_MA6", "6-month MA of Raw Height (cm)", 
-                                 sampmean = mean(ifelse(reg_clean$height_samp == 1, reg_clean$HEIGHT, NA), na.rm=TRUE))
-
-ggsave(glue("{git}/output/paper/figures/height_raw_ma6.png"), height_raw_ma6, height = 4, width = 7)
-
-
-# AGE
-
-
-
-
-height_detr_ma6 <- graph_disconts(monthly_stack_height %>% filter(!is.na(HEIGHT_DETR_MA6)), 
-                                  "HEIGHT_DETR_MA6", "6-month MA of Detrended Height")
-ggsave(glue("{git}/output/paper/figures/height_detr_ma6.png"), height_detr_ma6, height = 4, width = 7)
-
-height_detr <- graph_disconts(monthly_stack_height, "HEIGHT_DETR", "Mean monthly Detrended Height")
-ggsave(glue("{git}/output/paper/figures/height_detr.png"), height_detr, height = 4, width = 7)
-
-height_raw_ma6 <- graph_disconts(monthly_stack_height %>% filter(!is.na(HEIGHT_RAW_MA6)), 
-                                 "HEIGHT_RAW_MA6", "6-month MA of Raw Height (cm)", 
-               sampmean = mean(ifelse(reg_clean$height_samp == 1, reg_clean$HEIGHT, NA), na.rm=TRUE))
-
-graph_disconts(monthly_stack_height, "HEIGHT_RAW_MA3", "3-month MA of Raw Height", 
-               yint = mean(filter(monthly_stack_height, t == 0)$HEIGHT_RAW_MA3))
-graph_disconts(monthly_stack_height, "HEIGHT_RAW", "Mean monthly Raw Height", 
-               yint = mean(filter(monthly_stack_height, t == 0)$HEIGHT_RAW))
-
-graph_fstats(monthly_stack_height)
-graph_fstats(monthly_stack_height, ma3 = TRUE)
-
-# AGE
-monthly_stack_age <- all_disconts(reg_clean, 
-                                            yvar = "AGE", indiv = TRUE)
-
-graph_disconts(monthly_stack_age, "AGE_RAW_MA3", "3-month MA of Raw Height", yint = NA_real_)
-graph_disconts(monthly_stack_age, "AGE_RAW", "Mean monthly Raw Height")
-
-graph_disconts(monthly_stack_age, "AGE_DETR_MA3", "3-month MA of Detrended Height")
-graph_disconts(monthly_stack_age, "AGE_DETR", "Mean monthly Detrended Height")
-
-graph_fstats(monthly_stack_age)
-graph_fstats(monthly_stack_age, ma3 = TRUE)
-
-# WHIPPLE
-monthly_stack_whipple <- all_disconts(reg_clean %>% filter(whipple_samp==1), 
-                                    yvar = "WHIPPLE", indiv = TRUE)
-graph_disconts(monthly_stack_whipple, "WHIPPLE_DETR_MA3", "3-month MA of Detrended Height")
-graph_disconts(monthly_stack_whipple, "WHIPPLE_DETR", "Mean monthly Detrended Height")
-
-graph_fstats(monthly_stack_whipple)
-graph_fstats(monthly_stack_whipple, ma3 = TRUE)
-
-
-ggplot(yearly %>% filter(YRIMM >= regstart & YRIMM <= 1910), 
-       aes(x = YRIMM, y = height)) +
-  geom_point(aes(size = n), color = c1, alpha = 0.9) + 
-  theme_minimal() + theme(legend.position='bottom') + 
-  labs(x = "Year of Immigration", y = "Mean Height of Chinese Immigrants (cm)", size = "# of Chinese Immigrants")
-
-ggplot(monthly %>% ungroup() %>% filter(YRIMM >= regstart & YRIMM <= 1924 & !is.na(height) & height > 155), 
-       aes(x = MOIMM, y = rollmean(height, 2, na.pad = TRUE))) +
-  #geom_point(aes(size = n), color = c1, alpha = 0.9) + 
-  geom_line() +
-  theme_minimal() + theme(legend.position='bottom') + 
-  labs(x = "Year of Immigration", y = "Mean Height of Chinese Immigrants (cm)", size = "# of Chinese Immigrants")
-
-ggplot(monthly %>% ungroup() %>% filter(YRIMM >= regstart & YRIMM <= 1924), 
-       aes(x = MOIMM, y = labor)) +
-  #geom_point(aes(size = n), color = c1, alpha = 0.9) + 
-  geom_line() +
-  theme_minimal() + theme(legend.position='bottom') + 
-  labs(x = "Year of Immigration", y = "Mean Height of Chinese Immigrants (cm)", size = "# of Chinese Immigrants")
-
-## STACKED DESIGN
-monthly_stack <- all_disconts(monthly, yvar = "height")
-graph_disconts(monthly_stack, "height_DETR", "detrended mean height")
-graph_disconts(monthly_stack, "height_DETR", "detrended mean height", rollmean = TRUE)
-graph_disconts(monthly_stack, "height", "detrended mean height", yint = 160)
-
-monthly_stack_indiv <- all_disconts(reg_clean %>% filter(height_samp==1), 
-                                    yvar = "HEIGHT", indiv = TRUE)
-graph_disconts(monthly_stack_indiv, "HEIGHT_DETR", "mean detrended height")
-graph_disconts(monthly_stack_indiv, "HEIGHT_DETR", "mean detrended height", rollmean = TRUE)
-graph_disconts(monthly_stack_indiv, "HEIGHT_DETR_MA3", "mean detrended height")
-
-
-ymin = min(monthly_stack_indiv[["HEIGHT_DETR"]], na.rm=TRUE)
-ymax = max(monthly_stack_indiv[["HEIGHT_DETR"]], na.rm=TRUE)
-lab_vjust = 0.05
-lab_hjust = 0.05
-yint = 0
-ylab=''
-ggplot(data = monthly_stack_indiv, aes(x = t, y = rollmean(HEIGHT_DETR,3,na.pad=TRUE), color = group, linetype = group)) + 
-  geom_vline(xintercept = 0, color = "#808080", linetype = 1, alpha = 0.5, linewidth = 1) +
-  annotate("text", x = 0, y = 5, label = "Head Tax Effective", 
-           color = "#808080", hjust = -lab_hjust, size = 3) +
-  geom_vline(xintercept = -6, color = "#808080", linetype = 3, alpha = 0.5, linewidth = 1) +
-  annotate("text", x = -6, y = -3, label = "Head Tax Announced", 
-           color = "#808080", hjust = 1 + lab_hjust, size = 3) +
-  geom_hline(yintercept = yint, color = "#808080", linetype = 1, alpha = 0.2) +
-  geom_line() +
-  scale_color_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(c5, c3, c1)) +
-  scale_linetype_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(1, 2, 6)) +
-  labs(x = "Month of Immigration Relative to Head Tax Increase", 
-       y = ylab,
-       linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
-
-monthly_stack_indiv <- all_disconts(reg_clean %>% filter(height_samp==1) %>% mutate(logheight = log(HEIGHT)), 
-                                    yvar = "logheight", indiv = TRUE)
-graph_disconts(monthly_stack_indiv, "logheight_DETR", "mean detrended log height")
-
-
-monthly_stack_logs <- all_disconts(monthly, yvar = "logheight")
-graph_disconts(monthly_stack_logs, "logheight_DETR", "detrended mean log height")
-
-ggplot(data = monthly_stack, aes(x = t, y = .data[["height_DETR"]], color = group, linetype = group)) + 
-  geom_vline(xintercept = 0, color = "#808080", linetype = 1, alpha = 0.5, linewidth = 1) +
-  annotate("text", x = 0, y = max(monthly_stack$height_DETR, na.rm=TRUE)*0.95, label = "Head Tax Effective", 
-           color = "#808080", hjust = -0.05, size = 3) +
-  geom_vline(xintercept = -6, color = "#808080", linetype = 3, alpha = 0.5, linewidth = 1) +
-  annotate("text", x = -6, y = min(monthly_stack$height_DETR, na.rm=TRUE)*0.95, label = "Head Tax Announced", 
-           color = "#808080", hjust = 1.05, size = 3) +
-  geom_hline(yintercept = 0, color = "#808080", linetype = 1, alpha = 0.2) +
-  #geom_rect(aes(xmin = -5, xmax = 0, ymin = -Inf, ymax = Inf), fill = "grey", alpha = 0.1, inherit.aes = FALSE) +
-  geom_line() +
-  scale_color_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(c5, c3, c1)) +
-  scale_linetype_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(1, 2, 6)) +
-  labs(x = "Month of Immigration Relative to Head Tax Increase", y = "Detrended log(Chinese Immigrant Inflow)",
-       linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
-
-
-## HI THIS IS FIGURE 2 FROM PAPER!
-flow_detr_final <- ggplot(data = moimm_stack, aes(x = t, y = logFLOW_DETR, color = group, linetype = group)) + 
-  geom_vline(xintercept = 0, color = "#808080", linetype = 1, alpha = 0.5, linewidth = 1) +
-  annotate("text", x = 0, y = max(moimm_stack$logFLOW_DETR, na.rm=TRUE)*0.95, label = "Head Tax Effective", 
-           color = "#808080", hjust = -0.05, size = 3) +
-  geom_vline(xintercept = -6, color = "#808080", linetype = 3, alpha = 0.5, linewidth = 1) +
-  annotate("text", x = -6, y = min(moimm_stack$logFLOW_DETR, na.rm=TRUE)*0.95, label = "Head Tax Announced", 
-           color = "#808080", hjust = 1.05, size = 3) +
-  geom_hline(yintercept = 0, color = "#808080", linetype = 1, alpha = 0.2) +
-  #geom_rect(aes(xmin = -5, xmax = 0, ymin = -Inf, ymax = Inf), fill = "grey", alpha = 0.1, inherit.aes = FALSE) +
-  geom_line() +
-  scale_color_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(c5, c3, c1)) +
-  scale_linetype_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(1, 2, 6)) +
-  labs(x = "Month of Immigration Relative to Head Tax Increase", y = "Detrended log(Chinese Immigrant Inflow)",
-       linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
-
-window = 3
-# 1885
-date50 = as.Date("1886-01-01")
-moimm_50 <- moimm_reg %>% filter(YRIMM >= year(date50) - window & YRIMM <= year(date50) + window - 1) %>% 
-  mutate(group = "$50 Tax", t = interval(date50, MOIMM) %/% months(1))
-moimm_50_reg <- lm(height ~ factor(month), data = moimm_50)
-moimm_50$FLOW_DETR = resid(moimm_50_reg)
-qlr50 <- qlrtest_month(moimm_50, k = 15)
-moimm_50$FStat = NA
-moimm_50$FStat[15:(nrow(moimm_50)-15)] = qlr50$Fstats
-moimm_50$bound = NA
-moimm_50$bound[15:(nrow(moimm_50)-15)] = boundary(qlr50)
-
-# 1900
-date100 = as.Date("1901-01-01")
-moimm_100 <- moimm_reg %>% filter(YRIMM >= year(date100) - window & MOIMM < as.Date("1903-07-01")) %>% 
-  mutate(group = "$100 Tax", t = interval(date100, MOIMM) %/% months(1))
-moimm_100_reg <- lm(logFLOW ~ factor(month), data = moimm_100)
-moimm_100$FLOW_DETR = resid(moimm_100_reg)
-qlr100 <- qlrtest_month(moimm_100, k = 15)
-moimm_100$FStat = NA
-moimm_100$FStat[15:(nrow(moimm_100)-15)] = qlr100$Fstats
-moimm_100$bound = NA
-moimm_100$bound[15:(nrow(moimm_100)-15)] = boundary(qlr100)
-
-# 1903
-date500 = as.Date("1904-01-01")
-moimm_500 <- moimm_reg %>% filter(MOIMM >= as.Date("1901-06-01") & YRIMM <= year(date500) + window - 1) %>% 
-  mutate(group = "$500 Tax", t = interval(date500, MOIMM) %/% months(1))
-moimm_500_reg <- lm(logFLOW ~ factor(month), data = moimm_500)
-moimm_500$FLOW_DETR = resid(moimm_500_reg)
-qlr500 <- qlrtest_month(moimm_500, k = 15)
-moimm_500$FStat = NA
-moimm_500$FStat[15:(nrow(moimm_500)-15)] = qlr500$Fstats
-moimm_500$bound = NA
-moimm_500$bound[15:(nrow(moimm_500)-15)] = boundary(qlr500)
-
-# stacking
-moimm_stack <- bind_rows(list(moimm_50, moimm_100, moimm_500)) %>% 
-  mutate(group = factor(group, levels = c("$50 Tax", "$100 Tax", "$500 Tax")))
-
 
 ## FIGURE 2: Raw height plots from register data ----
 # all men age 23-50 
-height_plot <- reg_chi %>% 
-  filter(AGE >= 23 & AGE <= 50 & YRIMM > 1879 & YRIMM < 1924 & HEIGHT > 100 & MALE == 1) %>%
-  group_by(YRIMM, MOIMM, tax) %>%
+height_plot <- reg_chi %>% filter(AGE >= 23 & AGE <= 50 & YRIMM > 1879 & YRIMM < 1924 & HEIGHT > 100 & MALE == 1) %>%
+  group_by(YRIMM, tax) %>%
   summarize(height = mean(ifelse(HEIGHT==0,NA,HEIGHT), na.rm=TRUE), 
             medheight = median(ifelse(HEIGHT == 0, NA, HEIGHT), na.rm=TRUE),
             height25 = quantile(ifelse(HEIGHT==0,NA,HEIGHT),0.25,na.rm=TRUE),
@@ -615,7 +69,7 @@ ggsave(glue("{git}/output/slides/height_selection.png"), fig_height_slides, heig
 ## SLIDES FIGURE: Comparison by YRIMM ----
 # crosswalk from chinese height file source to label
 height_file_name_crosswalk <- china_height %>% group_by(file_name) %>% summarize(source = first(source))
-
+                                                    
 # combining register with chinese height data (to get predicted heights from various sources)                             
 height_plot_compare <- reg_chi %>% filter(AGE >= 23 & AGE <= 50 & YRIMM > 1879 & YRIMM < 1924 & HEIGHT > 100 & MALE == 1) %>%
   mutate(BIRTHYR = ifelse(YRIMM != 0, YRIMM - AGE, NA),
@@ -842,7 +296,7 @@ whipple_compare_bc <- reg_chi %>%
 
 # recreating original graph
 whipple_bybc_original <- ggplot(china_age %>% rename(whipple = age_raw, dataseries = source),
-                                aes(x = year, y = whipple, color = dataseries, shape = dataseries)) +
+                               aes(x = year, y = whipple, color = dataseries, shape = dataseries)) +
   geom_point() + geom_line()
 
 # plotting register data on top of original graph
@@ -962,7 +416,7 @@ sctest(CHIFLOW_REGISTER ~ YRIMM + EMIG_TOT + IMMFLOW_NATL + log(POPSTOCKLAG_Chin
 
 
 breakpoints(CHIFLOW_REGISTER ~ YRIMM + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2), 
-            data = test1, breaks = 1, h = 8)
+       data = test1, breaks = 1, h = 8)
 
 supmz(CHIFLOW_REGISTER ~ YRIMM + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2), data = test1)
 changepoints(segment(test1$CHIFLOW_REGISTER, method = "pelt"))
@@ -1029,39 +483,39 @@ did_data_japan <- did_data %>% filter(BORNCHI == 1 | BPL == "Japan") %>% filter(
 
 # normal regs
 didlab <- lm(LABOR ~ factor(YRIMM) + factor(YEAR) + AGE + + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, 
-             data = did_data %>% filter(MALE == 1 & AGE >= 18), #%>% filter(OCC1950 != 290 & OCC1950 != 983), 
-             weights = WEIGHT)
+                    data = did_data %>% filter(MALE == 1 & AGE >= 18), #%>% filter(OCC1950 != 290 & OCC1950 != 983), 
+                    weights = WEIGHT)
 
 dideng <- lm(SPEAKENG ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500,
-             data = did_data %>% filter(AGE >= 6 & MALE == 1), 
-             weights = WEIGHT)
+                       data = did_data %>% filter(AGE >= 6 & MALE == 1), 
+                       weights = WEIGHT)
 
 didread <- lm(CANREAD ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, 
-              data = did_data %>% filter(AGE >= 18 & MALE == 1), weights = WEIGHT)
+                      data = did_data %>% filter(AGE >= 18 & MALE == 1), weights = WEIGHT)
 
 didwhip <- lm(WHIPPLE ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500,
-              data = did_data %>% filter(MALE == 1 & AGE >= 23 & AGE <= 52), weights = WEIGHT)
+                      data = did_data %>% filter(MALE == 1 & AGE >= 23 & AGE <= 52), weights = WEIGHT)
 
 didearn <- lm(EARN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, 
-              data = did_data %>% filter(MALE == 1 & AGE >= 18), weights = WEIGHT)
+                   data = did_data %>% filter(MALE == 1 & AGE >= 18), weights = WEIGHT)
 
 # japan
 didjlab <- lm(LABOR ~ factor(YRIMM) + factor(YEAR) + AGE + + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, 
-              data = did_data_japan %>% filter(MALE == 1 & AGE >= 18), #%>% filter(OCC1950 != 290 & OCC1950 != 983), 
-              weights = WEIGHT)
+             data = did_data_japan %>% filter(MALE == 1 & AGE >= 18), #%>% filter(OCC1950 != 290 & OCC1950 != 983), 
+             weights = WEIGHT)
 
 didjeng <- lm(SPEAKENG ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500,
-              data = did_data_japan %>% filter(AGE >= 6 & MALE == 1), 
-              weights = WEIGHT)
+             data = did_data_japan %>% filter(AGE >= 6 & MALE == 1), 
+             weights = WEIGHT)
 
 didjread <- lm(CANREAD ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, 
-               data = did_data_japan %>% filter(AGE >= 18 & MALE == 1), weights = WEIGHT)
+              data = did_data_japan %>% filter(AGE >= 18 & MALE == 1), weights = WEIGHT)
 
 didjwhip <- lm(WHIPPLE ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500,
-               data = did_data_japan %>% filter(MALE == 1 & AGE >= 23 & AGE <= 52), weights = WEIGHT)
+              data = did_data_japan %>% filter(MALE == 1 & AGE >= 23 & AGE <= 52), weights = WEIGHT)
 
 didjearn <- lm(EARN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, 
-               data = did_data_japan %>% filter(MALE == 1 & AGE >= 18), weights = WEIGHT)
+              data = did_data_japan %>% filter(MALE == 1 & AGE >= 18), weights = WEIGHT)
 
 # summary(lm(SPEAKENG ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500,
 #            data = did_data %>% filter(MALE == 1 & AGE > 23 & !(OCC1950 %in% c(290, 983))), weights = WEIGHT))
@@ -1141,26 +595,26 @@ didjearn <- lm(EARN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax
 
 did_data_means_chi <- c(weighted.mean(filter(did_data, !is.na(LABOR) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$LABOR,
                                       filter(did_data, !is.na(LABOR) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$WEIGHT),
-                        weighted.mean(filter(did_data, !is.na(CANREAD) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$CANREAD,
-                                      filter(did_data, !is.na(CANREAD) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$WEIGHT),
-                        weighted.mean(filter(did_data, !is.na(SPEAKENG) & BORNCHI == 1 & MALE == 1 & AGE >= 6)$SPEAKENG,
-                                      filter(did_data, !is.na(SPEAKENG) & BORNCHI == 1 & MALE == 1 & AGE >= 6)$WEIGHT),
-                        weighted.mean(filter(did_data, !is.na(WHIPPLE) & BORNCHI == 1 & MALE == 1 & AGE >= 23 & AGE <= 52)$WHIPPLE,
-                                      filter(did_data, !is.na(WHIPPLE) & BORNCHI == 1 & MALE == 1 & AGE >= 23 & AGE <= 52)$WEIGHT),
-                        weighted.mean(filter(did_data, !is.na(EARN) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$EARN,
-                                      filter(did_data, !is.na(EARN) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$WEIGHT)
+                    weighted.mean(filter(did_data, !is.na(CANREAD) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$CANREAD,
+                                  filter(did_data, !is.na(CANREAD) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$WEIGHT),
+                    weighted.mean(filter(did_data, !is.na(SPEAKENG) & BORNCHI == 1 & MALE == 1 & AGE >= 6)$SPEAKENG,
+                                  filter(did_data, !is.na(SPEAKENG) & BORNCHI == 1 & MALE == 1 & AGE >= 6)$WEIGHT),
+                    weighted.mean(filter(did_data, !is.na(WHIPPLE) & BORNCHI == 1 & MALE == 1 & AGE >= 23 & AGE <= 52)$WHIPPLE,
+                                  filter(did_data, !is.na(WHIPPLE) & BORNCHI == 1 & MALE == 1 & AGE >= 23 & AGE <= 52)$WEIGHT),
+                    weighted.mean(filter(did_data, !is.na(EARN) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$EARN,
+                                  filter(did_data, !is.na(EARN) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$WEIGHT)
 )
 
 did_data_means_chi_jap <- c(weighted.mean(filter(did_data_japan, !is.na(LABOR) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$LABOR,
-                                          filter(did_data_japan, !is.na(LABOR) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$WEIGHT),
-                            weighted.mean(filter(did_data_japan, !is.na(CANREAD) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$CANREAD,
-                                          filter(did_data_japan, !is.na(CANREAD) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$WEIGHT),
-                            weighted.mean(filter(did_data_japan, !is.na(SPEAKENG) & BORNCHI == 1 & MALE == 1 & AGE >= 6)$SPEAKENG,
-                                          filter(did_data_japan, !is.na(SPEAKENG) & BORNCHI == 1 & MALE == 1 & AGE >= 6)$WEIGHT),
-                            weighted.mean(filter(did_data_japan, !is.na(WHIPPLE) & BORNCHI == 1 & MALE == 1 & AGE >= 23 & AGE <= 52)$WHIPPLE,
-                                          filter(did_data_japan, !is.na(WHIPPLE) & BORNCHI == 1 & MALE == 1 & AGE >= 23 & AGE <= 52)$WEIGHT),
-                            weighted.mean(filter(did_data_japan, !is.na(EARN) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$EARN,
-                                          filter(did_data_japan, !is.na(EARN) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$WEIGHT)
+                                      filter(did_data_japan, !is.na(LABOR) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$WEIGHT),
+                        weighted.mean(filter(did_data_japan, !is.na(CANREAD) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$CANREAD,
+                                      filter(did_data_japan, !is.na(CANREAD) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$WEIGHT),
+                        weighted.mean(filter(did_data_japan, !is.na(SPEAKENG) & BORNCHI == 1 & MALE == 1 & AGE >= 6)$SPEAKENG,
+                                      filter(did_data_japan, !is.na(SPEAKENG) & BORNCHI == 1 & MALE == 1 & AGE >= 6)$WEIGHT),
+                        weighted.mean(filter(did_data_japan, !is.na(WHIPPLE) & BORNCHI == 1 & MALE == 1 & AGE >= 23 & AGE <= 52)$WHIPPLE,
+                                      filter(did_data_japan, !is.na(WHIPPLE) & BORNCHI == 1 & MALE == 1 & AGE >= 23 & AGE <= 52)$WEIGHT),
+                        weighted.mean(filter(did_data_japan, !is.na(EARN) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$EARN,
+                                      filter(did_data_japan, !is.na(EARN) & BORNCHI == 1 & MALE == 1 & AGE >= 18)$WEIGHT)
 )
 # stargazer(did_reg_labor, did_reg_canread, did_reg_houseown,did_reg_labor_japan, did_reg_canread_japan, did_reg_houseown_japan,
 #           out = glue("{git}/figs/selection.tex"), float = FALSE, 
@@ -1194,8 +648,8 @@ stargazer(didlab, didread, dideng, didwhip, didearn,
           keep.stat=c("n","adj.rsq"),
           table.layout = "d-t-as",
           add.lines = list(c("Dep. Var. Mean (Chinese)", formatC(did_data_means_chi, format = "f"))))
-
-
+                             
+   
 #slides: japanese immig
 stargazer(didjlab, didjread, didjeng, didjwhip, didjearn,
           out = glue("{git}/output/slides/selection_japan.tex"), float = FALSE,
@@ -1235,10 +689,10 @@ did_data_us <- us_imm %>% filter(YEAR >= 1900 & YRIMM >= 1880) %>% #& YRIMM <= 1
          BORNCHI_twoyearpost500 = BORNCHI*ifelse(twoyearpost == "post500", 1, 0),
          WEIGHT = 1,
          US = 1) # %>%
-#filter(MALE == 1 & AGEATIMM >= 18) 
+  #filter(MALE == 1 & AGEATIMM >= 18) 
 
 did_data_compare <- bind_rows(did_data_us, did_data %>% mutate(US = 0))
-
+  
 # test
 test <- did_data_compare %>% filter(BORNCHI == 1) %>% group_by(US, YRIMM) %>% 
   summarize(n = sum(WEIGHT),
@@ -1250,13 +704,13 @@ ggplot(test, aes(x = YRIMM, y = EARN, color = factor(US), size = n))+ geom_point
 
 # normal regs
 did_reg_labor_us <- lm(LABOR ~ factor(YRIMM) + factor(YEAR) + AGE + + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500, 
-                       data = did_data_us %>% filter(OCC1950 != 290 & OCC1950 != 983 & AGE >= 18 & MALE == 1), weights = WEIGHT)
+                    data = did_data_us %>% filter(OCC1950 != 290 & OCC1950 != 983 & AGE >= 18 & MALE == 1), weights = WEIGHT)
 
 did_reg_labor_compare <- lm(LABOR ~ factor(YRIMM) + factor(YEAR) + AGE + factor(US)*factor(tax), 
-                            data = did_data_compare %>% filter(YRIMM < 1913 & YRIMM >= 1886 & OCC1950 != 290 & OCC1950 != 983 & AGE >= 18 & MALE == 1 & BORNCHI == 1), weights = WEIGHT)
+                       data = did_data_compare %>% filter(YRIMM < 1913 & YRIMM >= 1886 & OCC1950 != 290 & OCC1950 != 983 & AGE >= 18 & MALE == 1 & BORNCHI == 1), weights = WEIGHT)
 
 did_reg_canread_compare <- lm(CANREAD ~ factor(YRIMM) + factor(YEAR) + AGE + factor(US)*factor(tax), 
-                              data = did_data_compare %>% filter(YRIMM < 1913 & OCC1950 != 290 & OCC1950 != 983 & AGE >= 18 & MALE == 1 & BORNCHI == 1), weights = WEIGHT)
+                            data = did_data_compare %>% filter(YRIMM < 1913 & OCC1950 != 290 & OCC1950 != 983 & AGE >= 18 & MALE == 1 & BORNCHI == 1), weights = WEIGHT)
 
 
 summary(lm(SPEAKENG ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax50 + BORNCHI_tax100 + BORNCHI_tax500,
@@ -1274,3 +728,62 @@ summary(lm(WHIPPLE ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax5
 summary(lm(WHIPPLE ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500,
            data = did_data_japan %>% filter(MALE == 1 & AGE >= 23 & AGE <= 52), weights = WEIGHT))
 
+
+# ########################################################################
+# ### TABLE 4: US VS CAN REGRESSIONS
+# ########################################################################
+# did_data_us <- us_imm %>% filter(YEAR >= 1900 & YRIMM >= 1890 & YRIMM <= 1906 & YEAR != 1920) %>% #only keeping years with earnings/yrimm data
+#   mutate(BORNCHI_tax50 = BORNCHI*ifelse(tax == 1496.19, 1, 0),
+#          BORNCHI_tax100 = BORNCHI*ifelse(tax == 2992.61, 1, 0),
+#          BORNCHI_tax500 = BORNCHI*ifelse(tax == 14115.70, 1, 0),
+#          AGEATIMM = AGE - (YEAR - YRIMM),
+#          ERSCORE = ifelse(EARN > 100, NA, EARN)) %>%
+#   filter(AGEATIMM >= 18 & MALE == 1) %>% filter(BORNCHI == 1 | BORNJAP == 1)
+# 
+# did_reg_labor_us <- lm(LABOR ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us)
+# did_reg_canread_us <- lm(CANREAD ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us)
+# did_reg_earn_us <- lm(ERSCORE ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us)
+# did_reg_houseown_us <- lm(HOUSEOWN ~ factor(YRIMM) + factor(YEAR) + AGE + BORNCHI + BORNCHI_tax100 + BORNCHI_tax500, data = did_data_us)
+# 
+# stargazer(did_reg_labor_us, did_reg_canread_us, did_reg_earn_us, did_reg_houseown_us, 
+#           out = glue("{git}/figs/8aug23/outcome_regs_us.tex"), float = FALSE, 
+#           intercept.bottom =FALSE,
+#           keep = c("BORNCHI*"),
+#           single.row = TRUE,
+#           covariate.labels = c("$BORNCHI$", "$BORNCHI \\times$ \\$50 Tax", "$BORNCHI \\times$ \\$100 Tax", "$BORNCHI \\times$ \\$500 Tax"),
+#           keep.stat=c("n","adj.rsq"),
+#           table.layout = "=cd#-ta-s-",
+#           add.lines = list(c("Dep. Var. Mean (SE)", "0.219 (0.000)", "0.884 (0.000)", "48.3 (0.007)", "0.332 (0.000)")))
+# 
+# mean(filter(did_data_us, !is.na(LABOR))$LABOR)
+# sd(filter(did_data_us, !is.na(LABOR))$LABOR)/sqrt(nrow(filter(did_data_us, !is.na(LABOR))))
+# 
+# mean(filter(did_data_us, !is.na(CANREAD))$CANREAD)
+# sd(filter(did_data_us, !is.na(CANREAD))$CANREAD)/sqrt(nrow(filter(did_data_us, !is.na(CANREAD))))
+# 
+# mean(filter(did_data_us, !is.na(ERSCORE))$ERSCORE)
+# sd(filter(did_data_us, !is.na(ERSCORE))$ERSCORE)/sqrt(nrow(filter(did_data_us, !is.na(ERSCORE))))
+# 
+# mean(filter(did_data_us, !is.na(HOUSEOWN))$HOUSEOWN)
+# sd(filter(did_data_us, !is.na(HOUSEOWN))$HOUSEOWN)/sqrt(nrow(filter(did_data_us, !is.na(HOUSEOWN))))
+# 
+# did_data_us_can <- bind_rows(did_data_japan %>% mutate(CAN = 1), did_data_us %>% mutate(CAN = 0))
+# # run regressions -- triple diff with us and canada
+# did_reg_uscan_labor <- lm(LABOR ~ factor(YRIMM)*CAN + factor(YEAR) +  BORNCHI_tax100*CAN + BORNCHI_tax500*CAN, data = did_data_us_can, weights = WEIGHT)
+# did_reg_uscan_canread <- lm(CANREAD ~ factor(YRIMM)*CAN + factor(YEAR)+  BORNCHI_tax100*CAN + BORNCHI_tax500*CAN, data = did_data_us_can, weights = WEIGHT)
+# did_reg_uscan_houseown <- lm(HOUSEOWN  ~ factor(YRIMM)*CAN + factor(YEAR)+  BORNCHI_tax100*CAN + BORNCHI_tax500*CAN, data = did_data_us_can, weights = WEIGHT)
+# 
+# stargazer(did_reg_uscan_labor, did_reg_uscan_canread, did_reg_uscan_houseown,
+#           out = glue("{git}/figs/uscan_regs.tex"), float = FALSE, 
+#           intercept.bottom =FALSE,
+#           dep.var.labels = c("Laborer", "Literate", "Owns Home"),
+#           keep = c(31, 62, 63, 64, 67, 68),
+#           covariate.labels = c("$BORNCHI \\times US$", 
+#                                "$BORNCHI \\times CANADA $",
+#                                "$BORNCHI \\times US \\times $ \\$100 Tax",
+#                                "$BORNCHI \\times US \\times $ \\$500 Tax",
+#                                "$BORNCHI \\times CANADA \\times $ \\$100 Tax",
+#                                "$BORNCHI \\times CANADA \\times $ \\$500 Tax"),
+#           keep.stat=c("n","adj.rsq"),
+#           add.lines = list(c("Includes Year $\\times$ Country FE", rep("Yes", 3))),
+#           table.layout = "=cld#-ta-s-")

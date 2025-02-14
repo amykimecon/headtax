@@ -18,8 +18,11 @@ remove_duplicates <- function(rawdata, idvars){
   print(nrow(distinct(rem_na)))
 }
 
-robustse <- function(model){
-  return(sqrt(diag(vcovHC(model, type = "HC1"))))
+robustse <- function(model, type = "HC1"){
+  if (type == "NeweyWest"){
+    return(sqrt(diag(NeweyWest(model))))
+  }
+  return(sqrt(diag(vcovHC(model, type = type))))
 }
 
 #_____________________________________________________________
@@ -38,7 +41,7 @@ wtd_se <- function(x, w){
 summstats <- function(rawdata, vars){
   outdata <- rawdata %>% select(c(source, group, WEIGHT, all_of(vars))) %>%
     group_by(source, group) %>% 
-    summarize(across(-c(WEIGHT), 
+    summarise(across(-c(WEIGHT), 
                      .fns = c(~weighted.mean(.x, WEIGHT, na.rm=TRUE), #mean
                               ~wtd_se(.x, WEIGHT))), #SE
               OBS = n()) #n obs
@@ -48,12 +51,20 @@ summstats <- function(rawdata, vars){
 #_____________________________________________________________
 # [TO CLEAN] BREAKPOINT STUFF ----
 #_____________________________________________________________
-qlrtest_month <- function(df, yvar = "logFLOW", ctrls = "factor(month) + MOIMM", k=15, controls = ""){
+## QLR Test: computes Chow test statistic at each potential breakpoint within the range of k to n-k,
+##    returns list of F stats and prints breakpoint with highest F-stat
+qlrtest_month <- function(df, yvar = "logFLOW", ctrls = "factor(month) + MOIMM", k=15){
   qlr <- Fstats(as.formula(glue("{yvar} ~ {ctrls}")), data = df, from = k)
   print(df$MOIMM[qlr$breakpoint])
   return(qlr)
 }
 
+## prepares data for breakpoint analysis: 
+##  1. given a specified breakpoint t0, looks at window of `window` years around t0 (unless start and end separately specified), 
+##    and defines t to be months from t0
+##  2. detrends the specified yvar on a constant and month fixed effects and saves that plus raw data in new vars
+##  3. if df is at the individual level (indiv = 1), group at the month, 3month MA, 6month MA level
+##  4. run QLR test on monthly data, store F stats and bounds (95\% critical value)
 discont_data <- function(df, t0, yvar, groupname, indiv = FALSE, window = 3, start = NA, end = NA, k = 15, ctrls = "factor(month) + MOIMM"){
   if (is.na(start)){
     start = t0 - years(window)
@@ -65,16 +76,20 @@ discont_data <- function(df, t0, yvar, groupname, indiv = FALSE, window = 3, sta
   df_out <- df[which(!is.na(df[[yvar]])),] %>% 
     filter(MOIMM >= start & MOIMM < end) %>% 
     mutate(group = groupname, t = interval(t0, MOIMM) %/% months(1))
-  
+
+  # detrending data: regress on month FE + constant  [NOTE: SHOULD CHANGE TO REGRESS ON CTRLS?]
   reg <- lm(as.formula(glue("{yvar} ~ factor(month)")), data = df_out)
   df_out[[glue("{yvar}_DETR")]] = resid(reg)
   df_out[[glue("{yvar}_RAW")]] = df_out[[yvar]]
+  
+  reg_ctrls <- lm(as.formula(glue("{yvar} ~ {ctrls}")), data = df_out)
+  df_out[[glue("{yvar}_DETR_CTRLS")]] = resid(reg_ctrls)
   
   # if indiv-level data, group here
   if (indiv == 1){
     df_out <- df_out %>% 
       group_by(YRIMM, MOIMM, month, t, tax, group) %>%
-      summarize(across(all_of(c(ends_with("_DETR"),ends_with("_RAW"))), 
+      summarise(across(all_of(c(ends_with("_DETR"),ends_with("_RAW"))), 
                        mean), n = n()) %>%
       ungroup() %>% group_by(group) %>% arrange(MOIMM) %>%
       mutate(ma3_n = rollapply(n, 3, sum, fill = NA),
@@ -105,7 +120,7 @@ discont_data <- function(df, t0, yvar, groupname, indiv = FALSE, window = 3, sta
   return(df_out)
 }
 
-  
+# takes full dataset and runs discont_data to get breakpoint dataset around each HT increase
 all_disconts <- function(df, yvar, indiv = FALSE, k = 15, ctrls = "factor(month) + MOIMM"){
   df_out <- bind_rows(list(discont_data(df, as.Date("1886-01-01"), yvar, "$50 Tax", indiv = indiv, k = k, ctrls = ctrls),
                                 discont_data(df, as.Date("1901-01-01"), yvar, "$100 Tax", 
@@ -116,8 +131,10 @@ all_disconts <- function(df, yvar, indiv = FALSE, k = 15, ctrls = "factor(month)
   return(df_out)
 }
 
+# takes df and graphs yvar against t
+# allows specification of rollmean (MA of yvar) over rollk periods 
 graph_disconts <- function(discont_df, yvar, ylab, rollmean = FALSE, rollk = 3, yint = 0, 
-                           lab_vjust = 0.05, lab_hjust = 0.05, sampmean = NA){
+                           lab_vjust = 0.05, lab_hjust = 0.05, sampmean = NA, sampmeantext = FALSE){
   if (rollmean){
     discont_df[[glue("{yvar}_ROLL")]] <- rollmean(discont_df[[yvar]], rollk, na.pad = TRUE)
     yvar = glue("{yvar}_ROLL")
@@ -134,7 +151,6 @@ graph_disconts <- function(discont_df, yvar, ylab, rollmean = FALSE, rollk = 3, 
     geom_vline(xintercept = -6, color = "#808080", linetype = 3, alpha = 0.5, linewidth = 1) +
     annotate("text", x = -6, y = ymin + (ymax-ymin)*lab_vjust, label = "Head Tax Announced", 
              color = "#808080", hjust = 1 + lab_hjust, size = 4) +
-    geom_hline(yintercept = yint, color = "#808080", linetype = 1, alpha = 0.5, linewidth = 0.5) +
     geom_line() +
     scale_color_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(c5, c3, c1)) +
     scale_linetype_manual(breaks = c("$50 Tax", "$100 Tax", "$500 Tax"), values = c(1, 2, 6)) +
@@ -142,13 +158,19 @@ graph_disconts <- function(discont_df, yvar, ylab, rollmean = FALSE, rollk = 3, 
          y = ylab,
          linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
   if (!is.na(sampmean)){
-    plot_out <- plot_out + geom_hline(aes(yintercept = yint), alpha = 0.3, color = "#808080") +
+    plot_out <- plot_out + 
+      geom_hline(yintercept = yint, color = "#808080", linetype = 1, alpha = 0.5, linewidth = 0.5) 
+  }
+  if (sampmeantext){
+    plot_out <- plot_out +
+      geom_hline(aes(yintercept = yint), alpha = 0.3, color = "#808080") +
       annotate("text", x = -30, y = sampmean, label = glue("Sample Mean: {round(sampmean, 1)}"),
                color = "#808080", vjust = -1, size = 4)
   }
   return(plot_out)
 }
 
+# takes discont df (output of discont_data or alldisconts) and graphs f-stats against boundary
 graph_fstats <- function(discont_df, ma3 = FALSE, lab_vjust = 0.05, lab_hjust = 0.05){
   if (ma3){
     yvar = "FStatMA3"
@@ -298,12 +320,12 @@ cf_flow_calc <- function(df, model, startyr = 1885, endyr = 1921,
 }
 
 cf_flow_out <- function(df){
-  print(df %>% group_by(tax) %>% summarize(tot_flow_cf = sum(`Counterfactual Inflow`), 
+  print(df %>% group_by(tax) %>% summarise(tot_flow_cf = sum(`Counterfactual Inflow`), 
                                            tot_flow_act = sum(`Actual Inflow`, na.rm=TRUE), 
                                            yrs= n()) %>% 
           mutate(diff= (tot_flow_cf-tot_flow_act)/yrs,
                  pct_change = (tot_flow_cf - tot_flow_act)/tot_flow_cf))
-  print(df %>% group_by(1) %>% summarize(tot_flow_cf = sum(`Counterfactual Inflow`, na.rm=TRUE), 
+  print(df %>% group_by(1) %>% summarise(tot_flow_cf = sum(`Counterfactual Inflow`, na.rm=TRUE), 
                                          tot_flow_act = sum(`Actual Inflow`, na.rm=TRUE), yrs= n()) %>% 
           mutate(diff= (tot_flow_cf-tot_flow_act)/yrs,
                  pct_change = (tot_flow_cf - tot_flow_act)/tot_flow_cf))
@@ -322,12 +344,12 @@ cf_flow_out <- function(df){
 }
 
 cf_flow_predout <- function(df){
-  print(df %>% group_by(tax) %>% summarize(tot_flow_cf = sum(`Counterfactual Inflow`), 
+  print(df %>% group_by(tax) %>% summarise(tot_flow_cf = sum(`Counterfactual Inflow`), 
                                            tot_flow_act = sum(`Actual Inflow`, na.rm=TRUE), 
                                            yrs= n()) %>% 
           mutate(diff= (tot_flow_cf-tot_flow_act)/yrs,
                  pct_change = (tot_flow_cf - tot_flow_act)/tot_flow_cf))
-  print(df %>% group_by(1) %>% summarize(tot_flow_cf = sum(`Counterfactual Inflow`, na.rm=TRUE), 
+  print(df %>% group_by(1) %>% summarise(tot_flow_cf = sum(`Counterfactual Inflow`, na.rm=TRUE), 
                                          tot_flow_act = sum(`Actual Inflow`, na.rm=TRUE), yrs= n()) %>% 
           mutate(diff= (tot_flow_cf-tot_flow_act)/yrs,
                  pct_change = (tot_flow_cf - tot_flow_act)/tot_flow_cf))

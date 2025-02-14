@@ -20,6 +20,7 @@ library(sandwich)
 library(lmtest)
 library(lubridate)
 library(strucchange)
+summarize <- dplyr::summarize
 
 #_____________________________________________________________
 # Defining Paths and Colors ----------------------------------
@@ -70,6 +71,18 @@ source(glue("{git}/code/helper.R"))
 #_____________________________________________________________
 # IMPORTING DATA -----
 #_____________________________________________________________
+# historical cpi ---
+cpi <- read_xlsx(glue("{dbox}/crosswalks/cpi_historical.xlsx")) %>%
+  filter(!is.na(index_fed)) %>%
+  mutate(Year = as.numeric(str_remove_all(Year, "[^0-9]")),
+         curr_cpi = ifelse(Year == 2024, index_fed, 0),
+         mult1913today = 31.8) %>%
+  group_by(1) %>%
+  mutate(curr_cpi = max(curr_cpi)) %>%
+  ungroup() %>%
+  mutate(pricemult = curr_cpi/index_fed,
+         pricemult_bls = 100*mult1913today/index_bls)
+
 # CI44 Matches ----
 matches <- read_csv(glue("{dbox}/cleaned/matches_feb11.csv")) %>%
   filter(matchstat == "wellmatched") %>%
@@ -79,23 +92,58 @@ matches <- read_csv(glue("{dbox}/cleaned/matches_feb11.csv")) %>%
 ## Canadian Data ----
 # chinese register, note that sample pre-1885 is biased (non mandatory registration, so only some selected people registered)
 reg_chi <- read_csv(glue("{dbox}/cleaned/chireg.csv")) %>% 
-  mutate(source = "xRegister", group = "Chinese Immigrants", WEIGHT = 1, YRIMM = YEAR, 
+  left_join(cpi %>% select(Year, pricemult), by = c("YEAR" = "Year")) %>%
+  mutate(source = "Register", group = "Chinese Immigrants", WEIGHT = 1, YRIMM = YEAR, 
          WHIPPLE = 500*ifelse(AGE %% 5 == 0, 1, 0),
          tax = case_when(YRIMM <= 1885 ~ 0,
-                         YRIMM <= 1900 ~ 1496.19,
-                         YRIMM <= 1903 ~ 2992.61,
-                         YRIMM < 1924 ~ 14115.70)) %>%
+                         YRIMM <= 1900 ~ 50,
+                         YRIMM <= 1903 ~ 100,
+                         YRIMM < 1924 ~ 500),
+         cost = (tax + 50)*pricemult,
+         cost2 = (tax + 25)*pricemult,
+         cost3 = (tax + 75)*pricemult) %>%
   left_join(matches, by = c("ID" = "ID_reg")) %>%
-  mutate(match_ci44 = ifelse(!is.na(match_ci44), match_ci44, 0))
+  mutate(match_ci44 = ifelse(!is.na(match_ci44), match_ci44, 0)) %>%
+  mutate(occ_match = sapply(Occupation_ci44, bestpartialmatch, patterns = occstrings$Occupation_ci44, returnval = TRUE),
+         occ_match = ifelse(is.na(occ_match) & !is.na(Occupation_ci44), 
+                            sapply(str_remove_all(Occupation_ci44, " "), bestpartialmatch, patterns = occstrings$Occupation_ci44, returnval = TRUE, max.distance = 0.4),
+                            occ_match),
+         occ_nonmatch = ifelse(is.na(occ_match) & !is.na(Occupation_ci44), Occupation_ci44, NA),
+         occ_ci44_clean = case_when(is.na(Occupation_ci44) ~ NA_character_,
+                                    str_detect(occ_match, "laun|jaundry|landry") ~ "Laundryman",
+                                    str_detect(occ_match, "erchant|marchant") ~ "Merchant",
+                                    str_detect(occ_match, "labor|labour|miner|gardener|gardoner|bour|hand|lahorer|borer|logger|labonrer|minor|woodsman|section man|shingle mill worker") ~ "Labourer",
+                                    str_detect(occ_match, "book keeper|bookkeeper|teacher|druggist") ~ "Professional",
+                                    str_detect(occ_match, "ook|chef|cock") ~ "Cook",
+                                    str_detect(occ_match, "student|school|scholar") ~ "Student",
+                                    str_detect(occ_match, "waiter|barber|dishwasher|employee|washer|dish|weiter|janitor|kitchen|porter|driver|chauffeur|housekeeper|house|domestic") ~ "Service",
+                                    str_detect(occ_match, "farmer|farner|former") ~ "Farmer",
+                                    str_detect(occ_match, "clerk|peddler|salesman|dealer|olerk|vegetable") ~ "Salesman",
+                                    str_detect(occ_match, "tailor|baker|butcher|maker|actor|printer|photographer|carpenter|confectioner|smith|jeweller|cobbler") ~ "Craftsman/Artist",
+                                    str_detect(occ_match, "keeper|proprietor|grocer|owner|kpr") | sapply(occ_match, adist, y = "restaurant") <= 2 |
+                                      sapply(occ_match, adist, y = "restauranteur") <= 2 |
+                                      occ_match %in% c("cafe", "restaurant prop") ~ "Proprietor",
+                                    sapply(occ_match, adist, y = "laundryman") <= 2 ~ "Laundryman",
+                                    sapply(occ_match, adist, y = "merchant") <= 2 ~ "Merchant",
+                                    sapply(occ_match, adist, y = "laborer") <= 2 | sapply(occ_match, adist, y = "labourer") <= 2 |
+                                      sapply(occ_match, adist, y = "gardener") <= 2 | sapply(occ_match, adist, y = "miner") <= 2 ~ "Labourer",
+                                    sapply(occ_match, adist, y = "farmer") <= 2 | sapply(occ_match, adist, y = "farming") ~ "Farmer",
+                                    str_detect(occ_match, "restaurant") ~ "Service",
+                                    str_detect(occ_match, "housewife|none|not working|wife|married woman") ~ "Non-occupational",
+                                    TRUE ~ "Unmatched"))
 
 # CA census
 can_imm <- read_csv(glue("{dbox}/cleaned/can_clean_imm.csv")) %>% 
+  left_join(cpi %>% select(Year, pricemult), by = c("YRIMM" = "Year")) %>%
   mutate(source = "CA Census", group = "All Immigrants",
          WHIPPLE = 500*ifelse(AGE %% 5 == 0, 1, 0),
          tax = case_when(YRIMM <= 1885 ~ 0,
-                         YRIMM <= 1900 ~ 1496.19,
-                         YRIMM <= 1903 ~ 2992.61,
-                         YRIMM < 1924 ~ 14115.70))
+                         YRIMM <= 1900 ~ 50,
+                         YRIMM <= 1903 ~ 100,
+                         YRIMM < 1924 ~ 500),
+         cost = (tax + 50)*pricemult,
+         cost2 = (tax + 25)*pricemult,
+         cost3 = (tax + 100)*pricemult)
 
 # # US census
 # us_imm <- read_csv(glue("{dbox}/cleaned/us_clean_imm.csv")) %>%

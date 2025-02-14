@@ -40,7 +40,7 @@ hk_ships <- c("Empress Of China", "Empress Of Japan", "Empress Of India", "Empre
 ## Chinese Register Data ----
 # Register variables: sex, year of imm, age at imm, laborer status, height
 # x100 for stats that are being output as percentages
-varlist_reg = c("MALE", "PRE1886", "YRIMM18861895", "YRIMM18961905", "YRIMM19061915", "POST1916", 
+varlist_reg = c("MALE", "PRE1886", "YRIMM18861900", "YRIMM19011903", "POST1904", 
                 "UNDER18","AGE1825","AGE2535","AGE35PLUS","WHIPPLE","LABOR", "HEIGHT")
 reg_chi_summ <- reg_chi %>% mutate(LABOR = ifelse(AGE < 18, NA, LABOR)*100,
                                    UNDER18 = ifelse(AGE < 18, 1, 0)*100,
@@ -48,16 +48,15 @@ reg_chi_summ <- reg_chi %>% mutate(LABOR = ifelse(AGE < 18, NA, LABOR)*100,
                                    AGE2535 = ifelse(AGE >= 25 & AGE < 35, 1, 0)*100,
                                    AGE35PLUS = ifelse(AGE >= 35, 1, 0)*100,
                                    PRE1886 = ifelse(YRIMM < 1886, 1, 0)*100,
-                                   YRIMM18861895 = ifelse(YRIMM >= 1886 & YRIMM < 1896, 1, 0)*100,
-                                   YRIMM18961905 = ifelse(YRIMM >= 1896 & YRIMM < 1906, 1, 0)*100,
-                                   YRIMM19061915 = ifelse(YRIMM >= 1906 & YRIMM < 1916, 1, 0)*100,
-                                   POST1916 = ifelse(YRIMM >= 1916, 1, 0)*100,
+                                   YRIMM18861900 = ifelse(YRIMM >= 1886 & YRIMM < 1901, 1, 0)*100,
+                                   YRIMM19011903 = ifelse(YRIMM >= 1901 & YRIMM < 1904, 1, 0)*100,
+                                   POST1904 = ifelse(YRIMM >= 1904, 1, 0)*100,
                                    MALE = MALE*100) %>% 
-  filter(YRIMM >= 1886 & YRIMM <= 1923)
+  filter(YRIMM >= 1880 & YRIMM <= 1908 & !is.na(DATE))
 
 ## Canadian Census Data ----
 # Census variables: sex, year of imm, age at imm, marital status, literacy, laborer status, earnings
-varlist_cen <- c("MALE", "MAR", "PRE1886", "YRIMM18861895", "YRIMM18961905", "YRIMM19061915", "POST1916", 
+varlist_cen <- c("MALE", "MAR", "PRE1886", "YRIMM18861900", "YRIMM19011903", "POST1904", 
   "UNDER18","AGE1825","AGE2535","AGE35PLUS", "CANREAD", "WHIPPLE", "LABOR", "EARN")
 can_imm_summ <- can_imm %>% mutate(AGEATIMM = AGE - (YEAR-YRIMM),
                                    UNDER18 = ifelse(AGEATIMM < 18, 1, 0)*100,
@@ -65,59 +64,60 @@ can_imm_summ <- can_imm %>% mutate(AGEATIMM = AGE - (YEAR-YRIMM),
                                    AGE2535 = ifelse(AGEATIMM >= 25 & AGEATIMM < 35, 1, 0)*100,
                                    AGE35PLUS = ifelse(AGEATIMM >= 35, 1, 0)*100,
                                    PRE1886 = ifelse(YRIMM < 1886, 1, 0)*100,
-                                   YRIMM18861895 = ifelse(YRIMM >= 1886 & YRIMM < 1896, 1, 0)*100,
-                                   YRIMM18961905 = ifelse(YRIMM >= 1896 & YRIMM < 1906, 1, 0)*100,
-                                   YRIMM19061915 = ifelse(YRIMM >= 1906 & YRIMM < 1916, 1, 0)*100,
-                                   POST1916 = ifelse(YRIMM >= 1916, 1, 0)*100,
-                                   LABOR = LABOR*100,
+                                   YRIMM18861900 = ifelse(YRIMM >= 1886 & YRIMM < 1901, 1, 0)*100,
+                                   YRIMM19011903 = ifelse(YRIMM >= 1901 & YRIMM < 1904, 1, 0)*100,
+                                   POST1904 = ifelse(YRIMM >= 1904, 1, 0)*100,
+                                   LABOR = ifelse(AGE >= 18 & MALE == 1, ifelse(OCC1950 <= 970 & OCC1950 >= 800 | OCC1950 == 650, 1, 0), NA)*100,
                                    CANREAD = CANREAD*100,
                                    MALE = MALE*100,
-                                   MAR = MAR*100)
+                                   MAR = MAR*100) %>% 
+  filter(YRIMM >= 1880 & YRIMM <= 1908 & YEAR >= 1901)
 
 ## Summarizing and binding by group ----
-summ_stats_df <- bind_rows(summstats(can_imm_summ, varlist_cen),
-                           summstats(can_imm_summ %>% filter(BPL == "Japan"), varlist_cen),
+summ_stats_df <- bind_rows(summstats(reg_chi_summ %>% filter(FEES != 0), varlist_reg),
+                           summstats(reg_chi_summ %>% filter(FEES == 0), varlist_reg),
                            summstats(can_imm_summ %>% filter(BPL == "China"), varlist_cen),
-                           summstats(reg_chi_summ %>% filter(FEES != 0), varlist_reg),
-                           summstats(reg_chi_summ %>% filter(FEES == 0), varlist_reg)) %>%
-  select(c(-OBS, OBS)) %>%
-  arrange(across(c(group, source)))
+                           summstats(can_imm_summ, varlist_cen)
+) %>%
+  select(all_of(c("source", "group", paste0(rep(c(varlist_cen, "HEIGHT"), each = 2), rep(c("_1", "_2"), length(varlist_cen) + 1)), 
+                  "OBS"))) %>%
+  arrange(desc(group))
 
 summ_stats_out <- t(summ_stats_df) %>% as.data.frame()
 
 ## Writing to table ----
 # variable names for table
 summ_cats <- c("\\% Male", "\\% Married*", "Year of Immigration (\\%)", "\\;\\; Before 1886", 
-               "\\;\\; 1886-1895", "\\;\\; 1896-1905", "\\;\\; 1906-1915", "\\;\\;After 1916", 
+               "\\;\\; 1886-1900", "\\;\\; 1901-1903", "\\;\\;After 1903", 
                "Age at Immigration (\\%)", "\\;\\; Under 18", "\\;\\; 18-24","\\;\\; 25-34", 
                "\\;\\; Over 35", "\\% Literate*", "Whipple Index", "\\% Laborers**", "Mean Annual Earnings**", "Height (cm)**")
 # opening table connection
-summtex <- file(glue("{tabs}/summstats.tex"), open = "w")
+summtex <- file(glue("{tabs}/summstats_new.tex"), open = "w")
 
 # writing table header
-writeLines(c("\\begin{tabular}{lcccccc}", 
-             "\\hhline{=======}", 
-             "& \\multicolumn{3}{c}{Canadian Census} & & \\multicolumn{2}{c}{Chinese Register} \\\\ ", 
-             "\\hhline{~---~--}", "& (1) & (2) & (3) & & (4) & (5) \\\\ ",
-              "& All Foreign-Born. & Japanese Imm. & Chinese Imm. & & Head Tax & No Head Tax \\\\ ", " \\hhline{-------}"), summtex)
+writeLines(c("\\begin{tabular}{lccccc}", 
+             "\\hhline{======}", 
+             "& \\multicolumn{2}{c}{Chinese Register} & & \\multicolumn{2}{c}{Canadian Census} \\\\ ", 
+             "\\hhline{~--~--}", "& (1) & (2) & & (3) & (4)\\\\ ",
+              "& Head Tax & No Head Tax & & Chinese Imm. & All Foreign-Born \\\\ ", " \\hhline{------}"), summtex)
 
 # iterating through lines
 ind = 1
 for (i in 1:length(summ_cats)){
   # skip category rownames
   if(summ_cats[i] == "Age at Immigration (\\%)" | summ_cats[i] == "Year of Immigration (\\%)"){
-    writeLines(glue_collapse(c(summ_cats[i],rep("&",6), "\\\\")), summtex)
+    writeLines(glue_collapse(c(summ_cats[i],rep("&",5), "\\\\")), summtex)
   }else{
     means <- ifelse(is.na(summ_stats_out[2*ind+1,]) | as.numeric(summ_stats_out[2*ind+1,])==0, "-", formatC(as.numeric(summ_stats_out[2*ind+1,]), digits = 4))
-    writeLines(c(paste(summ_cats[i], "&", glue_collapse(c(means[1:3],"",means[4:5]), sep = "&", last = ""), "\\\\ ")), summtex) 
+    writeLines(c(paste(summ_cats[i], "&", glue_collapse(c(means[1:2],"",means[3:4]), sep = "&", last = ""), "\\\\ ")), summtex) 
     ind = ind + 1
   }
 }
 
 # writing number of observations for each sample
 obs <- ifelse(is.na(summ_stats_out[2*ind+1,]), "-", formatC(as.numeric(summ_stats_out[2*ind+1,]), format = "d", big.mark = ","))
-writeLines(c("Obs.", "&", glue_collapse(c(obs[1:3],"",obs[4:5]), sep = "&", last = ""), "\\\\ "), summtex)
-writeLines(c("\\hhline{-------}","\\end{tabular}"), summtex)
+writeLines(c("Obs.", "&", glue_collapse(c(obs[1:2],"",obs[3:4]), sep = "&", last = ""), "\\\\ "), summtex)
+writeLines(c("\\hhline{======}","\\end{tabular}"), summtex)
 close(summtex)
 
 #_____________________________________________________________
@@ -128,15 +128,27 @@ tax_by_year_reg <- reg_chi %>% filter(REG_Year != 0) %>% group_by(REG_Year) %>%
             taxpayers = sum(ifelse(FEES > 0, 1, 0), na.rm=TRUE)/n) %>% rename(YEAR = REG_Year) %>%
   mutate(CAT = "Year Registered")
 
+tax_by_year_reg_all <- reg_chi %>% filter(REG_Year != 0) %>% group_by(REG_Year) %>% 
+  summarize(n=n(), tax = mean(FEES, na.rm=TRUE), 
+            taxpayers = sum(ifelse(FEES > 0, 1, 0), na.rm=TRUE)/n) %>% rename(YEAR = REG_Year) %>%
+  mutate(CAT = "Year Registered")
+
 tax_by_year_arriv <- reg_chi %>% group_by(YEAR_ARRIV) %>% summarize(n=n(), tax = mean(ifelse(FEES > 0, FEES, NA), na.rm=TRUE)) %>% rename(YEAR = YEAR_ARRIV) %>%
   mutate(CAT = "Year Arrived")
 
-figa1_taxespaid <- ggplot(tax_by_year_arriv %>% filter(YEAR <= 1923), aes(x = YEAR, y = tax)) + geom_line() +
+figa1_taxespaid <- ggplot(tax_by_year_reg %>% filter(YEAR <= 1923), aes(x = YEAR, y = tax)) + geom_line() +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = ht) +
   geom_text(aes(x = yrs, y = 400, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = -1.2, size = 4, color = ht) + expand_limits(y = 0) +
-  xlab("Year of Arrival") + ylab("Average Tax Paid Among Tax Payers") + theme_minimal()
+  xlab("Year of Registration") + ylab("Average Tax Paid Among Tax Payers") + theme_minimal()
 
 ggsave(glue("{git}/output/paper/figures/figa1_taxespaid.png"), figa1_taxespaid, height = 5, width = 9)
+
+figa1_taxespaid_uncond <- ggplot(tax_by_year_reg_all %>% filter(YEAR <= 1923), aes(x = YEAR, y = tax)) + geom_line() +
+  geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = ht) +
+  geom_text(aes(x = yrs, y = 400, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = -1.2, size = 4, color = ht) + expand_limits(y = 0) +
+  xlab("Year of Registration") + ylab("Average Tax Paid Among All Registered") + theme_minimal()
+
+ggsave(glue("{git}/output/paper/figures/figa1_taxespaid_uncond.png"), figa1_taxespaid_uncond, height = 5, width = 9)
 
 fig1_taxespaid_slides <-  ggplot(tax_by_year_arriv %>% filter(YEAR <= 1923), aes(x = YEAR, y = tax)) + geom_line(linewidth = 1) +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts_slides, show.legend = FALSE, color = ht) +
@@ -155,12 +167,10 @@ yrimm_reg <- reg_chi %>%
   summarize(CHIFLOW_REGISTER = n()) %>%
   arrange(YRIMM)
 
-# number of chinese immigrants by month 
-moimm_reg <- reg_chi %>%
-  mutate(MOIMM = lubridate::floor_date(DATE, "month")) %>%
-  group_by(YRIMM, MOIMM, tax) %>%
-  summarize(CHIFLOW_REGISTER = n()) %>%
-  arrange(MOIMM)
+yrimm_reg_tax <- reg_chi %>% 
+  group_by(YRIMM, tax) %>% 
+  summarize(CHIFLOW_REGISTER = sum(ifelse(FEES > 0 | YRIMM < 1886, 1, 0))) %>%
+  arrange(YRIMM)
 
 # number of immigrants by year and by birthplace from ca census data
 yrimm_census <- can_imm %>% group_by(YEAR, YRIMM, BPL, tax) %>% 
@@ -170,54 +180,60 @@ yrimm_census <- can_imm %>% group_by(YEAR, YRIMM, BPL, tax) %>%
            (YEAR == 1921 & YRIMM < 1921 & YRIMM >= 1911)) # only taking YRIMM from most recent census (lowest rate of loss to outmigration)
 
 # register data for chinese immigrants; canadian govt stats for all
-yrimm_flow_graph <- rbind(yrimm_reg %>% mutate(FLOW = CHIFLOW_REGISTER/1000, variable = "Chinese Immigrants") %>%
+yrimm_flow_graph <- bind_rows(list(yrimm_reg %>% mutate(FLOW = CHIFLOW_REGISTER/1000, variable = "Chinese Immigrants") %>%
                             select(c(YRIMM, FLOW, variable)),
+                          # yrimm_reg_tax %>% mutate(FLOW = CHIFLOW_REGISTER/1000, variable = "Chinese Taxpayers") %>%
+                          #   select(c(YRIMM, FLOW, variable)),
                           immflow %>% mutate(YRIMM = Year, FLOW = IMMFLOW_NATL/50000, variable = "All Immigrants") %>%
-                            select(c(YRIMM, FLOW, variable))) %>%
+                            select(c(YRIMM, FLOW, variable)))) %>%
   filter(YRIMM >= 1881 & YRIMM <= 1930)
 
 # key graph: inflow of chinese/all immigrants into canada using migration data
-fig1_immflow <- ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
+fig1_immflow <- ggplot(data = yrimm_flow_graph %>% filter(variable != "Chinese Taxpayers"), aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
   scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(c2,c4)) +
   scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants"), values = c(2, 1)) +
   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
   geom_text(aes(x = yrs, y = 7, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
   scale_y_continuous("Chinese Immigrant Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
   labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
-# annotate("rect", xmin = 1893, xmax = 1897, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.3) +
-# annotate("rect", xmin = 1899.5, xmax = 1901, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) +
-# annotate("rect", xmin = 1902.75, xmax = 1904.75, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) + 
-# annotate("rect", xmin = 1907.5, xmax = 1908.5, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) + 
-# annotate("rect", xmin = 1910, xmax = 1912, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.1) +
-# annotate("rect", xmin = 1913, xmax = 1915, ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.3)
 
 ggsave(glue("{git}/output/paper/figures/fig1_immflow.png"), fig1_immflow, height = 4, width = 7)
+# 
+# # also w taxpayers
+# ggplot(data = yrimm_flow_graph, aes(x = YRIMM, y = FLOW, color = variable, linetype = variable)) + geom_line() +
+#   scale_color_manual(breaks = c("All Immigrants", "Chinese Immigrants", "Chinese Taxpayers"), values = c(c2,c4, c5)) +
+#   scale_linetype_manual(breaks = c("All Immigrants", "Chinese Immigrants", "Chinese Taxpayers"), values = c(2, 1, 4)) +
+#   geom_vline(aes(xintercept = yrs), data = headtaxcuts, show.legend = FALSE, color = "#808080", linetype = 3) +
+#   geom_text(aes(x = yrs, y = 7, label = labs), data = headtaxcuts, inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+#   scale_y_continuous("Chinese Immigrant Inflow (Thous.)", sec.axis = sec_axis(~ . *50, name = "Total Immigrant Inflow (Thous.)")) + 
+#   labs(x = "Year of Immigration", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
 
-# same graph but by month
-startyr = 1882
-endyr = 1908
-moimm1 <- moimm_reg %>% filter(YRIMM >= startyr & YRIMM <= endyr & !is.na(lagFLOW))
-moimm_mo <- lm(logFLOW ~ factor(month) + YRIMM, data = moimm1)
-moimm1$FLOW_DETR <- resid(moimm_mo)
-ggplot(data = moimm1,
-                              aes(x = MOIMM, y = logFLOW)) + geom_line() +
-  geom_vline(aes(xintercept = dates), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
-             show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = dates, y = 1, label = labs), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
-            inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
-  labs(x = "Year of Immigration") + theme_minimal() + theme(legend.position='bottom')
-
-# same graph but by quarter
-moimm2 <- nmoimm_reg %>% filter(YRIMM >= startyr & YRIMM <= endyr)
-moimm_n <- lm(log(CHIFLOW_REGISTER) ~ factor(month), data = moimm2)
-moimm2$FLOW_DETR <- resid(moimm_n)
-ggplot(data = moimm2,
-       aes(x = MOIMM, y = log(CHIFLOW_REGISTER))) + geom_line() +
-  geom_vline(aes(xintercept = dates), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
-             show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = dates, y = 1, label = labs), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
-            inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
-  labs(x = "Year of Immigration") + theme_minimal() + theme(legend.position='bottom')
+## DEPRECATED:
+# # same graph but by month
+# startyr = 1882
+# endyr = 1908
+# moimm1 <- moimm_reg %>% filter(YRIMM >= startyr & YRIMM <= endyr & !is.na(lagFLOW))
+# moimm_mo <- lm(logFLOW ~ factor(month) + YRIMM, data = moimm1)
+# moimm1$FLOW_DETR <- resid(moimm_mo)
+# ggplot(data = moimm1,
+#                               aes(x = MOIMM, y = logFLOW)) + geom_line() +
+#   geom_vline(aes(xintercept = dates), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
+#              show.legend = FALSE, color = "#808080", linetype = 3) +
+#   geom_text(aes(x = dates, y = 1, label = labs), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
+#             inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+#   labs(x = "Year of Immigration") + theme_minimal() + theme(legend.position='bottom')
+# 
+# # same graph but by quarter
+# moimm2 <- nmoimm_reg %>% filter(YRIMM >= startyr & YRIMM <= endyr)
+# moimm_n <- lm(log(CHIFLOW_REGISTER) ~ factor(month), data = moimm2)
+# moimm2$FLOW_DETR <- resid(moimm_n)
+# ggplot(data = moimm2,
+#        aes(x = MOIMM, y = log(CHIFLOW_REGISTER))) + geom_line() +
+#   geom_vline(aes(xintercept = dates), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
+#              show.legend = FALSE, color = "#808080", linetype = 3) +
+#   geom_text(aes(x = dates, y = 1, label = labs), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
+#             inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+#   labs(x = "Year of Immigration") + theme_minimal() + theme(legend.position='bottom')
 
 
 fig1_immflow_slides_chionly <- ggplot(data = yrimm_flow_graph %>% filter(variable == "Chinese Immigrants") %>%

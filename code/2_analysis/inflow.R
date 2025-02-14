@@ -3,534 +3,698 @@
 #_____________________________________________________________
 # TABLE 2: INFLOW REGRESSION --------------------------
 #_____________________________________________________________
-
+ihs <- function(x) {
+  y <- log(x + sqrt(x^2 + 1))
+  return(y)
+}
 ## Creating Dataset ----
-# first combining all long datasets, then normalizing flow and popstock by source country pop,
-# then pivoting wide and adding single country datasets
-flow_regress <- yrimm_census %>% group_by(BPL) %>% mutate(n = n()) %>% filter(n > 5) %>% # at least five years of nonzero imm
-  ungroup() %>% select(-c(YEAR,tax,n)) %>% #census data (flows)
-  full_join(popstock, by = c("YRIMM"="YEAR", "BPL")) %>% #population stocks
-  inner_join(maddison_data %>% mutate(Year = as.double(Year)) %>% #source country population and gdp per capita data
-               inner_join(wid_data) %>% #source country inequality data
-               pivot_longer(-Year, names_to = c(".value", "BPL"), names_pattern = "(.*)_([A-z]+)$"),
-             by = c("YRIMM" = "Year", "BPL")) %>%
-  group_by(BPL) %>% arrange(YRIMM) %>% 
-  mutate(logFLOWOVERPOP = log(FLOW/INTERP_POP), #dividing flows and stocks by source country population
-         POPSTOCKLAG = lag(CANPOP),
-         POPSTOCKLAGOVERPOP = POPSTOCKLAG/INTERP_POP,
-         INTERP_GDPPERCAP = INTERP_GDP/INTERP_POP) %>%
-  pivot_wider(id_cols = c(YRIMM), names_from = BPL,
-              values_from = c(FLOW, CANPOP, INTERP_POP, INTERP_GDPPERCAP, INTERP_INCSHARE50PCT, logFLOWOVERPOP, 
-                              POPSTOCKLAG, POPSTOCKLAGOVERPOP)) %>%
-  left_join(yrimm_reg) %>% #register data
+# monthly imm inflow, merged with total canadian immigration, total HK emigration, and chinese popstock in canada
+moimm_reg <- reg_chi %>%
+  filter(!is.na(DATE)) %>%
+  mutate(MOIMM = lubridate::floor_date(DATE, "month")) %>%
+  group_by(YRIMM, MOIMM, tax, cost, cost2, cost3) %>%
+  summarize(CHIFLOW_REGISTER = n(),
+            CHIFLOW_REGISTER_TAX = sum(ifelse(FEES > 0 | YRIMM < 1886, 1, 0)), #think more about how to define this
+            CHIFLOW_REGISTER_NOTAX = sum(ifelse(FEES == 0 | YRIMM < 1886, 1, 0))) %>%
   left_join(immflow, by = c("YRIMM" = "Year")) %>% #total immigration inflow into canada
-  left_join(yrimm_census %>% ungroup() %>% group_by(YRIMM) %>% summarize(IMMFLOW_CENSUS = sum(FLOW))) %>%
   left_join(hk_departure, by = c("YRIMM" = "YEAR")) %>% #total emigration outflow from hong kong
-  left_join(popstock %>% filter(BPL == "ForeignBorn") %>% rename(IMMPOP = CANPOP) %>% select(c(YEAR, IMMPOP)), by = c("YRIMM" = "YEAR")) %>%
-  mutate(tax = case_when(YRIMM <= 1885 ~ 0,
-                         YRIMM <= 1900 ~ 1496.19,
-                         YRIMM <= 1903 ~ 2992.61,
-                         YRIMM < 1924 ~ 14115.70),
-         cost = tax + 1496.19,
-         DECADE = case_when(YRIMM <= 1871 ~ 1871,
-                            YRIMM <= 1881 ~ 1881,
-                            YRIMM <= 1891 ~ 1891,
-                            YRIMM <= 1901 ~ 1901,
-                            YRIMM <= 1911 ~ 1911,
-                            YRIMM <= 1921 ~ 1921),
-         twoyearpost = case_when(YRIMM %in% c(1886, 1887) ~ "_post50",
-                                 YRIMM %in% c(1901,1902) ~ "post100",
-                                 YRIMM %in% c(1904,1905) ~ "post500",
-                                 TRUE ~ "_notpost"),
-         oneyearpost = case_when(YRIMM == 1886 ~ "_post50",
-                                 YRIMM == 1901 ~ "post100",
-                                 YRIMM == 1904 ~ "post500",
-                                 TRUE ~ "_notpost")) %>%
-  left_join(popstockchange %>% select(c(YEAR, POPSTOCKCHANGE_China)), by = c("DECADE" = "YEAR"))
+  left_join(popstock %>% filter(BPL == "China") %>% mutate(POPSTOCKLAG_China = lag(CANPOP)) %>%
+              select(c(YEAR, POPSTOCKLAG_China)), by = c("YRIMM" = "YEAR")) %>%
+  ungroup() %>%
+  arrange(MOIMM) %>%
+  mutate(month = as.character(month(MOIMM)),
+         logFLOW = log(CHIFLOW_REGISTER),
+         logFLOW_TAX = log(CHIFLOW_REGISTER_TAX + 1), # FIX LATER
+         logFLOW_NOTAX = log(CHIFLOW_REGISTER_NOTAX + 1), # FIX LATER
+         lagFLOW = lag(logFLOW),
+         t = interval(as.Date("1880-01-01"), MOIMM)%/% months(1)) 
 
-## V1: China Only Regressions ----
-toggle = "display"
-#toggle = "output"
+#_____________________________________________________________
+# FIGURE 2: DETRENDED MONTHLY INFLOW AROUND INCREASES, STACKED ------
+#_____________________________________________________________
+# takes window of 3 years around each HT increase and gets detrended logFlow (on month FE + const)
+#     also gets Fstat for Chow Test (on month FE + const + linear time trend) at each point in window
+moimm_stack <- all_disconts(moimm_reg, yvar = "logFLOW")
 
-## using register flows
-# equation 1: controls for imm, emm, popstock, and tax
-regstart = 1886
-regend = 1923
-flowreg0 <- lm(data = flow_regress %>% filter(YRIMM >= 1886 & YRIMM <= 1923), 
-               CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-flowreg1 <- lm(data = flow_regress %>% filter(YRIMM >= regstart & YRIMM <= regend), 
-               CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + factor(tax) + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-flowreg1 <- lm(data = flow_regress %>% filter(YRIMM >= regstart & YRIMM <= regend), 
-               CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + cost + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-flowreg1 <- lm(data = flow_regress %>% filter(YRIMM >= regstart & YRIMM <= regend), 
-               log(CHIFLOW_REGISTER) ~ EMIG_TOT + IMMFLOW_NATL + log(cost) + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-flowreg1 <- lm(data = flow_regress %>% filter(YRIMM >= regstart & YRIMM <= regend) %>% 
-                 mutate(flowratio_REG = CHIFLOW_REGISTER/INTERP_POP_China), 
-               log(flowratio_REG) ~ EMIG_TOT + IMMFLOW_NATL + log(cost) + POPSTOCKLAGOVERPOP_China + I(POPSTOCKLAGOVERPOP_China^2))
-flowreg1 <- lm(data = flow_regress %>% filter(YRIMM >= regstart & YRIMM <= regend) %>% 
-                 mutate(flowratio_REG = CHIFLOW_REGISTER/INTERP_POP_China), 
-               log(flowratio_REG) ~ EMIG_TOT + IMMFLOW_NATL + log(cost) + log(POPSTOCKLAGOVERPOP_China))
+# graphing raw trends
+flow_raw <- graph_disconts(moimm_stack, "logFLOW_RAW", "Raw monthly log Inflow")
+ggsave(glue("{git}/output/paper/figures/figa2_flowraw.png"), flow_raw, height = 4, width = 7)
 
-coeftest(flowreg1, vcov. = vcovHC(flowreg1, vcov = "HC1"))
+# detrended 6-month MA
+flow_detr_ma6 <- graph_disconts(moimm_stack, "logFLOW_DETR", "6-month MA of Detrended monthly log Inflow",
+                                rollmean = TRUE, rollk = 6, sampmean = 0)
+ggsave(glue("{git}/output/paper/figures/fig2_flowdetr_ma6.png"), flow_detr_ma6, height = 4, width = 7)
 
-plot(data$YRIMM, resid(flowreg0)) + abline(h = 0, col = "red")
+#_____________________________________________________________
+# TABLE 2: ELASTICITY REGRESSIONS ----
+#_____________________________________________________________
+## MAIN ----
+regstart = 1882
+regend = 1908
 
-flowreg1_tax <- lm(data = flow_regress %>% filter(YRIMM >= regstart & YRIMM <= regend), 
-               CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + tax + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+moimm_reg_filt <- filter(moimm_reg, YRIMM >= regstart & YRIMM <= regend)
 
+datasets <- list(moimm_reg_filt,
+                 moimm_reg_filt %>% filter(YRIMM >= 1882) %>% 
+                   mutate(logFLOW = logFLOW_TAX, CHIFLOW_REGISTER = CHIFLOW_REGISTER_TAX),
+                 moimm_reg_filt %>% filter(YRIMM >= 1886) %>% 
+                   mutate(logFLOW = logFLOW_NOTAX, CHIFLOW_REGISTER = CHIFLOW_REGISTER_NOTAX),
+                 moimm_stack %>% filter(group == "$50 Tax"),
+                 moimm_stack %>% filter(group == "$100 Tax"),
+                 moimm_stack %>% filter(group == "$500 Tax"))
 
-
-## using census flows
-# equation 1: controls for imm, emm, popstock, and tax
-censtart = 1882
-cenend = 1920
-flowcensus1 <- lm(data = flow_regress %>% filter(YRIMM >= censtart & YRIMM <= cenend), 
-                  FLOW_China ~ EMIG_TOT + IMMFLOW_CENSUS + factor(tax) + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-flowcensus1_tax <- lm(data = flow_regress %>% filter(YRIMM >= censtart & YRIMM <= cenend), 
-                  FLOW_China ~ EMIG_TOT + IMMFLOW_CENSUS + tax + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-if (toggle == "display"){
-  print(summary(flowreg1))
-  print(summary(flowcensus1))
+models = list()
+ses = list()
+means = list()
+i = 1
+for (i in 1:length(datasets)){
+  reg <- lm(data = datasets[[i]], logFLOW ~ factor(month) + log(cost) + t)
+  models[[i]] <- reg
+  ses[[i]] <- sqrt(diag(NeweyWest(reg)))
+  means[[i]] <- mean(datasets[[i]]$CHIFLOW_REGISTER)
+  i = i + 1
 }
 
-reg_mean = round(mean(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$CHIFLOW_REGISTER), 1)
-reg_se = round(sd(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$CHIFLOW_REGISTER)/sqrt(regend-regstart),1)
-census_mean = round(mean(filter(flow_regress, YRIMM >= censtart & YRIMM <= cenend)$FLOW_China),1)
-census_se = round(sd(filter(flow_regress, YRIMM >= censtart & YRIMM <= cenend)$FLOW_China)/sqrt(regend-regstart),1)
-
-n = 2
-flowreg_stats = c(rep(glue("{reg_mean} ({reg_se})"),n),rep(glue("{census_mean} ({census_se})"),n))
-flowreg_means = c(rep(glue("{reg_mean}"),n),rep(glue("{census_mean}"),n))
-flowreg_ses = c(rep(glue("({reg_se})"),n),rep(glue("({census_se})"),n))
-
-## output
-stargazer(flowreg1, flowreg1_tax, flowcensus1, flowcensus1_tax,
-          out = glue("{git}/output/paper/tables/immflow_regs.tex"), 
+col_labels = c("All Chi. Imm. (1882-1908)", "Taxpayers (1882-1908)", "Non-Taxpayers (1886-1908)", "\\$50 Tax: All (1883-1888)",
+               "\\$100 Tax: All (1898-1903)", "\\$500 Tax: All (1901-1906)")
+stargazer(models, se = ses,
+          keep = c("log\\(cost\\)"),
+          out = glue("{git}/output/paper/tables/immflow_regs_new.tex"),
           float = FALSE,
           digits = 2,
           intercept.bottom = FALSE,
           keep.stat=c("n","adj.rsq"),
-          dep.var.caption = "Dependent Variable: Chinese Immigrant Inflow ($FLOW_{China, t}$)",
-          dep.var.labels.include = FALSE,
-          column.labels = c("Chinese Register (1882-1920)", "Canadian Census (1882-1920)"),
-          column.separate = c(n,n),
-          keep = c("^factor","tax"),
-          covariate.labels = c("$\\gamma_{50}$ (\\$50 Tax)", "$\\gamma_{100}$ (\\$100 Tax)", "$\\gamma_{500}$ (\\$500 Tax)",
-                               "$\\gamma^C$ (Linear Effect of Tax)"),
-          add.lines = list(c("Dep. Var. Mean (SE)", flowreg_means),c("", flowreg_ses)),
-          table.layout = "=lc#-t-as=")
-
-## Counterfactual: Register ----
-flowregcf <- cf_flow_calc(flow_regress, flowreg1)
+          column.labels = c("All Chi. Imm.", "Taxpayers", "Non-Taxpayers", "All ($\\leq$ 3yr from $\\uparrow$\\$50)",
+                            "All ($\\leq$ 3yr from $\\uparrow$\\$100)", "All ($\\leq$ 3yr from $\\uparrow$\\$500)"),
+          column.separate = c(1,1,1,1,1,1),
+          covariate.labels = c("$\\gamma^{\\varepsilon}$ (log Cost)"
+          ),
+          add.lines = list(c("Time Period", "1882-1908", "1882-1908", "1886-1908", "1883-1888", "1898-1903", "1901-1906"),
+                           c("Mean Monthly Inflow ($\\overline{F_t}$)", round(unlist(means), 1))),
+          dep.var.labels = c("log Monthly Chinese Immigrant Inflow ($\\log(F_{t})$)"),
+          table.layout = "=cld#-t-as=")
 
 
-ggplot(flowregcf %>% 
-                          pivot_longer(c(`Actual Inflow`,`Counterfactual Inflow`, `Predicted Inflow`), names_to = "cat", values_to = "flow") %>%
-                          mutate(flow = flow/1000),
-                        aes(x=YRIMM, y = flow, color = cat, linetype = cat)) + geom_line() +
-  geom_vline(aes(xintercept = yrs), data = headtaxcuts %>% filter(yrs <= endyr), show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = yrs, y = max(df$`Counterfactual Inflow`)/1000, label = labs), data = headtaxcuts %>% filter(yrs <= endyr), inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
-  labs(x = "Year of Immigration", y = "Chinese Immigrant Inflow (Thous.)", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
+## APPENDIX ----
+moimm_reg_filt_app <- moimm_reg_filt %>% mutate(EMIG_TOT = EMIG_TOT/1000,
+                                            IMMFLOW_NATL = IMMFLOW_NATL/1000,
+                                            POPSTOCKLAG_China = POPSTOCKLAG_China/1000)
+moimm_reg_app <- moimm_reg %>% mutate(EMIG_TOT = EMIG_TOT/1000,
+                                       IMMFLOW_NATL = IMMFLOW_NATL/1000,
+                                       POPSTOCKLAG_China = POPSTOCKLAG_China/1000)
 
-fig_flowregcf <- cf_flow_out(flowregcf)
-ggsave(glue("{git}/output/paper/immflow_cf_reg.png"), fig_flowregcf, height = 4, width = 7)
+appdatasets <- list(moimm_reg_filt_app,
+                 moimm_reg_filt_app,
+                 moimm_reg_app %>% filter(YRIMM >= regstart & YRIMM <= 1921),
+                 moimm_reg_app %>% filter(YRIMM >= regstart & YRIMM <= 1921),
+                 moimm_reg_app %>% filter(YRIMM >= 1886 & YRIMM <= regend),
+                 moimm_reg_app %>% filter(YRIMM >= 1886 & YRIMM <= regend),
+                 moimm_reg_filt_app,
+                 moimm_reg_filt_app)
 
-## Counterfactual: Census
-flowcencf <- cf_flow_calc(flow_regress, flowcensus1, cen = TRUE)
+appctrls <- list("factor(month) + log(cost) + t",
+              "factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+                 POPSTOCKLAG_China + I(POPSTOCKLAG_China^2)",
+              "factor(month) + log(cost) + t",
+              "factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+                 POPSTOCKLAG_China + I(POPSTOCKLAG_China^2)",
+              "factor(month) + log(cost) + t",
+              "factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+                 POPSTOCKLAG_China + I(POPSTOCKLAG_China^2)",
+              "factor(month) + log(cost2) + t",
+              "factor(month) + log(cost3) + t")
 
-
-ggplot(flowcencf %>% 
-         pivot_longer(c(`Actual Inflow`,`Counterfactual Inflow`, `Predicted Inflow`), names_to = "cat", values_to = "flow") %>%
-         mutate(flow = flow/1000),
-       aes(x=YRIMM, y = flow, color = cat, linetype = cat)) + geom_line() +
-  geom_vline(aes(xintercept = yrs), data = headtaxcuts %>% filter(yrs <= endyr), show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = yrs, y = max(df$`Counterfactual Inflow`)/1000, label = labs), data = headtaxcuts %>% filter(yrs <= endyr), inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
-  labs(x = "Year of Immigration", y = "Chinese Immigrant Inflow (Thous.)", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
-
-fig_flowcencf <- cf_flow_out(flowcencf)
-ggsave(glue("{git}/output/paper/immflow_cf_cen.png"), fig_flowcencf, height = 4, width = 7)
-
-
-flowregcf_cen <- flow_regress %>% select(c(CHIFLOW_REGISTER, FLOW_China, POPSTOCK_China, EMIG_TOT, IMMFLOW_CENSUS, YRIMM, POPSTOCKCHANGE_China, tax, DECADE)) %>%
-  filter(!is.na(POPSTOCK_China) & YRIMM > 1879 & YRIMM < 1921) %>% arrange(YRIMM)
-
-intercept_cen <- flowcensus1$coefficients[["(Intercept)"]]
-coef_emigtot_cen <- flowcensus1$coefficients[["EMIG_TOT"]]
-coef_immflownatl_cen <- flowcensus1$coefficients[["IMMFLOW_CENSUS"]]
-coef_popstock_cen <- flowcensus1$coefficients[["POPSTOCK_China"]]
-coef_popstock2_cen <- flowcensus1$coefficients[["I(POPSTOCK_China^2)"]]
-
-popstock_cf_cen = flowregcf_cen$POPSTOCK_China[1]
-popstock_cf_all_cen <- numeric(length = nrow(flowregcf_cen))
-flow_cf_all_cen <- numeric(length= nrow(flowregcf_cen))
-for (i in 1:nrow(flowregcf_cen)){
-  popstock_cf_all_cen[i] <- popstock_cf_cen
-  outflow_share_cen = (flowregcf_cen$FLOW_China[i] - flowregcf_cen$POPSTOCKCHANGE_China[i])/flowregcf_cen$FLOW_China[i]
-  flow_cf_cen = intercept_cen + coef_emigtot_cen*flowregcf_cen$EMIG_TOT[i] + coef_immflownatl_cen*flowregcf_cen$IMMFLOW_CENSUS[i] + coef_popstock_cen*popstock_cf_cen + coef_popstock2_cen*(popstock_cf_cen^2)
-  flow_cf_all_cen[i] <- flow_cf_cen 
-  popstock_cf_cen = popstock_cf_cen + flow_cf_cen*(1-outflow_share_cen) # - outflow_cen
-}
-
-flowregcf_cen <- flowregcf_cen %>% mutate(`Actual Inflow` = FLOW_China, `Counterfactual Inflow` = flow_cf_all_cen, diff = `Counterfactual Inflow` - `Actual Inflow`) %>%
-  filter(!is.na(`Counterfactual Inflow`))
-flowregcf_cen %>% group_by(tax) %>% summarize(tot_flow_cf = sum(`Counterfactual Inflow`, na.rm=TRUE), tot_flow_act = sum(`Actual Inflow`, na.rm=TRUE), yrs= n()) %>% mutate(diff= (tot_flow_cf-tot_flow_act)/yrs)
-flowregcf_cen %>% filter(YRIMM > 1885) %>% group_by(1) %>% summarize(tot_flow_cf = sum(`Counterfactual Inflow`, na.rm=TRUE), tot_flow_act = sum(`Actual Inflow`, na.rm=TRUE), yrs= n()) %>% mutate(diff= (tot_flow_cf-tot_flow_act)/yrs)
-#32.8% decrease overall
-
-fig_flowregcf_cen <- ggplot(flowregcf_cen %>% 
-                              pivot_longer(c(`Actual Inflow`,`Counterfactual Inflow`), names_to = "cat", values_to = "flow") %>%
-                              mutate(flow = flow/1000),
-                            aes(x=YRIMM, y = flow, color = cat, linetype = cat)) + geom_line() +
-  scale_color_manual(breaks = c("Actual Inflow", "Counterfactual Inflow"), values = c(c4,c1)) +
-  scale_linetype_manual(breaks = c("Actual Inflow", "Counterfactual Inflow"), values = c(1, 2)) +
-  geom_vline(aes(xintercept = yrs), data = headtaxcuts %>% filter(yrs < 1922), show.legend = FALSE, color = "#808080", linetype = 3) +
-  geom_text(aes(x = yrs, y = 3.5, label = labs), data = headtaxcuts %>% filter(yrs < 1922), inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
-  labs(x = "Year of Immigration", y = "Chinese Imm. Census Inflow (Thous.)", linetype = "", color = "") + theme_minimal() + theme(legend.position='bottom')
-
-ggsave(glue("{git}/figs/immflow_counterfactual_cen.png"), fig_flowregcf_cen, height = 4, width = 7)
-
-## REGRESSIONS V2: All countries
-reg_countries <- filter(yrimm_census %>% filter(YRIMM >= 1880 & YRIMM < 1921 & BPL != "Other" & BPL != "Unknown" & BPL != "Iceland") %>% group_by(BPL) %>% summarize(n=n()), n > 20)$BPL
-graph_country_regs <- list()
+appmodels = list()
+appses = list()
+appmeans = list()
 i = 1
-for (country in reg_countries){
-  shiftcoef = -0.4 + (i-1)*(0.8/length(reg_countries))
-  flow_regress_filt <-  filter(flow_regress, YRIMM >= 1880 & YRIMM < 1921)
-  flow_regress_filt <- flow_regress_filt[which(!is.na(flow_regress_filt[[glue("logFLOWOVERPOP_{country}")]])),]
-  reg <- lm(data = flow_regress_filt, glue("logFLOWOVERPOP_{country} ~ IMMFLOW_CENSUS + factor(tax) +  POPSTOCKLAG_{country} + I(POPSTOCKLAG_{country}^2)"))
-  regcoef <- summary(reg)$coefficients
-  taxrows <- which(str_detect(rownames(regcoef),"factor\\(tax\\)"))
-  out <- as.data.frame(summary(reg)$coefficients[taxrows,1:2]) 
-  graph_country_regs[[i]] <- out %>% 
-    mutate(tax = rownames(regcoef)[taxrows], meanimm = mean(flow_regress_filt[[glue("FLOW_{country}")]], na.rm=TRUE),
-           country = country, shift = shiftcoef)
+for (i in 1:length(appdatasets)){
+  reg <- lm(data = appdatasets[[i]], glue("logFLOW ~ {appctrls[[i]]}"))
+  appmodels[[i]] <- reg
+  appses[[i]] <- sqrt(diag(NeweyWest(reg)))
+  appmeans[[i]] <- mean(appdatasets[[i]]$CHIFLOW_REGISTER)
   i = i + 1
 }
-graph_countries <- bind_rows(graph_country_regs) %>%
-  mutate(est_lb = Estimate - 1.96*`Std. Error`,
-         est_ub = Estimate + 1.96*`Std. Error`) %>%
-  group_by(tax) %>% 
-  arrange(desc(Estimate), .by_group = TRUE) %>%
-  mutate(row = row_number(),
-         shift = -0.4 + (row-1)*(0.8/max(row)),
-         taxyear = case_when(tax == "factor(tax)1496.19" ~ 1 + shift,
-                             tax == "factor(tax)2992.61" ~ 2 + shift,
-                             tax == "factor(tax)14115.7" ~ 3 + shift))
 
-# graph of gamma coefs
-immflow_countries <- ggplot(graph_countries, aes(x = taxyear, y = Estimate, color = "Other")) + 
-  geom_errorbar(aes(min = est_lb, max = est_ub, color = 'Other'), width = 0.05) + geom_point() +
-  geom_errorbar(data = graph_countries %>% filter(country == "China"), aes(min = est_lb, max = est_ub, color = 'China'), width = 0.05) + 
-  geom_point(data = graph_countries %>% filter(country == "China"), aes(x = taxyear, y = Estimate, color = 'China')) +
-  geom_errorbar(data = graph_countries %>% filter(country == "Germany"), aes(min = est_lb, max = est_ub, color = 'Germany'), width = 0.05) + 
-  geom_point(data = graph_countries %>% filter(country == "Germany"), aes(x = taxyear, y = Estimate, color = 'Germany')) +
-  geom_errorbar(data = graph_countries %>% filter(country == "India"), aes(min = est_lb, max = est_ub, color = 'India'), width = 0.05) + 
-  geom_point(data = graph_countries %>% filter(country == "India"), aes(x = taxyear, y = Estimate, color = 'India')) +
-  scale_x_continuous("", breaks = c(1,2,3), labels = c("1"= expression(paste("$50 Head Tax (",gamma[50] ^c, ")")),
-                                                       "2"= expression(paste("$100 Head Tax (",gamma[100] ^c, ")")),
-                                                       "3"= expression(paste("$500 Head Tax (",gamma[500] ^c, ")")))) +
-  labs(y = expression(paste("Estimated Effect of Head Tax on Immigration"))) + 
-  scale_color_manual(name = "Country", breaks = c('Other', 'China', 'Germany', "India"),
-                     values = c('Other' = ht, 'China'='red', "Germany" = c2, "India" = c4)) + theme_minimal() + theme(legend.position='bottom')
+stargazer(appmodels, se = appses,
+          keep = c("log\\(cost\\)", "log\\(cost2\\)", "log\\(cost3\\)"),
+          out = glue("{git}/output/paper/tables/app_immflow_regs.tex"),
+          float = FALSE,
+          digits = 2,
+          intercept.bottom = FALSE,
+          keep.stat=c("n","adj.rsq"),
+          column.labels = c("All Chi. Imm.", "All Chi. Imm.", "All (to 1921)", "All (to 1921)",
+                            "All (from 1886)", "All (from 1886)", "All", "All"),
+          column.separate = c(1,1,1,1,1,1),
+          covariate.labels = c("$\\gamma^{\\varepsilon}$ (log Cost)",
+                               "$\\gamma^{\\varepsilon}_{lowcost}$ (log Cost)",
+                               "$\\gamma^{\\varepsilon}_{highcost}$ (log Cost)"
+          ),
+          add.lines = list(c("Linear Time Trend", "Yes", "No", "Yes", "No", "Yes", "No", "Yes", "Yes"),
+                           c("Addtl. Push/Pull Ctrls", "No", "Yes", "No", "Yes", "No", "Yes", "No", "No"),
+                           c("Time Period", "1882-1908", "1882-1908", "1882-1921", "1882-1921", 
+                             "1886-1908", "1886-1908", "1882-1908", "1882-1908"),
+                           c("Mean Monthly Inflow ($\\overline{F_t}$)", round(unlist(appmeans), 1))),
+          dep.var.labels = c("log Monthly Chinese Immigrant Inflow ($\\log(F_{t})$)"),
+          table.layout = "=cld#-t-as=")
 
-ggsave(glue("{git}/figs/immflow_countries.png"), immflow_countries, height = 4, width = 7)
+# # OLD STUFF
+# 
+# # col a1: same as col 1
+# 
+# # col a2: full model (imm/emm, popstock)
+# 
+# # col a3: full sample (-1923) time trend only
+# 
+# # col a4: full sample (-1923) full model
+# 
+# # col a5: late sample (1886-1908) time trend only
+# 
+# # col a6: late sample (1886-1908) full model
+# 
+# # col a7: alt cost $25
+# 
+# # col a8: alt cost $75
+# 
+# # col a9: nonparam?? (factor tax)
+# 
+# 
+# ## MAIN TABLE REGS ----
+# # helper: for each outcome variable, runs inflow regression for main spec, $50 HT, $100 HT, $500 HT
+# flowregs_out <- function(df_full, df_stack, yvar, incl50 = TRUE){
+#   dfs <- list(df_full, 
+#               df_stack %>% filter(group == "$50 Tax"),
+#               df_stack %>% filter(group == "$100 Tax"),
+#               df_stack %>% filter(group == "$500 Tax"))
+#   
+#   models = list()
+#   ses = list()
+#   i = 1
+#   for (i in 1:length(dfs)){
+#     if (i != 2 | incl50){
+#       reg <- lm(data = dfs[[i]], glue("{yvar} ~ factor(month) + log(cost) + t"))
+#       models[[i]] <- reg
+#       ses[[i]] <- sqrt(diag(NeweyWest(reg)))
+#       i = i + 1
+#     }
+#   }
+#   
+#   return(list(models,ses))
+# }
+# 
+# 
+# for (yvar in c("logFLOW", "logFLOW_TAX", "logFLOW_NOTAX")){
+#   regout <- flowregs_out(moimm_reg_filt, moimm_stack, yvar, ifelse(yvar == "logFLOW", TRUE, FALSE))
+#   stargazer(regout[[1]], se = regout[[2]], keep = c("log\\(cost\\)"), digits = 2, intercept.bottom = FALSE,
+#             keep.stat = c("n", "adj.rsq"),
+#             column.labels = c("All Years ", "\\$50 Tax (1883-1888)",
+#                               "\\$100 Tax (1898-1903)", "\\$500 Tax (1901-1906)"),
+#             column.separate = c(1,1,1,1),
+#             covariate.labels=c("$\\gamma^{\\varepsilon}$ (log Cost)"),
+#             dep.var.labels = c("log Monthly Chinese Immigrant Inflow ($\\log(F_{t})$)"),
+#             table.layout = "=cld#-t-as=")
+# }
+# 
+# stargazer(list(flowreg1, flowreg50, flowreg100, flowreg500, flowreg0),
+#           se = list(robustse(flowreg1), robustse(flowreg50), robustse(flowreg100),
+#                     robustse(flowreg500), robustse(flowreg0)),
+#           keep = c("log\\(cost\\)"),
+#           #out = glue("{git}/output/paper/tables/immflow_regs_new.tex"),
+#           float = FALSE,
+#           digits = 2,
+#           intercept.bottom = FALSE,
+#           keep.stat=c("n","adj.rsq"),
+#           column.labels = c("All Years (1882-1921)", "\\$50 Tax (1883-1888)",
+#                             "\\$100 Tax (1898-1903)", "\\$500 Tax (1901-1906)", "All Years (1882-1921)"),
+#           column.separate = c(1,1,1,1,1),
+#           covariate.labels = c("$\\gamma^{\\varepsilon}$ (log Cost)",
+#                                "$\\gamma_{50}$ (\\$50 Tax)",
+#                                "$\\gamma_{100}$ (\\$100 Tax)",
+#                                "$\\gamma_{500}$ (\\$500 Tax)"
+#           ),
+#           add.lines = list(c("Dep. Var. Mean (SE)", flowreg_means),c("", flowreg_ses)),
+#           dep.var.labels = c("log Monthly Chinese Immigrant Inflow ($\\log(F_{t})$)", "Monthly Inflow ($F_{t}$)"),
+#           table.layout = "=cld#-t-as=")
+# 
+# 
+# 
+# 
+# flowregtex <- file(glue("{tabs}/immflow_regs_new.tex"), open = "w")
+# 
+# # writing table header
+# writeLines(c("\\begin{tabular}{lcccc}", 
+#              "\\hhline{======}", 
+#              "& \\multicolumn{5}{c}{\\textit{Dependent variable:} log Monthly Chinese Immigrant Inflow ($\\log F_t$)} \\\\ ", 
+#              "\\hhline{~-~---}", "& (1) & & (2) & (3) & (4)\\\\ ",
+#              glue("& All Years & & \\$50 Tax (1883-1888) & \\$100 Tax (1898-1903) & \\$500 Tax (1901-1906) \\\\ "), 
+#              " \\hhline{------}"), flowregtex)
+# 
+# # iterating through each yvar
+# for (yvar in c("logFLOW", "logFLOW_TAX", "logFLOW_NOTAX")){
+#   regout <- flowregs_out(moimm_reg_filt, moimm_stack, yvar, ifelse(yvar == "logFLOW", TRUE, FALSE))
+#   writeLines(c("\\multicolumn{6}{l}{\\textbf{Sample A: All Immigrants (1882-1908)}} \\\\",
+#                paste0(glue_collapse(c("hi",round(unlist(regout[[1]]), 2)), sep = " & "), "\\\\")
+#   )
+#   )  
+# }
+# 
+# # stargazer
+# stargazer(list(flowreg1, flowreg50, flowreg100, flowreg500, flowreg0),
+#           se = list(robustse(flowreg1), robustse(flowreg50), robustse(flowreg100),
+#                     robustse(flowreg500), robustse(flowreg0)),
+#           keep = c("^factor\\(tax\\)","log\\(cost\\)"),
+#           out = glue("{git}/output/paper/tables/immflow_regs.tex"),
+#           float = FALSE,
+#           digits = 2,
+#           intercept.bottom = FALSE,
+#           keep.stat=c("n","adj.rsq"),
+#           column.labels = c("All Years (1882-1921)", "\\$50 Tax (1883-1888)",
+#                             "\\$100 Tax (1898-1903)", "\\$500 Tax (1901-1906)", "All Years (1882-1921)"),
+#           column.separate = c(1,1,1,1,1),
+#           covariate.labels = c("$\\gamma^{\\varepsilon}$ (log Cost)",
+#                                "$\\gamma_{50}$ (\\$50 Tax)",
+#                                "$\\gamma_{100}$ (\\$100 Tax)",
+#                                "$\\gamma_{500}$ (\\$500 Tax)"
+#           ),
+#           add.lines = list(c("Dep. Var. Mean (SE)", flowreg_means),c("", flowreg_ses)),
+#           dep.var.labels = c("log Monthly Chinese Immigrant Inflow ($\\log(F_{t})$)", "Monthly Inflow ($F_{t}$)"),
+#           table.layout = "=cld#-t-as=")
+# # iterating through lines
+# ind = 1
+# for (i in 1:length(summ_cats)){
+#   # skip category rownames
+#   if(summ_cats[i] == "Age at Immigration (\\%)" | summ_cats[i] == "Year of Immigration (\\%)"){
+#     writeLines(glue_collapse(c(summ_cats[i],rep("&",5), "\\\\")), summtex)
+#   }else{
+#     means <- ifelse(is.na(summ_stats_out[2*ind+1,]) | as.numeric(summ_stats_out[2*ind+1,])==0, "-", formatC(as.numeric(summ_stats_out[2*ind+1,]), digits = 4))
+#     writeLines(c(paste(summ_cats[i], "&", glue_collapse(c(means[1:2],"",means[3:4]), sep = "&", last = ""), "\\\\ ")), summtex) 
+#     ind = ind + 1
+#   }
+# }
+# 
+# # writing number of observations for each sample
+# obs <- ifelse(is.na(summ_stats_out[2*ind+1,]), "-", formatC(as.numeric(summ_stats_out[2*ind+1,]), format = "d", big.mark = ","))
+# writeLines(c("Obs.", "&", glue_collapse(c(obs[1:2],"",obs[3:4]), sep = "&", last = ""), "\\\\ "), summtex)
+# writeLines(c("\\hhline{------}","\\end{tabular}"), summtex)
+# close(summtex)
+# 
+# x <- flowregs_out(moimm_reg_filt, moimm_stack, "logFLOW")
+# 
+# 
+# #HELPER TO OUTPUT RESULTS
+# report_flowregs <- function(df, taxpayerincl = TRUE){
+#   #all
+#   r1 <- lm(data = df, logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+#   r2 <- lm(data = df, logFLOW ~ factor(month) + log(cost) + t)
+#   
+#   print("Full Sample, $50 Baseline Cost")
+#   print(glue("Full Model: {round(r1$coefficients['log(cost)'],2)} ({round(summary(r1)$coefficients['log(cost)','Std. Error'], 2)}) [R Squared: {round(summary(r1)$r.squared,2)}]"))
+#   print(glue("t Only: {round(r2$coefficients['log(cost)'],2)} ({round(summary(r2)$coefficients['log(cost)','Std. Error'], 2)}) [R Squared: {round(summary(r2)$r.squared,2)}]"))
+#   
+#   #taxpayers
+#   if (taxpayerincl){
+#     r3 <- lm(data = df %>% filter(YRIMM >= 1886), ihs(CHIFLOW_REGISTER_TAX) ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+#     r4 <- lm(data = df%>% filter(YRIMM >= 1886), ihs(CHIFLOW_REGISTER_TAX) ~ factor(month) + log(cost) + t)
+#     
+#     print("Taxpayers Only, $50 Baseline Cost")
+#     print(glue("Full Model: {round(r3$coefficients['log(cost)'],2)} ({round(summary(r3)$coefficients['log(cost)','Std. Error'], 2)}) [R Squared: {round(summary(r3)$r.squared,2)}]"))
+#     print(glue("t Only: {round(r4$coefficients['log(cost)'],2)} ({round(summary(r4)$coefficients['log(cost)','Std. Error'], 2)}) [R Squared: {round(summary(r4)$r.squared,2)}]"))
+#     
+#     #non taxpayers
+#     r5 <- lm(data = df%>% filter(YRIMM >= 1886), ihs(CHIFLOW_REGISTER_NOTAX) ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+#     r6 <- lm(data = df%>% filter(YRIMM >= 1886), ihs(CHIFLOW_REGISTER_NOTAX) ~ factor(month) + log(cost) + t)
+#     
+#     print("Non-Taxpayers Only, $50 Baseline Cost")
+#     print(glue("Full Model: {round(r5$coefficients['log(cost)'],2)} ({round(summary(r5)$coefficients['log(cost)','Std. Error'], 2)}) [R Squared: {round(summary(r5)$r.squared,2)}]"))
+#     print(glue("t Only: {round(r6$coefficients['log(cost)'],2)} ({round(summary(r6)$coefficients['log(cost)','Std. Error'], 2)}) [R Squared: {round(summary(r6)$r.squared,2)}]"))
+#     
+#   }
+#   
+#   #alt costs: 25
+#   r7 <- lm(data = df, logFLOW ~ factor(month) + log(cost2) + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+#   r8 <- lm(data = df, logFLOW ~ factor(month) + log(cost2) + t)
+#   
+#   print("Full Sample, $25 Baseline Cost")
+#   print(glue("Full Model: {round(r7$coefficients['log(cost2)'],2)} ({round(summary(r7)$coefficients['log(cost2)','Std. Error'], 2)}) [R Squared: {round(summary(r7)$r.squared,2)}]"))
+#   print(glue("t Only: {round(r8$coefficients['log(cost2)'],2)} ({round(summary(r8)$coefficients['log(cost2)','Std. Error'], 2)}) [R Squared: {round(summary(r8)$r.squared,2)}]"))
+#   
+#   #alt costs: 75
+#   r9 <- lm(data = df, logFLOW ~ factor(month) + log(cost3) + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+#   r10 <- lm(data = df, logFLOW ~ factor(month) + log(cost3) + t)
+#   
+#   print("Full Sample, $75 Baseline Cost")
+#   print(glue("Full Model: {round(r9$coefficients['log(cost3)'],2)} ({round(summary(r9)$coefficients['log(cost3)','Std. Error'], 2)}) [R Squared: {round(summary(r9)$r.squared,2)}]"))
+#   print(glue("t Only: {round(r10$coefficients['log(cost3)'],2)} ({round(summary(r10)$coefficients['log(cost3)','Std. Error'], 2)}) [R Squared: {round(summary(r10)$r.squared,2)}]"))
+#   
+# }
+# 
+# regstart = 1882
+# regend = 1908
+# 
+# moimm_reg_filt <- filter(moimm_reg, YRIMM >= regstart & YRIMM <= regend)
+# print("MAIN SAMPLE: 1882-1908")
+# report_flowregs(moimm_reg_filt)
+# 
+# moimm_reg_full <- filter(moimm_reg, YRIMM >= 1882 & YRIMM <= 1923)
+# print("FULL SAMPLE: 1882-1923")
+# report_flowregs(moimm_reg_full)
+# 
+# moimm_reg_50 <- moimm_stack %>% filter(group == "$50 Tax")
+# print("WINDOW AROUND $50 ONLY")
+# report_flowregs(moimm_reg_50, taxpayerincl = FALSE)
+# 
+# moimm_reg_100 <- moimm_stack %>% filter(group == "$100 Tax")
+# print("WINDOW AROUND $100 ONLY")
+# report_flowregs(moimm_reg_100)
+# 
+# moimm_reg_500 <- moimm_stack %>% filter(group == "$500 Tax")
+# print("WINDOW AROUND $500 ONLY")
+# report_flowregs(moimm_reg_500)
+# 
+# 
+# 
+# # levels + factor tax
+# flowreg0 <- lm(data = moimm_reg_filt,
+#                CHIFLOW_REGISTER ~ factor(month) + factor(tax) + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg0)
+# 
+# # elasticity
+# flowreg1 <- lm(data = moimm_reg_filt,
+#                logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+#                  POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg1)
+# 
+# ## ALTERNATE VERSIONS
+# # moimm ctrl only
+# flowregm1 <- lm(data = moimm_reg_filt,
+#                 logFLOW ~ factor(month) + log(cost) + t)
+# summary(flowregm1)
+# 
+# # all years of imm until 1923
+# flowrega1 <- lm(data = moimm_reg %>% filter(YRIMM >= 1882 & YRIMM <= 1923),
+#                 logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+#                   POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowrega1)
+# 
+# # taxpayers only
+# flowrega2 <- lm(data = moimm_reg_filt %>% filter(YRIMM >= 1886),
+#                 ihs(CHIFLOW_REGISTER_TAX) ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+#                   POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowrega2)
+# 
+# flowrega2alt <- lm(data = moimm_reg_filt %>% filter(YRIMM >= 1886),
+#                    ihs(CHIFLOW_REGISTER_TAX) ~ factor(month) + log(cost) + t)
+# summary(flowrega2alt)
+# 
+# # non-taxpayers only
+# flowrega3 <- lm(data = moimm_reg_filt %>% filter(YRIMM >= 1886),
+#                 ihs(CHIFLOW_REGISTER_NOTAX) ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+#                   POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowrega3)
+# 
+# flowrega3alt <- lm(data = moimm_reg_filt %>% filter(YRIMM >= 1886),
+#                    ihs(CHIFLOW_REGISTER_NOTAX) ~ factor(month) + log(cost) + t)
+# summary(flowrega3alt)
+# 
+# # cost = 25
+# flowrega4 <- lm(data = moimm_reg_filt,
+#                 logFLOW ~ factor(month) + log(cost2) + EMIG_TOT + IMMFLOW_NATL +
+#                   POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowrega4)
+# 
+# flowrega4alt <- lm(data = moimm_reg_filt,
+#                    logFLOW ~ factor(month) + log(cost2) + t)
+# summary(flowrega4alt)
+# 
+# # cost = 75
+# flowrega5 <- lm(data = moimm_reg_filt,
+#                 logFLOW ~ factor(month) + log(cost3) + EMIG_TOT + IMMFLOW_NATL +
+#                   POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowrega5)
+# 
+# flowrega5alt <- lm(data = moimm_reg_filt,
+#                    logFLOW ~ factor(month) + log(cost3) + t)
+# summary(flowrega5alt)
+# 
+# ## BY INDIV HEAD TAX
+# # $50 HEAD TAX
+# flowreg50 <- lm(data = moimm_stack %>% filter(group == "$50 Tax"),
+#                 logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+#                   POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg50)
+# 
+# flowreg50alt <- lm(data = moimm_stack %>% filter(group == "$50 Tax"),
+#                    logFLOW ~ factor(month) + log(cost) + t)
+# summary(flowreg50alt)
+# 
+# # $100 HEAD TAX
+# flowreg100 <- lm(data = moimm_stack %>% filter(group == "$100 Tax"),
+#                  logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+#                    POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg100)
+# 
+# flowreg100alt <- lm(data = moimm_stack %>% filter(group == "$100 Tax"),
+#                     logFLOW ~ factor(month) + log(cost) + t)
+# summary(flowreg100alt)
+# 
+# # $500 HEAD TAX
+# flowreg500 <- lm(data = moimm_stack %>% filter(group == "$500 Tax"),
+#                  logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+#                    POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg500)
+# 
+# flowreg500alt <- lm(data = moimm_stack %>% filter(group == "$500 Tax"),
+#                     logFLOW ~ factor(month) + log(cost) + t)
+# summary(flowreg500alt)
+# 
+# flowreg1_raw <- lm(data = moimm_reg %>% filter(YRIMM >= regstart & YRIMM <= regend),
+#                    logFLOW ~ factor(month) + log(cost) + MOIMM)
+# summary(flowreg1_raw)
+# 
+# regmean1 <- round(mean(filter(moimm_reg, YRIMM >= regstart & YRIMM <= regend)$logFLOW),1)
+# regse1 <- round(sd(filter(moimm_reg, YRIMM >= regstart & YRIMM <= regend)$logFLOW)/
+#                   sqrt(nrow(filter(moimm_reg, YRIMM >= regstart & YRIMM <= regend)) - 1),1)
+# regmean0 <- round(mean(filter(moimm_reg, YRIMM >= regstart & YRIMM <= regend)$CHIFLOW_REGISTER),1)
+# regse0 <- round(sd(filter(moimm_reg, YRIMM >= regstart & YRIMM <= regend)$CHIFLOW_REGISTER)/
+#                   sqrt(nrow(filter(moimm_reg, YRIMM >= regstart & YRIMM <= regend)) - 1),1)
+# 
+# # ht 50
+# flowreg50 <- lm(data = moimm_reg %>% filter(YRIMM >= 1883 & YRIMM <= 1888),
+#                 logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+#                   POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg50)
+# regmean50 <- round(mean(filter(moimm_reg, YRIMM >= 1883 & YRIMM <= 1888)$logFLOW),1)
+# regse50 <- round(sd(filter(moimm_reg, YRIMM >= 1883 & YRIMM <= 1888)$logFLOW)/
+#                    sqrt(nrow(filter(moimm_reg, YRIMM >= 1883 & YRIMM <= 1888))-1),1)
+# 
+# flowreg50 <- lm(data = moimm_reg %>% filter(YRIMM >= 1883 & YRIMM <= 1888),
+#                 logFLOW ~ factor(month) + log(cost) + MOIMM + I(MOIMM^2))
+# summary(flowreg50)
+# 
+# regmean50_v2 <- round(mean(filter(moimm_reg, YRIMM >= 1883 & YRIMM <= 1888)$CHIFLOW_REGISTER),1)
+# regse50_v2 <- round(sd(filter(moimm_reg, YRIMM >= 1883 & YRIMM <= 1888)$CHIFLOW_REGISTER)/
+#                       sqrt(nrow(filter(moimm_reg, YRIMM >= 1883 & YRIMM <= 1888))-1),1)
+# 
+# 
+# # ht 100
+# flowreg100 <- lm(data = moimm_reg %>% filter(YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01")),
+#                  logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+#                    POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg100)
+# regmean100 <- round(mean(filter(moimm_reg, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))$logFLOW),1)
+# regse100 <- round(sd(filter(moimm_reg, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))$logFLOW)/
+#                     sqrt(nrow(filter(moimm_reg, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01")))-1),1)
+# 
+# flowreg100 <- lm(data = moimm_reg %>% filter(YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01")),
+#                  logFLOW ~ factor(month) + log(cost) + MOIMM + MOIMM^2)
+# summary(flowreg100)
+# 
+# regmean100_v2 <- round(mean(filter(moimm_reg, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))$CHIFLOW_REGISTER),1)
+# regse100_v2 <- round(sd(filter(moimm_reg, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))$CHIFLOW_REGISTER)/
+#                        sqrt(nrow(filter(moimm_reg, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01")))-1),1)
+# 
+# # ht 500
+# flowreg500 <- lm(data = moimm_reg %>% filter(MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906),
+#                  logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL +
+#                    POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg500)
+# regmean500 <- round(mean(filter(moimm_reg, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$logFLOW),1)
+# regse500 <- round(sd(filter(moimm_reg, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$logFLOW)/
+#                     sqrt(nrow(filter(moimm_reg, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906))-1),1)
+# 
+# flowreg500_v2 <- lm(data = moimm_reg %>% filter(MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906),
+#                     CHIFLOW_REGISTER ~ factor(month) + factor(tax) + EMIG_TOT + IMMFLOW_NATL +
+#                       POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# regmean500_v2 <- round(mean(filter(moimm_reg, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$CHIFLOW_REGISTER),1)
+# regse500_v2 <- round(sd(filter(moimm_reg, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$CHIFLOW_REGISTER)/
+#                        sqrt(nrow(filter(moimm_reg, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906))-1),1)
+# 
+# flowreg_means <- c(regmean1, regmean50, regmean100, regmean500, regmean0)
+# flowreg_ses <- c(glue("({regse1})"), glue("({regse50})"),glue("({regse100})"),glue("({regse500})"),glue("({regse0})"))
+# 
+# flowreg_means_v2 <- c(regmean1, regmean50, regmean100, regmean500, regmean0, regmean50_v2, regmean100_v2, regmean500_v2)
+# flowreg_ses_v2 <- c(glue("({regse1})"), glue("({regse50})"),glue("({regse100})"),glue("({regse500})"),
+#                     glue("({regse0})"), glue("({regse50_v2})"),glue("({regse100_v2})"),glue("({regse500_v2})"))
+# 
+# # stargazer
+# stargazer(list(flowreg1, flowreg50, flowreg100, flowreg500, flowreg0),
+#           se = list(robustse(flowreg1), robustse(flowreg50), robustse(flowreg100),
+#                     robustse(flowreg500), robustse(flowreg0)),
+#           keep = c("^factor\\(tax\\)","log\\(cost\\)"),
+#           out = glue("{git}/output/paper/tables/immflow_regs.tex"),
+#           float = FALSE,
+#           digits = 2,
+#           intercept.bottom = FALSE,
+#           keep.stat=c("n","adj.rsq"),
+#           column.labels = c("All Years (1882-1921)", "\\$50 Tax (1883-1888)",
+#                             "\\$100 Tax (1898-1903)", "\\$500 Tax (1901-1906)", "All Years (1882-1921)"),
+#           column.separate = c(1,1,1,1,1),
+#           covariate.labels = c("$\\gamma^{\\varepsilon}$ (log Cost)",
+#                                "$\\gamma_{50}$ (\\$50 Tax)",
+#                                "$\\gamma_{100}$ (\\$100 Tax)",
+#                                "$\\gamma_{500}$ (\\$500 Tax)"
+#           ),
+#           add.lines = list(c("Dep. Var. Mean (SE)", flowreg_means),c("", flowreg_ses)),
+#           dep.var.labels = c("log Monthly Chinese Immigrant Inflow ($\\log(F_{t})$)", "Monthly Inflow ($F_{t}$)"),
+#           table.layout = "=cld#-t-as=")
+# 
+# 
 
-immflow_countries_slides <- ggplot(graph_countries %>% filter(!(country %in% c("China", "Germany", "India"))), aes(x = taxyear, y = Estimate, color = "Other")) + 
-  geom_errorbar(aes(min = est_lb, max = est_ub, color = 'Other'), width = 0, linewidth = 2.8, alpha = 0.2) + geom_point(size=2, shape = 1) +
-  geom_errorbar(data = graph_countries %>% filter(country == "China"), aes(min = est_lb, max = est_ub, color = 'China'), width = 0, linewidth = 2.8, alpha = 0.4) + 
-  geom_point(data = graph_countries %>% filter(country == "China"), aes(x = taxyear, y = Estimate, color = 'China'), size = 3, shape = 17) +
-  geom_errorbar(data = graph_countries %>% filter(country == "Germany"), aes(min = est_lb, max = est_ub, color = 'Germany'), width = 0, linewidth = 2.8, alpha = 0.4) + 
-  geom_point(data = graph_countries %>% filter(country == "Germany"), aes(x = taxyear, y = Estimate, color = 'Germany'), size = 3, shape = 15) +
-  geom_errorbar(data = graph_countries %>% filter(country == "India"), aes(min = est_lb, max = est_ub, color = 'India'), width = 0, linewidth = 2.8, alpha = 0.4) + 
-  geom_point(data = graph_countries %>% filter(country == "India"), aes(x = taxyear, y = Estimate, color = 'India'), size = 3, shape = 18) +
-  scale_x_continuous("", breaks = c(1,2,3), labels = c("1"= expression(paste("$50 Head Tax (",gamma[50] ^c, ")")),
-                                                       "2"= expression(paste("$100 Head Tax (",gamma[100] ^c, ")")),
-                                                       "3"= expression(paste("$500 Head Tax (",gamma[500] ^c, ")")))) +
-  labs(y = expression(paste("Est. Effect of HT on Imm."))) + 
-  scale_color_manual(name = "Country", breaks = c('Other', 'China', 'Germany', "India"),
-                     values = c('Other' = ht, 'China'='red', "Germany" = c2, "India" = c4)) + theme_minimal() + theme(legend.position='bottom') +
-  theme(text = element_text(size=18), axis.text = element_text(size = 14))
+# 
+# startyr = 1880
+# endyr = 1924
+# moimm1 <- moimm_reg %>% mutate(MONTH = month(MOIMM)) %>% filter(YRIMM >= startyr & YRIMM <= endyr)
+# moimm_mo <- lm(CHIFLOW_REGISTER ~ factor(MONTH), data = moimm1)
+# moimm1$FLOW_DETR <- resid(moimm_mo)
+# ggplot(data = moimm1,
+#        aes(x = MOIMM, y = FLOW_DETR)) + geom_line() +
+#   geom_vline(aes(xintercept = dates), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
+#              show.legend = FALSE, color = "#808080", linetype = 3) +
+#   geom_text(aes(x = dates, y = 1000, label = labs), data = headtaxcuts_month %>% filter(year(dates) < endyr & year(dates) > startyr), 
+#             inherit.aes = FALSE, angle = 90, nudge_x = 0.8, size = 3, color = "#808080") +
+#   labs(x = "Year of Immigration") + theme_minimal() + theme(legend.position='bottom')
+# 
+# 
 
-ggsave(glue("{git}/figs/slides/immflow_countries.png"), immflow_countries_slides, height = 5, width = 8)
-
-#_____________________________________________________________
-# ROBUSTNESS CHECKS --------------------------
-#_____________________________________________________________
-## REGISTER ----
-# using controls for 2yr drops only
-flowreg2 <- lm(data = flow_regress %>% filter(YRIMM > 1880 & YRIMM < 1924) %>% mutate(twoyearpost = ifelse(twoyearpost == "_post50", "_notpost", twoyearpost)),
-               CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + factor(twoyearpost) + POPSTOCK_China + I(POPSTOCK_China^2))
-
-# controls for both
-flowreg2b <- lm(data = flow_regress %>% filter(YRIMM > 1885 & YRIMM < 1924) %>% mutate(twoyearpost = ifelse(twoyearpost == "_post50", "_notpost", twoyearpost)),
-                CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + factor(tax) +  factor(twoyearpost) + POPSTOCK_China + I(POPSTOCK_China^2))
-
-## CENSUS ----
-# using controls for 2yr drops only
-flowcensus2 <- lm(data = flow_regress %>% filter(YRIMM > 1879 & YRIMM < 1921), 
-                  FLOW_China ~ EMIG_TOT + IMMFLOW_CENSUS + factor(twoyearpost) + POPSTOCK_China + I(POPSTOCK_China^2))
-
-# controls for both
-flowcensus2b <- lm(data = flow_regress %>% filter(YRIMM > 1879 & YRIMM < 1921), 
-                   FLOW_China ~ EMIG_TOT + IMMFLOW_CENSUS + factor(tax) +  factor(twoyearpost) + POPSTOCK_China + I(POPSTOCK_China^2))
-
-# sub log flow over pop
-flowcensus3 <- lm(data = flow_regress %>% filter(YRIMM > 1879 & YRIMM < 1921), 
-                  logFLOWOVERPOP_China ~ IMMFLOW_CENSUS + factor(tax) +  POPSTOCK_China + I(POPSTOCK_China^2))
-
-# flow_regress_old <- yrimm_census %>% group_by(BPL) %>% mutate(n = n()) %>% filter(n > 5) %>% # at least five years of nonzero imm
+# flow_regress <- yrimm_census %>% group_by(BPL) %>% mutate(n = n()) %>% filter(n > 5) %>% # at least five years of nonzero imm
 #   ungroup() %>% select(-c(YEAR,tax,n)) %>% #census data (flows)
 #   full_join(popstock, by = c("YRIMM"="YEAR", "BPL")) %>% #population stocks
 #   inner_join(maddison_data %>% mutate(Year = as.double(Year)) %>% #source country population and gdp per capita data
 #                inner_join(wid_data) %>% #source country inequality data
 #                pivot_longer(-Year, names_to = c(".value", "BPL"), names_pattern = "(.*)_([A-z]+)$"),
 #              by = c("YRIMM" = "Year", "BPL")) %>%
-#   group_by(BPL) %>% arrange(YRIMM) %>%
-#   mutate(#FLOW = ifelse(is.na(FLOW) & cumprod(is.na(FLOW)) != 1, min(FLOW, na.rm=TRUE), FLOW),
-#     logFLOWOVERPOP = log(FLOW/INTERP_POP), #dividing flows and stocks by source country population
-#     POPSTOCK = lag(CANPOP),
-#     POPSTOCKOVERPOP = POPSTOCK/INTERP_POP,
-#     INTERP_GDPPERCAP = INTERP_GDP/INTERP_POP) %>%
+#   group_by(BPL) %>% arrange(YRIMM) %>% 
+#   mutate(logFLOWOVERPOP = log(FLOW/INTERP_POP), #dividing flows and stocks by source country population
+#          POPSTOCKLAG = lag(CANPOP),
+#          POPSTOCKLAGOVERPOP = POPSTOCKLAG/INTERP_POP,
+#          INTERP_GDPPERCAP = INTERP_GDP/INTERP_POP) %>%
 #   pivot_wider(id_cols = c(YRIMM), names_from = BPL,
-#               values_from = c(FLOW, CANPOP, INTERP_POP, INTERP_GDPPERCAP, INTERP_INCSHARE50PCT, logFLOWOVERPOP, POPSTOCK)) %>%
-#   left_join(yrimm_reg) %>% #register data
+#               values_from = c(FLOW, CANPOP, INTERP_POP, INTERP_GDPPERCAP, INTERP_INCSHARE50PCT, logFLOWOVERPOP, 
+#                               POPSTOCKLAG, POPSTOCKLAGOVERPOP)) %>%
+#   left_join(moimm_reg) %>% #register data
 #   left_join(immflow, by = c("YRIMM" = "Year")) %>% #total immigration inflow into canada
 #   left_join(yrimm_census %>% ungroup() %>% group_by(YRIMM) %>% summarize(IMMFLOW_CENSUS = sum(FLOW))) %>%
 #   left_join(hk_departure, by = c("YRIMM" = "YEAR")) %>% #total emigration outflow from hong kong
 #   left_join(popstock %>% filter(BPL == "ForeignBorn") %>% rename(IMMPOP = CANPOP) %>% select(c(YEAR, IMMPOP)), by = c("YRIMM" = "YEAR")) %>%
-#   mutate(across(starts_with("INTERP_GDPPERCAP"), ~ .x/INTERP_GDPPERCAP_Canada, .names = "REL_{.col}"),
-#          across(starts_with("INTERP_INCSHARE50PCT"), ~ .x/INTERP_INCSHARE50PCT_Canada, .names = "REL_{.col}"),
-#          EMIGOVERPOP = EMIG_TOT/INTERP_POP_China,
-#          IMMOVERPOP = IMMFLOW_NATL/IMMPOP,
-#          REGFLOWOVERPOP_China = CHIFLOW_REGISTER/INTERP_POP_China,
-#          logREGFLOWOVERPOP_China = log(REGFLOWOVERPOP_China),
-#          tax = case_when(YRIMM <= 1885 ~ 0,
-#                          YRIMM <= 1900 ~ 1496.19,
-#                          YRIMM <= 1903 ~ 2992.61,
-#                          YRIMM < 1924 ~ 14115.70),
-#          twoyearpost = case_when(YRIMM %in% c(1886, 1887) ~ "_post50",
-#                                  YRIMM %in% c(1901,1902) ~ "post100",
-#                                  YRIMM %in% c(1904,1905) ~ "post500",
-#                                  TRUE ~ "_notpost"),
-#          oneyearpost = case_when(YRIMM == 1886 ~ "_post50",
-#                                  YRIMM == 1901 ~ "post100",
-#                                  YRIMM == 1904 ~ "post500",
-#                                  TRUE ~ "_notpost"))
-
-#_____________________________________________________________
-# 9/9/24 RESULTS --------------------------
-#_____________________________________________________________
-
-## Register Results ----
-# result 1: 1882-1922
-reg1 <- lm(data = flow_regress %>% filter(YRIMM >= 1882 & YRIMM <= 1922), 
-           CHIFLOW_REGISTER ~ factor(tax) + EMIG_TOT + IMMFLOW_NATL +  POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-# result 2: 1886-1922
-reg2 <- lm(data = flow_regress %>% filter(YRIMM >= 1886 & YRIMM <= 1922), 
-           CHIFLOW_REGISTER ~ factor(tax) + EMIG_TOT + IMMFLOW_NATL +  POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-# result 3: log popstock
-reg3 <- lm(data = flow_regress %>% filter(YRIMM >= 1882 & YRIMM <= 1922), 
-           CHIFLOW_REGISTER ~ factor(tax) + EMIG_TOT + IMMFLOW_NATL + log(POPSTOCKLAG_China))
-
-# result 4: log popstock (1886-1922)
-reg4 <- lm(data = flow_regress %>% filter(YRIMM >= 1886 & YRIMM <= 1922), 
-           CHIFLOW_REGISTER ~ factor(tax) + EMIG_TOT + IMMFLOW_NATL + log(POPSTOCKLAG_China))
-
-# result 5: linear in tax
-reg5 <- lm(data = flow_regress %>% filter(YRIMM >= 1882 & YRIMM <= 1922), 
-           CHIFLOW_REGISTER ~  tax + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-## Output to Stargazer ----
-stargazer(reg1, reg2, reg3, reg4, reg5,
-          out = glue("{git}/output/slides/immflow_regs.tex"), 
-          float = FALSE,
-          digits = 2,
-          intercept.bottom = FALSE,
-          keep.stat=c("n","adj.rsq"),
-          dep.var.caption = "Dependent Variable: Chinese Immigrant Inflow ($FLOW_{China, t}$)",
-          dep.var.labels.include = FALSE,
-          single.row = TRUE,
-          covariate.labels = c("$\\alpha_0$ (Constant)",
-                               "$\\gamma_{50}$ (\\$50 Tax)", 
-                               "$\\gamma_{100}$ (\\$100 Tax)", 
-                               "$\\gamma_{500}$ (\\$500 Tax)",
-                               "$\\gamma^C$ ($TAX_t$ in 2023 USD)",
-                               "$\\alpha_{1}$ ($HKEMIG_{t}$)",
-                               "$\\alpha_{2}$ ($CANIMMIG_{t}$)",
-                               "$\\alpha_{3}$ ($POPSTOCK_{t-1}$)",
-                               "$\\alpha_{4}$ ($POPSTOCK_{t-1}^{2})$",
-                               "$\\log(POPSTOCK_{t-1})$"),
-          table.layout = "=lc#-t-as=")
-
-## Counterfactual graphs and calculations ----
-cfreg1 <- cf_flow_calc(flow_regress, reg1)
-cfout1 <- cf_flow_predout(cfreg1)
-ggsave(glue("{git}/output/slides/cfpred1.png"), cfout1, width = 7, height = 4)
-
-cfreg2 <- cf_flow_calc(flow_regress, reg2)
-cfout2 <- cf_flow_predout(cfreg2)
-ggsave(glue("{git}/output/slides/cfpred2.png"), cfout2, width = 7, height = 4)
-
-cfreg3 <- cf_flow_calc(flow_regress, reg3, logpopstock = TRUE)
-cfout3 <- cf_flow_predout(cfreg3)
-ggsave(glue("{git}/output/slides/cfpred3.png"), cfout3, width = 7, height = 4)
-
-cfreg4 <- cf_flow_calc(flow_regress, reg4, startyr = 1886, logpopstock = TRUE)
-cfout4 <- cf_flow_predout(cfreg4)
-ggsave(glue("{git}/output/slides/cfpred4.png"), cfout4, width = 7, height = 4)
-
-cfreg5 <- cf_flow_calc(flow_regress, reg5, lintax = TRUE)
-cfout5 <- cf_flow_predout(cfreg5)
-ggsave(glue("{git}/output/slides/cfpred5.png"), cfout5, width = 7, height = 4)
-
-
-## CENSUS Results ----
-# result 1: 1882-1920
-cen1 <- lm(data = flow_regress %>% filter(YRIMM >= 1882 & YRIMM <= 1920), 
-           FLOW_China ~ factor(tax) + EMIG_TOT + IMMFLOW_CENSUS +  POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-# result 2: 1886-1922
-cen2 <- lm(data = flow_regress %>% filter(YRIMM >= 1886 & YRIMM <= 1920), 
-           FLOW_China ~ factor(tax) + EMIG_TOT + IMMFLOW_CENSUS +  POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-# result 3: log popstock
-cen3 <- lm(data = flow_regress %>% filter(YRIMM >= 1882 & YRIMM <= 1920), 
-           FLOW_China ~ factor(tax) + EMIG_TOT + IMMFLOW_CENSUS + log(POPSTOCKLAG_China))
-
-# result 4: log popstock (1886-1922)
-cen4 <- lm(data = flow_regress %>% filter(YRIMM >= 1886 & YRIMM <= 1920), 
-           FLOW_China ~ factor(tax) + EMIG_TOT + IMMFLOW_CENSUS + log(POPSTOCKLAG_China))
-
-# result 5: linear in tax
-cen5 <- lm(data = flow_regress %>% filter(YRIMM >= 1882 & YRIMM <= 1920), 
-           FLOW_China ~  tax + EMIG_TOT + IMMFLOW_CENSUS + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-## Output to Stargazer ----
-stargazer(cen1, cen2, cen3, cen4, cen5,
-          out = glue("{git}/output/slides/immflow_cen_regs.tex"), 
-          float = FALSE,
-          digits = 2,
-          intercept.bottom = FALSE,
-          keep.stat=c("n","adj.rsq"),
-          dep.var.caption = "Dependent Variable: Chinese Immigrant Inflow ($FLOW_{China, t}$)",
-          dep.var.labels.include = FALSE,
-          single.row = TRUE,
-          covariate.labels = c("$\\alpha_0$ (Constant)",
-                               "$\\gamma_{50}$ (\\$50 Tax)", 
-                               "$\\gamma_{100}$ (\\$100 Tax)", 
-                               "$\\gamma_{500}$ (\\$500 Tax)",
-                               "$\\gamma^C$ ($TAX_t$ in 2023 USD)",
-                               "$\\alpha_{1}$ ($HKEMIG_{t}$)",
-                               "$\\alpha_{2}$ ($CANIMMIG_{t}$)",
-                               "$\\alpha_{3}$ ($POPSTOCK_{t-1}$)",
-                               "$\\alpha_{4}$ ($POPSTOCK_{t-1}^{2})$",
-                               "$\\log(POPSTOCK_{t-1})$"),
-          table.layout = "=lc#-t-as=")
-
-## Counterfactual graphs and calculations ----
-cfcen1 <- cf_flow_calc(flow_regress, cen1, endyr = 1920, cen = TRUE)
-cfcenout1 <- cf_flow_predout(cfcen1)
-ggsave(glue("{git}/output/slides/cfcenpred1.png"), cfcenout1, width = 7, height = 4)
-
-cfcen2 <- cf_flow_calc(flow_regress, cen2, endyr = 1920, cen = TRUE)
-cfcenout2 <- cf_flow_predout(cfcen2)
-ggsave(glue("{git}/output/slides/cfcenpred2.png"), cfcenout2, width = 7, height = 4)
-
-cfcen3 <- cf_flow_calc(flow_regress, cen3, endyr = 1920, cen = TRUE, logpopstock = TRUE)
-cfcenout3 <- cf_flow_predout(cfcen3)
-ggsave(glue("{git}/output/slides/cfcenpred3.png"), cfcenout3, width = 7, height = 4)
-
-cfcen4 <- cf_flow_calc(flow_regress, cen4, endyr = 1920, startyr = 1886, cen = TRUE, logpopstock = TRUE)
-cfcenout4 <- cf_flow_predout(cfcen4)
-ggsave(glue("{git}/output/slides/cfcenpred4.png"), cfcenout4, width = 7, height = 4)
-
-cfcen5 <- cf_flow_calc(flow_regress, cen5, endyr = 1920, cen = TRUE, lintax = TRUE)
-cfcenout5 <- cf_flow_predout(cfcen5)
-ggsave(glue("{git}/output/slides/cfcenpred5.png"), cfcenout5, width = 7, height = 4)
-
-
-## LOG-LOG REGRESSIONS ----
-# register
-log1 <- lm(data = flow_regress %>% filter(YRIMM >= 1882, YRIMM <= 1922) %>% mutate(tax = tax + 1500),
-           log(CHIFLOW_REGISTER) ~ log(tax) + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-log2 <- lm(data = flow_regress %>% filter(YRIMM >= 1882, YRIMM <= 1922) %>% mutate(tax = tax + 3000),
-           log(CHIFLOW_REGISTER) ~ log(tax) + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-log3 <- lm(data = flow_regress %>% filter(YRIMM >= 1886, YRIMM <= 1922) %>% mutate(tax = tax + 1500),
-           log(CHIFLOW_REGISTER) ~ log(tax) + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-log4 <- lm(data = flow_regress %>% filter(YRIMM >= 1886, YRIMM <= 1922) %>% mutate(tax = tax + 3000),
-           log(CHIFLOW_REGISTER) ~ log(tax) + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-# census
-log5 <- lm(data = flow_regress %>% filter(YRIMM >= 1882, YRIMM <= 1920) %>% mutate(tax = tax + 1500),
-           log(FLOW_China) ~ log(tax) + EMIG_TOT + IMMFLOW_CENSUS + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-log6 <- lm(data = flow_regress %>% filter(YRIMM >= 1882, YRIMM <= 1920) %>% mutate(tax = tax + 3000),
-           log(FLOW_China) ~ log(tax) + EMIG_TOT + IMMFLOW_CENSUS + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-#stargazer output
-stargazer(log1, log2, log3, log4, log5, log6,
-          out = glue("{git}/output/slides/immflow_log_regs.tex"), 
-          float = FALSE,
-          digits = 2,
-          intercept.bottom = FALSE,
-          keep.stat=c("n","adj.rsq"),
-          dep.var.caption = "Dependent Variable: Log Chinese Immigrant Inflow ($\\log(FLOW_{China, t})$)",
-          dep.var.labels.include = FALSE,
-          single.row = TRUE,
-          covariate.labels = c("$\\alpha_0$ (Constant)",
-                               "$\\gamma^e$ ($\\log(TAX_t)$ in 2023 USD)",
-                               "$\\alpha_{1}$ ($HKEMIG_{t}$)",
-                               "$\\alpha_{2}$ ($CANIMMIG_{t}$)",
-                               "$\\alpha_{2}$ ($CANIMMIG_{t}$ census)",
-                               "$\\alpha_{3}$ ($POPSTOCK_{t-1}$)",
-                               "$\\alpha_{4}$ ($POPSTOCK_{t-1}^{2})$"),
-          table.layout = "=lc#-t-as=")
-
-## V1: China Only Regressions ----
-toggle = "display"
-#toggle = "output"
-
-## using register flows
-# equation 1: controls for imm, emm, popstock, and tax
-regstart = 1882
-regend = 1920
-flowreg1 <- lm(data = flow_regress %>% filter(YRIMM >= regstart & YRIMM <= regend), 
-               CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + factor(tax) + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-flowreg1_tax <- lm(data = flow_regress %>% filter(YRIMM >= regstart & YRIMM <= regend), 
-                   CHIFLOW_REGISTER ~ EMIG_TOT + IMMFLOW_NATL + tax + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-## using census flows
-# equation 1: controls for imm, emm, popstock, and tax
-censtart = 1882
-cenend = 1920
-flowcensus1 <- lm(data = flow_regress %>% filter(YRIMM >= censtart & YRIMM <= cenend), 
-                  FLOW_China ~ EMIG_TOT + IMMFLOW_CENSUS + factor(tax) + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-flowcensus1_tax <- lm(data = flow_regress %>% filter(YRIMM >= censtart & YRIMM <= cenend), 
-                      FLOW_China ~ EMIG_TOT + IMMFLOW_CENSUS + tax + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
-
-if (toggle == "display"){
-  print(summary(flowreg1))
-  print(summary(flowcensus1))
-}
-
-reg_mean = round(mean(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$CHIFLOW_REGISTER), 1)
-reg_se = round(sd(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$CHIFLOW_REGISTER)/sqrt(regend-regstart),1)
-census_mean = round(mean(filter(flow_regress, YRIMM >= censtart & YRIMM <= cenend)$FLOW_China),1)
-census_se = round(sd(filter(flow_regress, YRIMM >= censtart & YRIMM <= cenend)$FLOW_China)/sqrt(regend-regstart),1)
-
-n = 2
-flowreg_stats = c(rep(glue("{reg_mean} ({reg_se})"),n),rep(glue("{census_mean} ({census_se})"),n))
-flowreg_means = c(rep(glue("{reg_mean}"),n),rep(glue("{census_mean}"),n))
-flowreg_ses = c(rep(glue("({reg_se})"),n),rep(glue("({census_se})"),n))
-
-
-
+#   mutate(month = as.character(month(MOIMM)),
+#          logFLOW = log(CHIFLOW_REGISTER))
+# 
+# ## V1: China Only Regressions ----
+# regstart = 1882
+# regend = 1923
+# 
+# # levels + factor tax
+# flowreg0 <- lm(data = flow_regress %>% filter(YRIMM >= regstart & YRIMM <= regend), 
+#                CHIFLOW_REGISTER ~ factor(month) + factor(tax) + EMIG_TOT + IMMFLOW_NATL + POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg0)
+# 
+# # elasticity
+# flowreg1 <- lm(data = flow_regress %>% filter(YRIMM >= regstart & YRIMM <= regend), 
+#                logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL + 
+#                  POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg1)
+# 
+# regmean1 <- round(mean(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$logFLOW),1)
+# regse1 <- round(sd(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$logFLOW)/
+#                   sqrt(nrow(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)) - 1),1)
+# regmean0 <- round(mean(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$CHIFLOW_REGISTER),1)
+# regse0 <- round(sd(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)$CHIFLOW_REGISTER)/
+#                   sqrt(nrow(filter(flow_regress, YRIMM >= regstart & YRIMM <= regend)) - 1),1)
+# 
+# # ht 50
+# flowreg50 <- lm(data = flow_regress %>% filter(YRIMM >= 1883 & YRIMM <= 1888), 
+#                logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL + 
+#                  POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg50)
+# regmean50 <- round(mean(filter(flow_regress, YRIMM >= 1883 & YRIMM <= 1888)$logFLOW),1)
+# regse50 <- round(sd(filter(flow_regress, YRIMM >= 1883 & YRIMM <= 1888)$logFLOW)/
+#                    sqrt(nrow(filter(flow_regress, YRIMM >= 1883 & YRIMM <= 1888))-1),1)
+# 
+# flowreg50_v2 <- lm(data = flow_regress %>% filter(YRIMM >= 1883 & YRIMM <= 1888), 
+#                 CHIFLOW_REGISTER ~ factor(month) + factor(tax) + EMIG_TOT + IMMFLOW_NATL + 
+#                   POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# regmean50_v2 <- round(mean(filter(flow_regress, YRIMM >= 1883 & YRIMM <= 1888)$CHIFLOW_REGISTER),1)
+# regse50_v2 <- round(sd(filter(flow_regress, YRIMM >= 1883 & YRIMM <= 1888)$CHIFLOW_REGISTER)/
+#                    sqrt(nrow(filter(flow_regress, YRIMM >= 1883 & YRIMM <= 1888))-1),1)
+# 
+# 
+# # ht 100
+# flowreg100 <- lm(data = flow_regress %>% filter(YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01")), 
+#                 logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL + 
+#                   POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg100)
+# regmean100 <- round(mean(filter(flow_regress, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))$logFLOW),1)
+# regse100 <- round(sd(filter(flow_regress, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))$logFLOW)/
+#                    sqrt(nrow(filter(flow_regress, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01")))-1),1)
+# 
+# flowreg100_v2 <- lm(data = flow_regress %>% filter(YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01")), 
+#                     CHIFLOW_REGISTER ~ factor(month) + factor(tax) + EMIG_TOT + IMMFLOW_NATL + 
+#                    POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# regmean100_v2 <- round(mean(filter(flow_regress, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))$CHIFLOW_REGISTER),1)
+# regse100_v2 <- round(sd(filter(flow_regress, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01"))$CHIFLOW_REGISTER)/
+#                     sqrt(nrow(filter(flow_regress, YRIMM >= 1898 & MOIMM <= as.Date("1903-07-01")))-1),1)
+# 
+# # ht 500
+# flowreg500 <- lm(data = flow_regress %>% filter(MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906), 
+#                  logFLOW ~ factor(month) + log(cost) + EMIG_TOT + IMMFLOW_NATL + 
+#                    POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# summary(flowreg500)
+# regmean500 <- round(mean(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$logFLOW),1)
+# regse500 <- round(sd(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$logFLOW)/
+#                     sqrt(nrow(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906))-1),1)
+# 
+# flowreg500_v2 <- lm(data = flow_regress %>% filter(MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906), 
+#                     CHIFLOW_REGISTER ~ factor(month) + factor(tax) + EMIG_TOT + IMMFLOW_NATL + 
+#                    POPSTOCKLAG_China + I(POPSTOCKLAG_China^2))
+# regmean500_v2 <- round(mean(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$CHIFLOW_REGISTER),1)
+# regse500_v2 <- round(sd(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906)$CHIFLOW_REGISTER)/
+#                     sqrt(nrow(filter(flow_regress, MOIMM >= as.Date("1901-06-01") & YRIMM <= 1906))-1),1)
+# 
+# flowreg_means <- c(regmean1, regmean50, regmean100, regmean500, regmean0)
+# flowreg_ses <- c(glue("({regse1})"), glue("({regse50})"),glue("({regse100})"),glue("({regse500})"),glue("({regse0})"))
+# 
+# flowreg_means_v2 <- c(regmean1, regmean50, regmean100, regmean500, regmean0, regmean50_v2, regmean100_v2, regmean500_v2)
+# flowreg_ses_v2 <- c(glue("({regse1})"), glue("({regse50})"),glue("({regse100})"),glue("({regse500})"),
+#                     glue("({regse0})"), glue("({regse50_v2})"),glue("({regse100_v2})"),glue("({regse500_v2})"))
+# 
+# # stargazer
+# stargazer(list(flowreg1, flowreg50, flowreg100, flowreg500, flowreg0),
+#           se = list(robustse(flowreg1), robustse(flowreg50), robustse(flowreg100), 
+#                      robustse(flowreg500), robustse(flowreg0)),
+#           keep = c("^factor\\(tax\\)","log\\(cost\\)"),
+#           out = glue("{git}/output/paper/tables/immflow_regs.tex"), 
+#           float = FALSE,
+#           digits = 2,
+#           intercept.bottom = FALSE,
+#           keep.stat=c("n","adj.rsq"),
+#           column.labels = c("All Years (1882-1921)", "\\$50 Tax (1883-1888)", 
+#                             "\\$100 Tax (1898-1903)", "\\$500 Tax (1901-1906)", "All Years (1882-1921)"),
+#           column.separate = c(1,1,1,1,1),
+#           covariate.labels = c("$\\gamma^{\\varepsilon}$ (log Cost)",
+#                                "$\\gamma_{50}$ (\\$50 Tax)", 
+#                                "$\\gamma_{100}$ (\\$100 Tax)", 
+#                                "$\\gamma_{500}$ (\\$500 Tax)"
+#                                ),
+#           add.lines = list(c("Dep. Var. Mean (SE)", flowreg_means),c("", flowreg_ses)),
+#           dep.var.labels = c("log Monthly Chinese Immigrant Inflow ($\\log(F_{t})$)", "Monthly Inflow ($F_{t}$)"),
+#           table.layout = "=cld#-t-as=")
